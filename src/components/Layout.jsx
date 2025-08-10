@@ -36,7 +36,7 @@ export default function Layout({ children }) {
           <header className="sticky top-0 z-10 border-b border-black/10 dark:border-white/10 bg-white/80 dark:bg-neutral-950/80 backdrop-blur">
             <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
               <Link href="/portfolio-summary" className="font-semibold tracking-tight">
-                PropLytics
+                Proplytics
               </Link>
               <div className="flex items-center gap-3">
                 <button
