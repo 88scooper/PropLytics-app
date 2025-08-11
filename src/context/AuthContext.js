@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import {
   onAuthStateChanged,
@@ -24,6 +25,7 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (nextUser) => {
@@ -39,9 +41,14 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logIn = useCallback(async (email, password) => {
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    return cred.user;
-  }, []);
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      router.push('/portfolio-summary');
+      return cred.user;
+    } catch (error) {
+      throw error;
+    }
+  }, [router]);
 
   const logOut = useCallback(async () => {
     await signOut(auth);
