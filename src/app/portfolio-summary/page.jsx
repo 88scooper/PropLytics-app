@@ -146,7 +146,6 @@ export default function PortfolioSummaryPage() {
             <MetricCard
               title="Total Estimated Portfolio Value"
               value="$2,450,000"
-              description="Combined market value of all properties"
               trend="+5.2%"
               trendPositive={true}
               showInfoIcon={true}
@@ -155,7 +154,6 @@ export default function PortfolioSummaryPage() {
             <MetricCard
               title="Total Estimated Equity"
               value="$1,180,000"
-              description="Current equity across all properties"
               trend="+8.7%"
               trendPositive={true}
               showInfoIcon={true}
@@ -164,7 +162,6 @@ export default function PortfolioSummaryPage() {
             <MetricCard
               title="Monthly Net Cash Flow"
               value="$12,450"
-              description="Total monthly income after expenses"
               trend="+2.1%"
               trendPositive={true}
               showInfoIcon={true}
@@ -173,7 +170,6 @@ export default function PortfolioSummaryPage() {
             <MetricCard
               title="Total Monthly Expenses"
               value={`$${totalMonthlyExpenses.toLocaleString()}`}
-              description="Total recurring monthly costs across all properties"
               trend="+1.8%"
               trendPositive={false}
               isExpense={true}
@@ -183,7 +179,6 @@ export default function PortfolioSummaryPage() {
             <MetricCard
               title="Total Properties"
               value="8"
-              description="Number of properties in portfolio"
               trend="+1"
               trendPositive={true}
               showInfoIcon={true}
@@ -192,7 +187,6 @@ export default function PortfolioSummaryPage() {
             <MetricCard
               title="Average Occupancy Rate"
               value="94.5%"
-              description="Current occupancy across all units"
               trend="-1.2%"
               trendPositive={false}
               showInfoIcon={true}
@@ -201,7 +195,6 @@ export default function PortfolioSummaryPage() {
             <MetricCard
               title="Average Cap Rate"
               value="6.8%"
-              description="Weighted average capitalization rate"
               trend="+0.3%"
               trendPositive={true}
               showInfoIcon={true}
@@ -209,8 +202,6 @@ export default function PortfolioSummaryPage() {
             />
             <MetricCard
               title="Total Estimated Return on Cost"
-              value=""
-              description=""
               trend=""
               trendPositive={true}
               showInfoIcon={true}
@@ -224,8 +215,6 @@ export default function PortfolioSummaryPage() {
             />
             <MetricCard
               title="Financial Goals 2025"
-              value=""
-              description=""
               trend=""
               trendPositive={true}
               showInfoIcon={true}
@@ -311,12 +300,14 @@ function MetricCard({ title, value, description, trend, trendPositive, isExpense
     <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 hover:bg-black/5 dark:hover:bg-white/5 transition">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</h3>
             {showInfoIcon && (
               <div className="relative group">
-                <span className="text-gray-400 text-sm cursor-help">ⓘ</span>
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                <div className="w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center cursor-help">
+                  <span className="text-gray-500 dark:text-gray-400 text-xs font-medium">i</span>
+                </div>
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 max-w-xs">
                   {tooltipText}
                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-100"></div>
                 </div>
@@ -334,10 +325,7 @@ function MetricCard({ title, value, description, trend, trendPositive, isExpense
               ))}
             </div>
           ) : (
-            <>
-              <p className={`mt-1 text-3xl font-bold ${getValueColor()}`}>{value}</p>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{description}</p>
-            </>
+            <p className={`text-3xl font-bold ${getValueColor()}`}>{value}</p>
           )}
         </div>
         
