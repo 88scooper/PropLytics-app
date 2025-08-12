@@ -1,7 +1,136 @@
+"use client";
+
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
+import { useState } from "react";
+
+// Comprehensive sample data for the new dashboard layout
+const portfolioData = {
+  portfolioMetrics: {
+    totalValue: 2450000,
+    yearToDateGrowth: 5.2,
+    totalEquity: 1180000,
+    returnOnCost: {
+      twoYear: 12.5,
+      fiveYear: 28.3,
+      tenYear: 45.7
+    },
+    monthlyCashFlow: {
+      income: 28400,
+      costs: 15950,
+      cashOnCash: 8.9
+    },
+    capRate: 6.8,
+    goals2025: {
+      portfolioValue: 2800000,
+      cashOnCash: 12.5
+    }
+  },
+  properties: [
+    {
+      id: "p-101",
+      name: "Maple Street Duplex",
+      address: "123 Maple St, Toronto, ON",
+      type: "Duplex",
+      units: 2,
+      currentValue: 920000,
+      monthlyRent: 4200,
+      tenant: {
+        name: "John Smith",
+        occupancyDate: "2023-06-01",
+        monthlyRent: 2200,
+        unit: "Unit A"
+      },
+      upcomingDates: {
+        mortgagePayment: "2024-01-15",
+        rentIncrease: "2024-03-01",
+        insurance: "2024-02-15",
+        maintenance: "2024-01-20",
+        mortgageRenewal: "2027-03-15"
+      }
+    },
+    {
+      id: "p-102",
+      name: "Willow Apartments",
+      address: "456 Willow Ave, Mississauga, ON",
+      type: "Apartment Building",
+      units: 8,
+      currentValue: 1200000,
+      monthlyRent: 9600,
+      tenant: {
+        name: "Sarah Johnson",
+        occupancyDate: "2023-08-01",
+        monthlyRent: 2000,
+        unit: "Unit B"
+      },
+      upcomingDates: {
+        mortgagePayment: "2024-01-20",
+        rentIncrease: "2024-04-01",
+        insurance: "2024-03-01",
+        maintenance: "2024-02-10",
+        mortgageRenewal: "2026-08-20"
+      }
+    },
+    {
+      id: "p-103",
+      name: "Cedar Townhome",
+      address: "789 Cedar Rd, Oakville, ON",
+      type: "Townhouse",
+      units: 1,
+      currentValue: 650000,
+      monthlyRent: 2800,
+      tenant: {
+        name: "Michael Chen",
+        occupancyDate: "2023-09-15",
+        monthlyRent: 2800,
+        unit: "Main Unit"
+      },
+      upcomingDates: {
+        mortgagePayment: "2024-01-25",
+        rentIncrease: "2024-05-01",
+        insurance: "2024-02-28",
+        maintenance: "2024-01-30",
+        mortgageRenewal: "2028-09-25"
+      }
+    },
+    {
+      id: "p-104",
+      name: "Oak Terrace",
+      address: "12 Oak Dr, Burlington, ON",
+      type: "Single Family",
+      units: 1,
+      currentValue: 750000,
+      monthlyRent: 3200,
+      tenant: {
+        name: "Emily Davis",
+        occupancyDate: "2023-07-01",
+        monthlyRent: 3200,
+        unit: "Main House"
+      },
+      upcomingDates: {
+        mortgagePayment: "2024-01-30",
+        rentIncrease: "2024-06-01",
+        insurance: "2024-03-15",
+        maintenance: "2024-02-05",
+        mortgageRenewal: "2027-07-30"
+      }
+    }
+  ]
+};
 
 export default function PortfolioSummaryPage() {
+  // Calculate total monthly expenses
+  const totalMonthlyExpenses = portfolioData.properties.reduce((total, property) => {
+    // Estimate monthly expenses based on typical ratios
+    const monthlyMortgage = property.monthlyRent * 0.6; // ~60% of rent
+    const monthlyPropertyTax = property.monthlyRent * 0.1; // ~10% of rent
+    const monthlyMaintenance = property.monthlyRent * 0.05; // ~5% of rent
+    const monthlyInsurance = property.monthlyRent * 0.03; // ~3% of rent
+    return total + monthlyMortgage + monthlyPropertyTax + monthlyMaintenance + monthlyInsurance;
+  }, 0);
+
+
+
   return (
     <RequireAuth>
       <Layout>
@@ -36,6 +165,14 @@ export default function PortfolioSummaryPage() {
               trendPositive={true}
             />
             <MetricCard
+              title="Total Monthly Expenses"
+              value={`$${totalMonthlyExpenses.toLocaleString()}`}
+              description="Total recurring monthly costs across all properties"
+              trend="+1.8%"
+              trendPositive={false}
+              isExpense={true}
+            />
+            <MetricCard
               title="Total Properties"
               value="8"
               description="Number of properties in portfolio"
@@ -59,54 +196,57 @@ export default function PortfolioSummaryPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-              <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
-              <div className="space-y-3">
-                <ActivityItem
-                  title="Rent collected"
-                  description="Maple Street Duplex"
-                  amount="$2,400"
-                  date="2 days ago"
-                  type="income"
-                />
-                <ActivityItem
-                  title="Maintenance expense"
-                  description="Willow Apartments - HVAC repair"
-                  amount="-$850"
-                  date="5 days ago"
-                  type="expense"
-                />
-                <ActivityItem
-                  title="New tenant signed"
-                  description="Cedar Townhome"
-                  amount=""
-                  date="1 week ago"
-                  type="info"
-                />
+            {/* Center Column: Tenants & Rent */}
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Tenants & Rent</h2>
+              
+              {/* Current Tenants */}
+              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 bg-white dark:bg-neutral-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Current Tenants</h3>
+                <div className="space-y-4">
+                  {portfolioData.properties.map((property) => (
+                    <div key={property.id} className="border-b border-gray-100 dark:border-gray-800 pb-3 last:border-b-0 last:pb-0">
+                      <div className="flex justify-between items-start mb-1">
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{property.name}</h4>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">{property.tenant.unit}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{property.tenant.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Occupied: {new Date(property.tenant.occupancyDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                          ${property.tenant.monthlyRent.toLocaleString()}/mo
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Annual Rental Income Chart */}
+              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 bg-white dark:bg-neutral-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Annual Rental Income (by Property)</h3>
+                <div className="h-48 rounded-lg bg-gray-50 dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
+                  <div className="text-center text-gray-500 dark:text-gray-400">
+                    <div className="text-sm font-medium">Pie Chart Placeholder</div>
+                    <div className="text-xs">Annual rental income distribution</div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-              <h2 className="text-lg font-semibold mb-4">Upcoming Events</h2>
-              <div className="space-y-3">
-                <EventItem
-                  title="Rent due"
-                  description="Oak Terrace"
-                  date="Tomorrow"
-                  type="rent"
-                />
-                <EventItem
-                  title="Insurance renewal"
-                  description="Maple Street Duplex"
-                  date="Next week"
-                  type="insurance"
-                />
-                <EventItem
-                  title="Property inspection"
-                  description="Willow Apartments"
-                  date="2 weeks"
-                  type="inspection"
-                />
+            {/* Right Column: Schedule */}
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Schedule</h2>
+              
+              {/* Key Upcoming Dates */}
+              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 bg-white dark:bg-neutral-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Key Upcoming Dates (30 days)</h3>
+                
+                <ScheduleEvents />
               </div>
             </div>
           </div>
@@ -116,13 +256,20 @@ export default function PortfolioSummaryPage() {
   );
 }
 
-function MetricCard({ title, value, description, trend, trendPositive }) {
+function MetricCard({ title, value, description, trend, trendPositive, isExpense }) {
+  const getValueColor = () => {
+    if (isExpense) {
+      return 'text-red-600 dark:text-red-400';
+    }
+    return 'text-gray-900 dark:text-gray-100';
+  };
+
   return (
     <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 hover:bg-black/5 dark:hover:bg-white/5 transition">
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</h3>
-          <p className="mt-1 text-3xl font-bold">{value}</p>
+          <p className={`mt-1 text-3xl font-bold ${getValueColor()}`}>{value}</p>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{description}</p>
         </div>
         <div className={`text-sm font-medium ${trendPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -133,50 +280,118 @@ function MetricCard({ title, value, description, trend, trendPositive }) {
   );
 }
 
-function ActivityItem({ title, description, amount, date, type }) {
-  const getTypeColor = () => {
-    switch (type) {
-      case 'income': return 'text-emerald-600 dark:text-emerald-400';
-      case 'expense': return 'text-red-600 dark:text-red-400';
-      default: return 'text-gray-600 dark:text-gray-400';
+function ScheduleEvents() {
+  const [dateRange, setDateRange] = useState(30);
+  
+  // Static array of placeholder data for upcoming events
+  const upcomingEvents = [
+    { propertyName: "Maple Street Duplex", eventType: "Mortgage Payment", date: "2025-08-15" },
+    { propertyName: "Willow Apartments", eventType: "Insurance Renewal", date: "2025-08-20" },
+    { propertyName: "Maple Street Duplex", eventType: "Rent Increase", date: "2025-09-01" },
+    { propertyName: "Cedar Townhome", eventType: "Maintenance", date: "2025-09-10" },
+    { propertyName: "Willow Apartments", eventType: "Mortgage Payment", date: "2025-09-15" },
+    { propertyName: "Maple Street Duplex", eventType: "Mortgage Renewal", date: "2025-10-25" },
+  ];
+
+  // Filter events based on selected date range
+  const today = new Date();
+  const endDate = new Date(today.getTime() + dateRange * 24 * 60 * 60 * 1000);
+  const filteredEvents = upcomingEvents.filter(event => {
+    const eventDate = new Date(event.date);
+    return eventDate >= today && eventDate <= endDate;
+  });
+
+  // Sort events by date
+  filteredEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  // Group events by property
+  const eventsByProperty = {};
+  filteredEvents.forEach(event => {
+    if (!eventsByProperty[event.propertyName]) {
+      eventsByProperty[event.propertyName] = [];
+    }
+    eventsByProperty[event.propertyName].push(event);
+  });
+
+  // Get next week date for urgency highlighting
+  const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const getUrgencyClass = (date) => {
+    const eventDate = new Date(date);
+    const isWithinWeek = eventDate <= nextWeek && eventDate >= today;
+    
+    if (isWithinWeek) {
+      return 'bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-l-yellow-500';
+    }
+    return 'bg-gray-50 dark:bg-gray-900/20 border-l-4 border-l-gray-200 dark:border-l-gray-700';
+  };
+
+  const formatDate = (date) => {
+    const eventDate = new Date(date);
+    const isToday = eventDate.toDateString() === today.toDateString();
+    const isTomorrow = eventDate.toDateString() === new Date(today.getTime() + 24 * 60 * 60 * 1000).toDateString();
+    
+    if (isToday) {
+      return 'Today';
+    } else if (isTomorrow) {
+      return 'Tomorrow';
+    } else {
+      return eventDate.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric' 
+      });
     }
   };
 
   return (
-    <div className="flex items-center justify-between py-2">
-      <div className="flex-1">
-        <div className="font-medium">{title}</div>
-        <div className="text-sm text-gray-600 dark:text-gray-300">{description}</div>
+    <div>
+      {/* Date Range Filter */}
+      <div className="flex justify-end mb-4">
+        <select
+          value={dateRange}
+          onChange={(e) => setDateRange(Number(e.target.value))}
+          className="text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value={30}>Next 30 days</option>
+          <option value={60}>Next 60 days</option>
+          <option value={90}>Next 90 days</option>
+        </select>
       </div>
-      <div className="text-right">
-        {amount && <div className={`font-medium ${getTypeColor()}`}>{amount}</div>}
-        <div className="text-sm text-gray-500 dark:text-gray-400">{date}</div>
+
+      {/* Events by Property */}
+      <div className="space-y-4">
+        {Object.entries(eventsByProperty).map(([propertyName, events]) => (
+          <div key={propertyName} className="space-y-2">
+            {/* Property Header */}
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-1">
+              {propertyName}
+            </h4>
+            
+            {/* Events for this property */}
+            <div className="space-y-1">
+              {events.map((event, index) => (
+                <div 
+                  key={`${propertyName}-${event.eventType}-${index}`} 
+                  className={`p-2 rounded ${getUrgencyClass(event.date)}`}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-900 dark:text-gray-100">
+                      {event.eventType}
+                    </span>
+                    <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                      {formatDate(event.date)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-function EventItem({ title, description, date, type }) {
-  const getTypeColor = () => {
-    switch (type) {
-      case 'rent': return 'text-blue-600 dark:text-blue-400';
-      case 'insurance': return 'text-orange-600 dark:text-orange-400';
-      case 'inspection': return 'text-purple-600 dark:text-purple-400';
-      default: return 'text-gray-600 dark:text-gray-400';
-    }
-  };
 
-  return (
-    <div className="flex items-center justify-between py-2">
-      <div className="flex-1">
-        <div className="font-medium">{title}</div>
-        <div className="text-sm text-gray-600 dark:text-gray-300">{description}</div>
-      </div>
-      <div className="text-right">
-        <div className={`text-sm font-medium ${getTypeColor()}`}>{date}</div>
-      </div>
-    </div>
-  );
-}
 
 
