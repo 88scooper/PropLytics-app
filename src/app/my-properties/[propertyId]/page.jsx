@@ -115,7 +115,7 @@ export default function PropertyDetailPage({ params }) {
           </div>
 
           {/* Property Image */}
-          <div className="aspect-video rounded-lg bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-800 dark:to-neutral-700 border border-black/10 dark:border-white/10" />
+          <div className="h-80 rounded-lg bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-800 dark:to-neutral-700 border border-black/10 dark:border-white/10" />
 
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Content */}
