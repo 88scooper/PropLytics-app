@@ -149,6 +149,8 @@ export default function PortfolioSummaryPage() {
               description="Combined market value of all properties"
               trend="+5.2%"
               trendPositive={true}
+              showInfoIcon={true}
+              tooltipText="The estimated current market value of all properties in your portfolio."
             />
             <MetricCard
               title="Total Estimated Equity"
@@ -156,6 +158,8 @@ export default function PortfolioSummaryPage() {
               description="Current equity across all properties"
               trend="+8.7%"
               trendPositive={true}
+              showInfoIcon={true}
+              tooltipText="The estimated market value of your properties minus the remaining mortgage balances."
             />
             <MetricCard
               title="Monthly Net Cash Flow"
@@ -163,6 +167,8 @@ export default function PortfolioSummaryPage() {
               description="Total monthly income after expenses"
               trend="+2.1%"
               trendPositive={true}
+              showInfoIcon={true}
+              tooltipText="The monthly rental income remaining after all operating expenses and mortgage payments."
             />
             <MetricCard
               title="Total Monthly Expenses"
@@ -171,6 +177,8 @@ export default function PortfolioSummaryPage() {
               trend="+1.8%"
               trendPositive={false}
               isExpense={true}
+              showInfoIcon={true}
+              tooltipText="The sum of all recurring monthly costs, including mortgage, taxes, fees, and insurance."
             />
             <MetricCard
               title="Total Properties"
@@ -178,6 +186,8 @@ export default function PortfolioSummaryPage() {
               description="Number of properties in portfolio"
               trend="+1"
               trendPositive={true}
+              showInfoIcon={true}
+              tooltipText="The total number of investment properties currently in your portfolio."
             />
             <MetricCard
               title="Average Occupancy Rate"
@@ -185,6 +195,8 @@ export default function PortfolioSummaryPage() {
               description="Current occupancy across all units"
               trend="-1.2%"
               trendPositive={false}
+              showInfoIcon={true}
+              tooltipText="The average percentage of occupied units across all properties in your portfolio."
             />
             <MetricCard
               title="Average Cap Rate"
@@ -192,6 +204,8 @@ export default function PortfolioSummaryPage() {
               description="Weighted average capitalization rate"
               trend="+0.3%"
               trendPositive={true}
+              showInfoIcon={true}
+              tooltipText="The rate of return on a real estate investment property based on the income that the property is expected to generate."
             />
             <MetricCard
               title="Total Estimated Return on Cost"
