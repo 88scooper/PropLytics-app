@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import { useAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
+import { LogOut } from "lucide-react";
 
 export default function Layout({ children }) {
   const [isDark, setIsDark] = useState(false);
@@ -140,7 +141,13 @@ export default function Layout({ children }) {
                 </div>
 
                 {user && (
-                  <Button onClick={logOut} variant="secondary" className="ml-1">Log out</Button>
+                  <button
+                    onClick={logOut}
+                    className="p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors ml-1"
+                    aria-label="Logout"
+                  >
+                    <LogOut className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                  </button>
                 )}
               </div>
             </div>
