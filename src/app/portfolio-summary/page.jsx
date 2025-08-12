@@ -193,6 +193,35 @@ export default function PortfolioSummaryPage() {
               trend="+0.3%"
               trendPositive={true}
             />
+            <MetricCard
+              title="Total Estimated Return on Cost"
+              value=""
+              description=""
+              trend=""
+              trendPositive={true}
+              showInfoIcon={true}
+              tooltipText="This metric calculates the total return based on the initial capital invested."
+              isMultiMetric={true}
+              multiMetrics={[
+                { label: "2-Year", value: "12.5%" },
+                { label: "5-Year", value: "28.3%" },
+                { label: "10-Year", value: "45.7%" }
+              ]}
+            />
+            <MetricCard
+              title="Financial Goals 2025"
+              value=""
+              description=""
+              trend=""
+              trendPositive={true}
+              showInfoIcon={true}
+              tooltipText="This card tracks your progress towards the financial goals set for the current year."
+              isMultiMetric={true}
+              multiMetrics={[
+                { label: "Portfolio Value", value: "$2,800,000" },
+                { label: "Cash on Cash", value: "12.5%" }
+              ]}
+            />
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
@@ -256,7 +285,7 @@ export default function PortfolioSummaryPage() {
   );
 }
 
-function MetricCard({ title, value, description, trend, trendPositive, isExpense }) {
+function MetricCard({ title, value, description, trend, trendPositive, isExpense, showInfoIcon, tooltipText, isMultiMetric, multiMetrics }) {
   const getValueColor = () => {
     if (isExpense) {
       return 'text-red-600 dark:text-red-400';
@@ -267,14 +296,42 @@ function MetricCard({ title, value, description, trend, trendPositive, isExpense
   return (
     <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 hover:bg-black/5 dark:hover:bg-white/5 transition">
       <div className="flex items-start justify-between">
-        <div>
-          <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</h3>
-          <p className={`mt-1 text-3xl font-bold ${getValueColor()}`}>{value}</p>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{description}</p>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</h3>
+            {showInfoIcon && (
+              <div className="relative group">
+                <span className="text-gray-400 text-sm cursor-help">ⓘ</span>
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                  {tooltipText}
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-100"></div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {isMultiMetric ? (
+            <div className="space-y-2">
+              {multiMetrics.map((metric, index) => (
+                <div key={index} className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{metric.label}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{metric.value}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <p className={`mt-1 text-3xl font-bold ${getValueColor()}`}>{value}</p>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{description}</p>
+            </>
+          )}
         </div>
-        <div className={`text-sm font-medium ${trendPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-          {trend}
-        </div>
+        
+        {!isMultiMetric && (
+          <div className={`text-sm font-medium ${trendPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+            {trend}
+          </div>
+        )}
       </div>
     </div>
   );
