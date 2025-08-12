@@ -104,7 +104,7 @@ function PropertyCard({ property }) {
       href={`/my-properties/${property.id}`}
       className="group block rounded-lg border border-black/10 dark:border-white/10 overflow-hidden hover:shadow-lg transition-all duration-200 hover:border-black/20 dark:hover:border-white/20"
     >
-      <div className="aspect-video bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-800 dark:to-neutral-700 relative overflow-hidden">
+      <div className="aspect-video lg:h-32 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-800 dark:to-neutral-700 relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
         <div className="absolute top-3 right-3">
           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
