@@ -4,59 +4,11 @@ import Link from "next/link";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
-
-const sampleProperties = [
-  {
-    id: "p-101",
-    name: "Maple Street Duplex",
-    address: "123 Maple St, Toronto, ON",
-    type: "Duplex",
-    units: 2,
-    purchasePrice: 850000,
-    monthlyRent: 4200,
-    monthlyExpenses: 1800,
-    occupancy: 100,
-    imageUrl: "/api/placeholder/400/300",
-  },
-  {
-    id: "p-102", 
-    name: "Willow Apartments",
-    address: "456 Willow Ave, Mississauga, ON",
-    type: "Apartment Building",
-    units: 8,
-    purchasePrice: 1200000,
-    monthlyRent: 9600,
-    monthlyExpenses: 3200,
-    occupancy: 87.5,
-    imageUrl: "/api/placeholder/400/300",
-  },
-  {
-    id: "p-103",
-    name: "Cedar Townhome",
-    address: "789 Cedar Rd, Oakville, ON", 
-    type: "Townhouse",
-    units: 1,
-    purchasePrice: 650000,
-    monthlyRent: 2800,
-    monthlyExpenses: 1200,
-    occupancy: 100,
-    imageUrl: "/api/placeholder/400/300",
-  },
-  {
-    id: "p-104",
-    name: "Oak Terrace",
-    address: "12 Oak Dr, Burlington, ON",
-    type: "Single Family",
-    units: 1, 
-    purchasePrice: 750000,
-    monthlyRent: 3200,
-    monthlyExpenses: 1400,
-    occupancy: 100,
-    imageUrl: "/api/placeholder/400/300",
-  },
-];
+import { getAllProperties } from "@/lib/propertyData";
 
 export default function MyPropertiesPage() {
+  const properties = getAllProperties();
+  
   return (
     <RequireAuth>
       <Layout>
@@ -74,12 +26,12 @@ export default function MyPropertiesPage() {
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {sampleProperties.map((property) => (
+            {properties.map((property) => (
               <PropertyCard key={property.id} property={property} />
             ))}
           </div>
 
-          {sampleProperties.length === 0 && (
+          {properties.length === 0 && (
             <div className="text-center py-12">
               <div className="text-gray-500 dark:text-gray-400 mb-4">
                 No properties yet. Add your first investment property to get started.
@@ -96,15 +48,24 @@ export default function MyPropertiesPage() {
 }
 
 function PropertyCard({ property }) {
-  const monthlyCashFlow = property.monthlyRent - property.monthlyExpenses;
-  const capRate = ((property.monthlyRent * 12) / property.purchasePrice) * 100;
+  const monthlyCashFlow = property.monthlyCashFlow;
+  const capRate = property.capRate;
 
   return (
     <Link 
       href={`/my-properties/${property.id}`}
       className="group block rounded-lg border border-black/10 dark:border-white/10 overflow-hidden hover:shadow-lg transition-all duration-200 hover:border-black/20 dark:hover:border-white/20"
     >
-      <div className="aspect-video lg:h-32 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-800 dark:to-neutral-700 relative overflow-hidden">
+      <div className="aspect-video lg:h-32 relative overflow-hidden">
+        {property.imageUrl ? (
+          <img 
+            src={property.imageUrl} 
+            alt={property.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-800 dark:to-neutral-700" />
+        )}
         <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
         <div className="absolute top-3 right-3">
           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${

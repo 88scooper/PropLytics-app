@@ -1,15 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
 import Input from "@/components/Input";
 import { useToast } from "@/context/ToastContext";
+import { Download, Upload, X } from "lucide-react";
+import * as XLSX from 'xlsx';
 
 export default function DataPage() {
   const { addToast } = useToast();
+  const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [properties, setProperties] = useState([]);
+  const [selectedProperty, setSelectedProperty] = useState("");
+  const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ processed: 0, total: 0 });
   const [form, setForm] = useState({
     // Property Details
     name: "",
@@ -58,6 +67,78 @@ export default function DataPage() {
     lastAppraisalDate: "",
   });
   const [versions, setVersions] = useState([]);
+
+  // Fetch user's properties from Firestore
+  useEffect(() => {
+    if (user) {
+      fetchUserProperties();
+    }
+  }, [user]);
+
+  async function fetchUserProperties() {
+    try {
+      // Mock data for now - replace with actual Firestore fetch
+      const mockProperties = [
+        { id: '1', name: 'Maple Street Duplex', address: '123 Maple St, Toronto, ON' },
+        { id: '2', name: 'Willow Apartments', address: '456 Willow Ave, Mississauga, ON' },
+        { id: '3', name: 'Cedar Townhome', address: '789 Cedar Rd, Oakville, ON' },
+      ];
+      setProperties(mockProperties);
+    } catch (error) {
+      addToast("Failed to fetch properties.", { type: "error" });
+    }
+  }
+
+  async function fetchPropertyDetails(propertyId) {
+    try {
+      // Mock data for now - replace with actual Firestore fetch
+      const mockPropertyData = {
+        '1': {
+          name: "Maple Street Duplex",
+          address: "123 Maple St",
+          city: "Toronto",
+          state: "ON",
+          zipCode: "M5V 2H1",
+          propertyType: "Duplex",
+          units: "2",
+          squareFootage: "2400",
+          yearBuilt: "1985",
+          bedrooms: "3",
+          bathrooms: "2",
+          purchaseDate: "2023-06-01",
+          closingDate: "2023-06-15",
+          purchasePrice: "850000",
+          downPayment: "170000",
+          closingCosts: "25000",
+          renovationCosts: "45000",
+          otherCosts: "0",
+          lender: "TD Bank",
+          loanAmount: "680000",
+          interestRate: "4.25",
+          loanTerm: "25",
+          monthlyPayment: "3200",
+          remainingBalance: "665000",
+          nextPaymentDate: "2024-02-01",
+          monthlyRent: "4200",
+          propertyTax: "450",
+          insurance: "180",
+          utilities: "120",
+          maintenance: "150",
+          propertyManagement: "210",
+          hoaFees: "0",
+          currentValue: "920000",
+          lastAppraisalDate: "2023-12-01"
+        }
+      };
+      
+      if (mockPropertyData[propertyId]) {
+        setForm(mockPropertyData[propertyId]);
+        addToast("Property data loaded successfully!", { type: "success" });
+      }
+    } catch (error) {
+      addToast("Failed to load property details.", { type: "error" });
+    }
+  }
 
   function updateField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -118,6 +199,137 @@ export default function DataPage() {
     addToast("Restored fields from version. Click Save to confirm.", { type: "success" });
   }
 
+  // Excel Template Download
+  function downloadTemplate() {
+    const templateData = [
+      {
+        name: "Property Name",
+        address: "Street Address",
+        city: "City",
+        state: "State/Province",
+        zipCode: "ZIP/Postal Code",
+        propertyType: "Property Type",
+        units: "Number of Units",
+        squareFootage: "Square Footage",
+        yearBuilt: "Year Built",
+        bedrooms: "Bedrooms",
+        bathrooms: "Bathrooms",
+        purchaseDate: "Purchase Date",
+        closingDate: "Closing Date",
+        purchasePrice: "Purchase Price",
+        downPayment: "Down Payment",
+        closingCosts: "Closing Costs",
+        renovationCosts: "Renovation Costs",
+        otherCosts: "Other Costs",
+        lender: "Lender",
+        loanAmount: "Loan Amount",
+        interestRate: "Interest Rate (%)",
+        loanTerm: "Loan Term (years)",
+        monthlyPayment: "Monthly Payment",
+        remainingBalance: "Remaining Balance",
+        nextPaymentDate: "Next Payment Date",
+        monthlyRent: "Monthly Rent",
+        propertyTax: "Property Tax (monthly)",
+        insurance: "Insurance (monthly)",
+        utilities: "Utilities (monthly)",
+        maintenance: "Maintenance (monthly)",
+        propertyManagement: "Property Management (monthly)",
+        hoaFees: "HOA Fees (monthly)",
+        currentValue: "Current Market Value",
+        lastAppraisalDate: "Last Appraisal Date"
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Property Template");
+    
+    XLSX.writeFile(wb, "property_data_template.xlsx");
+    addToast("Template downloaded successfully!", { type: "success" });
+  }
+
+  // Excel File Upload and Processing
+  async function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      addToast("Please upload an Excel file (.xlsx or .xls)", { type: "error" });
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress({ processed: 0, total: 0 });
+
+    try {
+      const data = await readExcelFile(file);
+      await processExcelData(data);
+    } catch (error) {
+      addToast("Failed to process Excel file: " + error.message, { type: "error" });
+    } finally {
+      setUploading(false);
+      setUploadProgress({ processed: 0, total: 0 });
+      event.target.value = ''; // Reset file input
+    }
+  }
+
+  function readExcelFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          
+          // Remove header row and convert to objects
+          const headers = jsonData[0];
+          const rows = jsonData.slice(1);
+          const properties = rows.map(row => {
+            const property = {};
+            headers.forEach((header, index) => {
+              if (header && row[index] !== undefined) {
+                property[header] = row[index];
+              }
+            });
+            return property;
+          });
+          
+          resolve(properties);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  async function processExcelData(properties) {
+    setUploadProgress({ processed: 0, total: properties.length });
+    
+    for (let i = 0; i < properties.length; i++) {
+      const property = properties[i];
+      
+      try {
+        // Mock Firestore save - replace with actual implementation
+        await new Promise(resolve => setTimeout(resolve, 100)); // Simulate API call
+        
+        setUploadProgress({ processed: i + 1, total: properties.length });
+      } catch (error) {
+        addToast(`Failed to save property ${property.name || 'Unknown'}: ${error.message}`, { type: "error" });
+      }
+    }
+    
+    addToast(`Successfully processed ${properties.length} properties!`, { type: "success" });
+    setIsExcelModalOpen(false);
+    
+    // Refresh properties list
+    await fetchUserProperties();
+  }
+
   return (
     <RequireAuth>
       <Layout>
@@ -127,6 +339,54 @@ export default function DataPage() {
             <p className="mt-2 text-gray-600 dark:text-gray-300">
               Add or edit comprehensive property information and financial details.
             </p>
+          </div>
+
+          {/* Property Selector and Excel Workflow */}
+          <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div className="flex-1">
+              <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Property
+              </label>
+              <select
+                id="propertySelect"
+                value={selectedProperty}
+                onChange={(e) => {
+                  setSelectedProperty(e.target.value);
+                  if (e.target.value) {
+                    fetchPropertyDetails(e.target.value);
+                  } else {
+                    // Reset form when "Add New Property" is selected
+                    setForm({
+                      name: "", address: "", city: "", state: "", zipCode: "", propertyType: "", units: "", squareFootage: "", yearBuilt: "", bedrooms: "", bathrooms: "",
+                      purchaseDate: "", closingDate: "",
+                      purchasePrice: "", downPayment: "", closingCosts: "", renovationCosts: "", otherCosts: "",
+                      lender: "", loanAmount: "", interestRate: "", loanTerm: "", monthlyPayment: "", remainingBalance: "", nextPaymentDate: "",
+                      monthlyRent: "", propertyTax: "", insurance: "", utilities: "", maintenance: "", propertyManagement: "", hoaFees: "",
+                      currentValue: "", lastAppraisalDate: "",
+                    });
+                  }
+                }}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#205A3E]"
+              >
+                <option value="">Add New Property</option>
+                {properties.map((property) => (
+                  <option key={property.id} value={property.id}>
+                    {property.name} - {property.address}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="flex items-end">
+              <Button
+                type="button"
+                onClick={() => setIsExcelModalOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Import / Export via Excel
+              </Button>
+            </div>
           </div>
 
           <form onSubmit={onSave} className="grid gap-8 lg:grid-cols-[1fr_320px] lg:items-start">
@@ -479,6 +739,91 @@ export default function DataPage() {
               </ul>
             </aside>
           </form>
+
+          {/* Excel Workflow Modal */}
+          {isExcelModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-md mx-4">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    Import / Export via Excel
+                  </h2>
+                  <button
+                    onClick={() => setIsExcelModalOpen(false)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Step 1: Download Template */}
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Step 1: Download Template</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      Download the Excel template with all required fields to ensure proper data formatting.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={downloadTemplate}
+                      className="flex items-center gap-2 w-full"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download Template
+                    </Button>
+                  </div>
+
+                  {/* Step 2: Upload File */}
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Step 2: Upload File</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      Upload your completed Excel file to import property data.
+                    </p>
+                    
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleFileUpload}
+                      className="block w-full text-sm text-gray-500 dark:text-gray-400
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-md file:border-0
+                        file:text-sm file:font-medium
+                        file:bg-[#205A3E] file:text-white
+                        hover:file:bg-[#1a4a33]
+                        file:cursor-pointer
+                        cursor-pointer"
+                      disabled={uploading}
+                    />
+
+                    {uploading && (
+                      <div className="mt-4">
+                        <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          <span>Processing...</span>
+                          <span>{uploadProgress.processed} / {uploadProgress.total}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-[#205A3E] h-2 rounded-full transition-all duration-300"
+                            style={{
+                              width: uploadProgress.total > 0 
+                                ? `${(uploadProgress.processed / uploadProgress.total) * 100}%` 
+                                : '0%'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <p>• Supported formats: .xlsx, .xls</p>
+                    <p>• Maximum file size: 10MB</p>
+                    <p>• First row should contain column headers</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </Layout>
     </RequireAuth>

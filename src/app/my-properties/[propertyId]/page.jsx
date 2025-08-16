@@ -1,76 +1,16 @@
 "use client";
 
+import { useState, use } from "react";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
-
-// Sample property data - in real app this would come from Firestore
-const sampleProperty = {
-  id: "p-101",
-  name: "Maple Street Duplex",
-  address: "123 Maple St, Toronto, ON M5V 2H1",
-  type: "Duplex",
-  units: 2,
-  bedrooms: [3, 2],
-  bathrooms: [2, 1],
-  squareFootage: 2400,
-  yearBuilt: 1985,
-  purchaseDate: "2022-03-15",
-  purchasePrice: 850000,
-  downPayment: 170000,
-  closingCosts: 25000,
-  renovationCosts: 45000,
-  totalInvestment: 940000,
-  currentValue: 920000,
-  monthlyRent: 4200,
-  monthlyExpenses: {
-    mortgage: 3200,
-    propertyTax: 450,
-    insurance: 180,
-    utilities: 120,
-    maintenance: 150,
-    propertyManagement: 210,
-    total: 4310
-  },
-  monthlyCashFlow: -110,
-  annualCashFlow: -1320,
-  capRate: 5.5,
-  cashOnCashReturn: -1.4,
-  occupancy: 100,
-  mortgage: {
-    lender: "TD Bank",
-    loanAmount: 680000,
-    interestRate: 4.25,
-    term: 25,
-    monthlyPayment: 3200,
-    remainingBalance: 665000,
-    nextPayment: "2024-01-15"
-  },
-  tenants: [
-    {
-      name: "John Smith",
-      unit: "Unit A",
-      rent: 2200,
-      leaseStart: "2023-06-01",
-      leaseEnd: "2024-05-31",
-      status: "Current"
-    },
-    {
-      name: "Sarah Johnson",
-      unit: "Unit B", 
-      rent: 2000,
-      leaseStart: "2023-08-01",
-      leaseEnd: "2024-07-31",
-      status: "Current"
-    }
-  ]
-};
+import { getPropertyById } from "@/lib/propertyData";
 
 export default function PropertyDetailPage({ params }) {
-  const { propertyId } = params || {};
+  const { propertyId } = use(params) || {};
   
-  // In real app, fetch property data using propertyId
-  const property = sampleProperty;
+  // Get property data using propertyId from our centralized data source
+  const property = getPropertyById(propertyId);
 
   if (!property) {
     return (
@@ -115,7 +55,22 @@ export default function PropertyDetailPage({ params }) {
           </div>
 
           {/* Property Image */}
-          <div className="h-80 rounded-lg bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-800 dark:to-neutral-700 border border-black/10 dark:border-white/10" />
+          <div className="h-64 rounded-lg border border-black/10 dark:border-white/10 overflow-hidden">
+            {property.imageUrl ? (
+              <img 
+                src={property.imageUrl} 
+                alt={property.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-800 dark:to-neutral-700 flex items-center justify-center">
+                <div className="text-center text-gray-500 dark:text-gray-400">
+                  <div className="text-lg font-medium">Property Image</div>
+                  <div className="text-sm">Upload functionality coming soon</div>
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Content */}
