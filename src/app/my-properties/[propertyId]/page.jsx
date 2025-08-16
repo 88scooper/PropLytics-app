@@ -1,45 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, use } from "react";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
-import { properties } from "@/lib/propertyData";
+import { getPropertyById } from "@/lib/propertyData";
 
 export default function PropertyDetailPage({ params }) {
-  const [property, setProperty] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Find the correct property from the imported array based on the params.propertyId
-    const foundProperty = properties.find(prop => prop.id === params.propertyId);
-    
-    // Update the state with the found property
-    setProperty(foundProperty);
-    
-    // Update the loading state
-    setIsLoading(false);
-  }, [params.propertyId]);
-
-  // Add conditional rendering for loading and not found states
-  if (isLoading) {
-    return (
-      <RequireAuth>
-        <Layout>
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-semibold">Loading property details...</h1>
-          </div>
-        </Layout>
-      </RequireAuth>
-    );
-  }
+  const { propertyId } = use(params) || {};
+  
+  // Get property data using propertyId from our centralized data source
+  const property = getPropertyById(propertyId);
 
   if (!property) {
     return (
       <RequireAuth>
         <Layout>
           <div className="text-center py-12">
-            <h1 className="text-2xl font-semibold">Property not found.</h1>
+            <h1 className="text-2xl font-semibold">Property Not Found</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-300">
               The property you're looking for doesn't exist.
             </p>

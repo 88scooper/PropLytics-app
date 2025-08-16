@@ -82,6 +82,9 @@ export default function PortfolioSummaryPage() {
   // Loading state
   const [isLoading, setIsLoading] = useState(true);
   
+  // State for portfolio data
+  const [portfolioData, setPortfolioData] = useState(null);
+  
   // State for settings dropdown visibility
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const settingsRef = useRef(null);
@@ -130,18 +133,21 @@ export default function PortfolioSummaryPage() {
     };
   }, [isSettingsOpen]);
 
-  // Simulate data loading - in real app this would be Firestore fetch
+  // Load portfolio data
   useEffect(() => {
-    // Simulate async data loading
     const loadData = async () => {
       try {
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // In real app, you would fetch data from Firestore here
-        // const data = await fetchPortfolioData();
-        // setPortfolioData(data);
+        // Get real portfolio data
+        const properties = getAllProperties();
+        const portfolioMetrics = getPortfolioMetrics();
         
+        // Set the portfolio data
+        setPortfolioData({ properties, portfolioMetrics });
+        
+        // Update the loading state
         setIsLoading(false);
       } catch (error) {
         console.error('Error loading portfolio data:', error);
@@ -175,23 +181,23 @@ export default function PortfolioSummaryPage() {
     }
   };
 
-  // Get real portfolio data
-  const properties = getAllProperties();
-  const portfolioMetrics = getPortfolioMetrics();
+  // Get portfolio data from state
+  const properties = portfolioData?.properties || [];
+  const portfolioMetrics = portfolioData?.portfolioMetrics || {};
   
   // Calculate total monthly expenses
-  const totalMonthlyExpenses = portfolioMetrics.totalMonthlyExpenses;
+  const totalMonthlyExpenses = portfolioMetrics.totalMonthlyExpenses || 0;
 
   // Calculate additional metrics
   const totalMortgageDebt = properties.reduce((total, property) => {
-    return total + property.mortgage.remainingBalance;
+    return total + (property.mortgage?.remainingBalance || 0);
   }, 0);
 
-  const annualCashFlow = portfolioMetrics.totalAnnualCashFlow;
-  const totalCashInvested = portfolioMetrics.totalInvestment;
-  const cashOnCashReturn = portfolioMetrics.cashOnCashReturn;
+  const annualCashFlow = portfolioMetrics.totalAnnualCashFlow || 0;
+  const totalCashInvested = portfolioMetrics.totalInvestment || 0;
+  const cashOnCashReturn = portfolioMetrics.cashOnCashReturn || 0;
 
-  const totalRevenue = portfolioMetrics.totalMonthlyRent * 12;
+  const totalRevenue = (portfolioMetrics.totalMonthlyRent || 0) * 12;
   const totalOperatingExpenses = totalMonthlyExpenses * 12;
   const netOperatingIncome = totalRevenue - totalOperatingExpenses;
 
@@ -516,7 +522,7 @@ export default function PortfolioSummaryPage() {
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 bg-white dark:bg-neutral-900">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Key Upcoming Dates (30 days)</h3>
                 
-                <ScheduleEvents />
+                <ScheduleEvents properties={properties} />
               </div>
             </div>
           </div>
@@ -577,9 +583,8 @@ function MetricCard({ title, value, description, trend, trendPositive, isExpense
   );
 }
 
-function ScheduleEvents() {
+function ScheduleEvents({ properties = [] }) {
   const [dateRange, setDateRange] = useState(30);
-  const properties = getAllProperties();
   
   // Generate upcoming events from real property data
   const upcomingEvents = properties.flatMap(property => [
