@@ -27,22 +27,29 @@ const navItems = [
     label: "Data",
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        {/* Left half of gear */}
-        <path d="M8 8A4 4 0 0 1 8 16" strokeWidth={2} strokeLinecap="round"/>
-        <path d="M8 8L6 6M8 16L6 18M12 8L14 6M12 16L14 18" strokeWidth={2} strokeLinecap="round"/>
+        {/* Database/Storage representation */}
+        <rect x="4" y="6" width="16" height="4" rx="1" strokeWidth={2}/>
+        <rect x="4" y="12" width="16" height="4" rx="1" strokeWidth={2}/>
+        <rect x="4" y="18" width="16" height="4" rx="1" strokeWidth={2}/>
         
-        {/* Curved circuit/data flow */}
-        <path d="M12 12C12 12 14 12 16 12C18 12 20 10 20 8" strokeWidth={2} strokeLinecap="round"/>
+        {/* Data flow lines */}
+        <path d="M8 8L8 10" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M10 8L10 10" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M12 8L12 10" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M14 8L14 10" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M16 8L16 10" strokeWidth={2} strokeLinecap="round"/>
         
-        {/* Three horizontal lines with nodes */}
-        <path d="M20 8L22 8" strokeWidth={2} strokeLinecap="round"/>
-        <path d="M20 12L22 12" strokeWidth={2} strokeLinecap="round"/>
-        <path d="M20 16L22 16" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M8 14L8 16" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M10 14L10 16" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M12 14L12 16" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M14 14L14 16" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M16 14L16 16" strokeWidth={2} strokeLinecap="round"/>
         
-        {/* Circuit nodes */}
-        <circle cx="22" cy="8" r="1" strokeWidth={2}/>
-        <circle cx="22" cy="12" r="1" strokeWidth={2}/>
-        <circle cx="22" cy="16" r="1" strokeWidth={2}/>
+        <path d="M8 20L8 22" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M10 20L10 22" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M12 20L12 22" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M14 20L14 22" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M16 20L16 22" strokeWidth={2} strokeLinecap="round"/>
       </svg>
     )
   },
