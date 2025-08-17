@@ -74,7 +74,7 @@ function HeroSection({ onGetStarted }) {
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button onClick={onGetStarted}>Get started</Button>
-            <Link href="/portfolio-summary" className="text-sm underline">View dashboard</Link>
+            <Link href="/portfolio-summary" className="text-sm underline">View portfolio</Link>
           </div>
         </div>
         <div className="h-64 md:h-80 rounded-xl bg-gradient-to-br from-emerald-300/40 to-teal-300/30 dark:from-emerald-500/10 dark:to-teal-500/10 border border-black/10 dark:border-white/10" />

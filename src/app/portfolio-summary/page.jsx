@@ -223,7 +223,7 @@ export default function PortfolioSummaryPage() {
               <button
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                 className="p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                aria-label="Customize dashboard"
+                aria-label="Customize portfolio"
               >
                 <Settings className="w-5 h-5 text-gray-600 dark:text-gray-300" />
               </button>
@@ -234,7 +234,7 @@ export default function PortfolioSummaryPage() {
                   <div className="px-4 pb-3 border-b border-black/10 dark:border-white/10">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Customize Metrics</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Select which metrics to display on your dashboard
+                      Select which metrics to display on your portfolio
                     </p>
                   </div>
                   

@@ -5,12 +5,19 @@ import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
 import { getPropertyById } from "@/lib/propertyData";
+import { usePropertyData } from "@/context/PropertyDataContext";
 
 export default function PropertyDetailPage({ params }) {
   const { propertyId } = use(params) || {};
   
   // Get property data using propertyId from our centralized data source
   const property = getPropertyById(propertyId);
+  
+  // Get real mortgage data from context for Richmond St E property
+  const mortgageData = usePropertyData();
+  
+  // Use real mortgage data if this is the Richmond St E property, otherwise use property data
+  const isRichmondProperty = propertyId === 'richmond-st-e-403';
 
   if (!property) {
     return (
@@ -195,43 +202,81 @@ export default function PropertyDetailPage({ params }) {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Lender</span>
-                      <span className="font-medium">{property.mortgage.lender}</span>
+                      <span className="font-medium">{isRichmondProperty ? 'TD Bank' : property.mortgage.lender}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Original Loan</span>
-                      <span className="font-medium">${property.mortgage.loanAmount.toLocaleString()}</span>
+                      <span className="font-medium">${isRichmondProperty ? mortgageData.purchasePrice.toLocaleString() : property.mortgage.loanAmount.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Interest Rate</span>
-                      <span className="font-medium">{property.mortgage.interestRate}%</span>
+                      <span className="font-medium">{isRichmondProperty ? mortgageData.interestRate : property.mortgage.interestRate}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Term</span>
-                      <span className="font-medium">{property.mortgage.term} years</span>
+                      <span className="font-medium">{isRichmondProperty ? '25' : property.mortgage.term} years</span>
                     </div>
                   </div>
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Monthly Payment</span>
-                      <span className="font-medium">${property.mortgage.monthlyPayment.toLocaleString()}</span>
+                      <span className="font-medium">${isRichmondProperty ? mortgageData.paymentAmount.toLocaleString() : property.mortgage.monthlyPayment.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Remaining Balance</span>
-                      <span className="font-medium">${property.mortgage.remainingBalance.toLocaleString()}</span>
+                      <span className="font-medium">${isRichmondProperty ? mortgageData.currentBalance.toLocaleString() : property.mortgage.remainingBalance.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Next Payment</span>
-                      <span className="font-medium">{new Date(property.mortgage.nextPayment).toLocaleDateString()}</span>
+                      <span className="font-medium">{isRichmondProperty ? '1/14/2024' : new Date(property.mortgage.nextPayment).toLocaleDateString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Principal Paid</span>
                       <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                        ${(property.mortgage.loanAmount - property.mortgage.remainingBalance).toLocaleString()}
+                        ${isRichmondProperty ? (mortgageData.purchasePrice - mortgageData.currentBalance).toLocaleString() : (property.mortgage.loanAmount - property.mortgage.remainingBalance).toLocaleString()}
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Payment History - Only show for Richmond St E property */}
+              {isRichmondProperty && (
+                <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
+                  <h2 className="text-xl font-semibold mb-4">Payment History</h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-black/10 dark:border-white/10">
+                          <th className="text-left py-2 font-medium">Date</th>
+                          <th className="text-right py-2 font-medium">Principal</th>
+                          <th className="text-right py-2 font-medium">Interest</th>
+                          <th className="text-right py-2 font-medium">Total</th>
+                          <th className="text-right py-2 font-medium">Remaining Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {mortgageData.paymentHistory.slice(0, 10).map((payment, index) => (
+                          <tr key={index} className="border-b border-black/5 dark:border-white/5">
+                            <td className="py-2">{new Date(payment.date).toLocaleDateString()}</td>
+                            <td className="text-right py-2">${Math.abs(payment.principal).toLocaleString()}</td>
+                            <td className="text-right py-2">${Math.abs(payment.interest).toLocaleString()}</td>
+                            <td className="text-right py-2 font-medium">${Math.abs(payment.total).toLocaleString()}</td>
+                            <td className="text-right py-2 text-gray-600 dark:text-gray-400">
+                              {payment.remaining > 0 ? `$${payment.remaining.toLocaleString()}` : 'Paid Off'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="mt-4 text-center">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Showing last 10 payments of {mortgageData.paymentHistory.length} total payments
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Charts Placeholder */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
@@ -255,6 +300,39 @@ export default function PropertyDetailPage({ params }) {
 
             {/* Sidebar */}
             <div className="space-y-6">
+              {/* Mortgage Summary - Only show for Richmond St E property */}
+              {isRichmondProperty && (
+                <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
+                  <h3 className="font-semibold mb-3">Mortgage Summary</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Current Balance</span>
+                      <span className="font-medium">${mortgageData.currentBalance.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Monthly Payment</span>
+                      <span className="font-medium">${mortgageData.paymentAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Interest Rate</span>
+                      <span className="font-medium">{mortgageData.interestRate}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Principal Paid</span>
+                      <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                        ${(mortgageData.purchasePrice - mortgageData.currentBalance).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="pt-2 border-t border-black/10 dark:border-white/10">
+                      <div className="flex justify-between font-medium">
+                        <span>Total Payments</span>
+                        <span>{mortgageData.paymentHistory.length}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Quick Stats */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                 <h3 className="font-semibold mb-3">Quick Stats</h3>

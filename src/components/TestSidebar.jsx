@@ -5,7 +5,7 @@ function Sidebar({ activePage, onPageChange }) {
   const navItems = [
     {
       id: 'dashboard',
-      label: 'Dashboard',
+      label: 'Portfolio',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -95,7 +95,7 @@ function Header() {
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <h2 className="text-lg font-semibold text-gray-900">Dashboard</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Portfolio</h2>
         </div>
         
         <div className="flex items-center space-x-4">
@@ -229,7 +229,7 @@ function MainContent({ activePage }) {
         return (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Analytics Dashboard</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Analytics Portfolio</h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <h4 className="font-medium text-gray-900">Revenue Trends</h4>
