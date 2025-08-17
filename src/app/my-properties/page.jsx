@@ -13,9 +13,9 @@ export default function MyPropertiesPage() {
     <RequireAuth>
       <Layout>
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">My Investment Properties</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">My Investment Properties</h1>
               <p className="mt-2 text-gray-600 dark:text-gray-300">
                 Manage and view details for all your properties.
               </p>
@@ -25,7 +25,7 @@ export default function MyPropertiesPage() {
             </Button>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {properties.map((property) => (
               <PropertyCard key={property.id} property={property} />
             ))}
@@ -69,18 +69,18 @@ function PropertyCard({ property }) {
         <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
       </div>
       
-      <div className="p-4">
+      <div className="p-3 sm:p-4">
         <div className="mb-2">
-          <h3 className="font-semibold text-lg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+          <h3 className="font-semibold text-base sm:text-lg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
             {property.name}
           </h3>
         </div>
         
-        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-3">
           {property.address}
         </p>
         
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
           <div>
             <div className="text-gray-500 dark:text-gray-400">Type</div>
             <div className="font-medium">{property.type}</div>
@@ -108,7 +108,7 @@ function PropertyCard({ property }) {
         </div>
         
         <div className="mt-3 pt-3 border-t border-black/10 dark:border-white/10">
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center justify-between text-xs sm:text-sm">
             <span className="text-gray-500 dark:text-gray-400">Cap Rate</span>
             <span className="font-medium">{capRate.toFixed(1)}%</span>
           </div>
