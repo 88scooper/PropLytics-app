@@ -201,6 +201,13 @@ export default function PortfolioSummaryPage() {
   const totalOperatingExpenses = totalMonthlyExpenses * 12;
   const netOperatingIncome = totalRevenue - totalOperatingExpenses;
 
+  // Calculate portfolio totals from actual data
+  const totalPortfolioValue = portfolioMetrics.totalValue || 0;
+  const totalEquity = portfolioMetrics.totalEquity || 0;
+  const totalProperties = portfolioMetrics.totalProperties || 0;
+  const averageOccupancyRate = portfolioMetrics.averageOccupancy || 0;
+  const averageCapRate = portfolioMetrics.averageCapRate || 0;
+
   // Loading state check
   if (isLoading) {
     return <Layout><div>Loading portfolio data...</div></Layout>;
@@ -275,7 +282,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Total Estimated Portfolio Value"
-                        value="$2,450,000"
+                        value={`$${totalPortfolioValue.toLocaleString()}`}
                         trend="+5.2%"
                         trendPositive={true}
                         showInfoIcon={true}
@@ -287,7 +294,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Total Estimated Equity"
-                        value="$1,180,000"
+                        value={`$${totalEquity.toLocaleString()}`}
                         trend="+8.7%"
                         trendPositive={true}
                         showInfoIcon={true}
@@ -299,7 +306,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Monthly Net Cash Flow"
-                        value="$12,450"
+                        value={`$${portfolioMetrics.totalMonthlyCashFlow?.toLocaleString() || '0'}`}
                         trend="+2.1%"
                         trendPositive={true}
                         showInfoIcon={true}
@@ -324,7 +331,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Total Properties"
-                        value="8"
+                        value={totalProperties.toString()}
                         trend="+1"
                         trendPositive={true}
                         showInfoIcon={true}
@@ -336,7 +343,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Average Occupancy Rate"
-                        value="94.5%"
+                        value={`${averageOccupancyRate.toFixed(1)}%`}
                         trend="-1.2%"
                         trendPositive={false}
                         showInfoIcon={true}
@@ -348,7 +355,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Average Cap Rate"
-                        value="6.8%"
+                        value={`${averageCapRate.toFixed(1)}%`}
                         trend="+0.3%"
                         trendPositive={true}
                         showInfoIcon={true}
@@ -407,8 +414,8 @@ export default function PortfolioSummaryPage() {
                         tooltipText="This card tracks your progress towards the financial goals set for the current year."
                         isMultiMetric={true}
                         multiMetrics={[
-                          { label: "Portfolio Value", value: "$2,800,000" },
-                          { label: "Cash on Cash", value: "12.5%" }
+                          { label: "Portfolio Value", value: `$${(totalPortfolioValue * 1.1).toLocaleString()}` },
+                          { label: "Cash on Cash", value: `${(cashOnCashReturn * 1.2).toFixed(1)}%` }
                         ]}
                       />
                     );
@@ -467,8 +474,10 @@ export default function PortfolioSummaryPage() {
                   {properties.map((property) => (
                     <div key={property.id} className="border-b border-gray-100 dark:border-gray-800 pb-3 last:border-b-0 last:pb-0">
                       <div className="flex justify-between items-start mb-1">
-                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{property.name}</h4>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">{property.tenant.name ? property.tenant.name : 'Vacant'}</span>
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{property.nickname}</h4>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          {property.tenant.name ? 'Occupied' : 'Vacant'}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <div>
@@ -494,10 +503,30 @@ export default function PortfolioSummaryPage() {
               {/* Annual Rental Income Chart */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 bg-white dark:bg-neutral-900">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Annual Rental Income (by Property)</h3>
-                <div className="h-48 rounded-lg bg-gray-50 dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
-                  <div className="text-center text-gray-500 dark:text-gray-400">
-                    <div className="text-sm font-medium">Pie Chart Placeholder</div>
-                    <div className="text-xs">Annual rental income distribution</div>
+                <div className="space-y-3">
+                  {properties.map((property) => (
+                    <div key={property.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div>
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{property.nickname}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{property.address}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">
+                          ${(property.monthlyRent * 12).toLocaleString()}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          ${property.monthlyRent.toLocaleString()}/mo
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-gray-900 dark:text-gray-100">Total Annual Income</span>
+                      <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
+                        ${(portfolioMetrics.totalMonthlyRent * 12).toLocaleString()}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -576,12 +605,25 @@ function ScheduleEvents({ properties = [] }) {
   const [dateRange, setDateRange] = useState(30);
   
   // Generate upcoming events from real property data
-  const upcomingEvents = properties.flatMap(property => [
-    { propertyName: property.name, eventType: "Mortgage Payment", date: property.mortgage.nextPayment },
-    { propertyName: property.name, eventType: "Insurance Renewal", date: "2025-02-15" }, // Estimated
-    { propertyName: property.name, eventType: "Property Tax", date: "2025-03-01" }, // Estimated
-    { propertyName: property.name, eventType: "Maintenance", date: "2025-01-20" }, // Estimated
-  ]);
+  const upcomingEvents = properties.flatMap(property => {
+    const events = [
+      { propertyName: property.nickname, eventType: "Mortgage Payment", date: property.mortgage.nextPayment },
+      { propertyName: property.nickname, eventType: "Insurance Renewal", date: "2025-02-15" }, // Estimated
+      { propertyName: property.nickname, eventType: "Property Tax", date: "2025-03-01" }, // Estimated
+      { propertyName: property.nickname, eventType: "Maintenance", date: "2025-01-20" }, // Estimated
+    ];
+    
+    // Add lease-related events if tenant exists
+    if (property.tenant.name && property.tenant.leaseEnd) {
+      events.push({
+        propertyName: property.nickname,
+        eventType: "Lease Renewal",
+        date: property.tenant.leaseEnd
+      });
+    }
+    
+    return events;
+  });
 
   // Filter events based on selected date range
   const today = new Date();
