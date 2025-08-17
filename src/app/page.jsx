@@ -89,7 +89,7 @@ function FeaturesSection() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <FeatureCard title="Portfolio summary" description="See cash flow, occupancy, and KPIs at a glance." />
         <FeatureCard title="Property records" description="Store income, expenses, and uploads for each property." />
-        <FeatureCard title="Deal calculators" description="Run mortgage, refinance, and penalty calculations quickly." />
+        <FeatureCard title="Calculators" description="Run mortgage, refinance, and penalty calculations quickly." />
         <FeatureCard title="Analytics" description="Understand trends with clean, simple visuals (coming soon)." />
         <FeatureCard title="Calendar" description="Track rent dates, maintenance, and tasks across properties." />
         <FeatureCard title="Secure sync" description="Your data is stored in the cloud and follows you everywhere." />

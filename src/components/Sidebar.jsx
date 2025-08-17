@@ -4,12 +4,61 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { href: "/portfolio-summary", label: "Dashboard" },
-  { href: "/my-properties", label: "My Properties" },
-  { href: "/data", label: "Data" },
-  { href: "/analytics", label: "Analytics" },
-  { href: "/calculator", label: "Calculator" },
-  { href: "/calendar", label: "Calendar" },
+  {
+    href: "/portfolio-summary",
+    label: "Dashboard",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    )
+  },
+  {
+    href: "/my-properties",
+    label: "My Properties",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+    )
+  },
+  {
+    href: "/data",
+    label: "Data",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
+      </svg>
+    )
+  },
+  {
+    href: "/analytics",
+    label: "Analytics",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    )
+  },
+  {
+    href: "/calculator",
+    label: "Calculators",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+      </svg>
+    )
+  },
+  {
+    href: "/calendar",
+    label: "Calendar",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    )
+  },
 ];
 
 export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
@@ -38,15 +87,15 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
         md:relative md:translate-x-0 md:z-auto
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         w-64 bg-white dark:bg-neutral-950 border-r border-black/10 dark:border-white/10
-        flex flex-col
+        flex flex-col shadow-lg
       `}>
-        <div className="px-4 py-4 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
-          <span className="text-lg font-semibold">Proplytics</span>
+        <div className="px-6 py-6 border-b border-black/10 dark:border-white/10">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Proplytics</h1>
           
           {/* Close Button - Mobile Only */}
           <button
             onClick={() => setIsMobileMenuOpen(false)}
-            className="md:hidden p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5"
+            className="md:hidden absolute top-4 right-4 p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5"
             aria-label="Close menu"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,8 +104,8 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
           </button>
         </div>
         
-        <nav className="flex-1 px-2 py-4">
-          <ul className="space-y-1">
+        <nav className="flex-1 px-4 py-4">
+          <ul className="space-y-2">
             {navItems.map((item) => {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
               return (
@@ -64,13 +113,14 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
                   <Link
                     href={item.href}
                     onClick={handleNavClick}
-                    className={`${
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
                       isActive
-                        ? "bg-black/5 dark:bg-white/10 text-black dark:text-white"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5"
-                    } block rounded-md px-3 py-2 text-sm font-medium transition-colors`}
+                        ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                    }`}
                   >
-                    {item.label}
+                    {item.icon}
+                    <span className="font-medium">{item.label}</span>
                   </Link>
                 </li>
               );

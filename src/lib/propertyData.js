@@ -55,7 +55,7 @@ export const properties = [
       nextPayment: '2024-01-15'
     },
     // Additional fields for compatibility
-    name: 'Richmond St E Condo',
+    name: 'Richmond St E',
     type: 'Condo',
     units: 1,
     bedrooms: [2],
@@ -131,7 +131,7 @@ export const properties = [
       nextPayment: '2024-01-20'
     },
     // Additional fields for compatibility
-    name: 'Tretti Way Condo',
+    name: 'Tretti Way',
     type: 'Condo',
     units: 1,
     bedrooms: [2],
@@ -207,7 +207,7 @@ export const properties = [
       nextPayment: '2024-02-22'
     },
     // Additional fields for compatibility
-    name: 'Wilson Ave Condo',
+    name: 'Wilson Ave',
     type: 'Condo',
     units: 1,
     bedrooms: [2],

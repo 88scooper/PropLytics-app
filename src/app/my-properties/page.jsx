@@ -56,7 +56,7 @@ function PropertyCard({ property }) {
       href={`/my-properties/${property.id}`}
       className="group block rounded-lg border border-black/10 dark:border-white/10 overflow-hidden hover:shadow-lg transition-all duration-200 hover:border-black/20 dark:hover:border-white/20"
     >
-      <div className="aspect-video lg:h-32 relative overflow-hidden">
+      <div className="aspect-square relative overflow-hidden">
         {property.imageUrl ? (
           <img 
             src={property.imageUrl} 
@@ -67,25 +67,13 @@ function PropertyCard({ property }) {
           <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-800 dark:to-neutral-700" />
         )}
         <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
-        <div className="absolute top-3 right-3">
-          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-            property.occupancy === 100 
-              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
-              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-          }`}>
-            {property.occupancy}% occupied
-          </span>
-        </div>
       </div>
       
       <div className="p-4">
-        <div className="flex items-start justify-between mb-2">
+        <div className="mb-2">
           <h3 className="font-semibold text-lg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
             {property.name}
           </h3>
-          <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-            {property.type}
-          </span>
         </div>
         
         <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
@@ -93,6 +81,10 @@ function PropertyCard({ property }) {
         </p>
         
         <div className="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <div className="text-gray-500 dark:text-gray-400">Type</div>
+            <div className="font-medium">{property.type}</div>
+          </div>
           <div>
             <div className="text-gray-500 dark:text-gray-400">Units</div>
             <div className="font-medium">{property.units}</div>

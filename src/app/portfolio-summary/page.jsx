@@ -203,18 +203,7 @@ export default function PortfolioSummaryPage() {
 
   // Loading state check
   if (isLoading) {
-    return (
-      <RequireAuth>
-        <Layout>
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#205A3E] mx-auto mb-4"></div>
-              <p className="text-gray-600 dark:text-gray-300">Loading portfolio data...</p>
-            </div>
-          </div>
-        </Layout>
-      </RequireAuth>
-    );
+    return <Layout><div>Loading portfolio data...</div></Layout>;
   }
 
   return (
