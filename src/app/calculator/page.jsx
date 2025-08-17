@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout.jsx";
 import { RequireAuth } from "@/context/AuthContext";
+import Link from "next/link";
 
 export default function FinancialCalculators() {
   const [activeCalculator, setActiveCalculator] = useState("mortgage");
@@ -310,7 +311,14 @@ export default function FinancialCalculators() {
     {
       id: "mortgage",
       title: "Mortgage Calculator",
-      description: "Calculate your monthly mortgage payments"
+      description: "Calculate your monthly mortgage payments",
+      link: "/mortgage-calculator"
+    },
+    {
+      id: "mortgage-mobile",
+      title: "Mortgage Calculator (Mobile)",
+      description: "Mobile-optimized mortgage calculator with interactive sliders",
+      link: "/mortgage-calculator-mobile"
     },
     {
       id: "refinance",
@@ -359,36 +367,60 @@ export default function FinancialCalculators() {
                 <p className="text-xs text-gray-500 mt-2">Available properties: {myProperties.length}</p>
               </div>
 
-              {/* Accordion */}
+              {/* Calculator List */}
               <div className="space-y-4">
                 {calculators.map((calculator) => (
                   <div key={calculator.id} className="border border-gray-200 rounded-lg">
-                    {/* Accordion Header */}
-                    <button
-                      onClick={() => setActiveCalculator(activeCalculator === calculator.id ? "" : calculator.id)}
-                      className="w-full px-6 py-4 text-left bg-gray-50 hover:bg-gray-100 transition-colors rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-800">{calculator.title}</h3>
-                          <p className="text-sm text-gray-600">{calculator.description}</p>
+                    {calculator.link ? (
+                      /* Link-based Calculator */
+                      <Link
+                        href={calculator.link}
+                        className="w-full px-6 py-4 text-left bg-gray-50 hover:bg-gray-100 transition-colors rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 block"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-800">{calculator.title}</h3>
+                            <p className="text-sm text-gray-600">{calculator.description}</p>
+                          </div>
+                          <svg
+                            className="w-5 h-5 text-gray-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
                         </div>
-                        <svg
-                          className={`w-5 h-5 text-gray-500 transition-transform ${
-                            activeCalculator === calculator.id ? 'rotate-180' : ''
-                          }`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                      </Link>
+                    ) : (
+                      /* Accordion-based Calculator */
+                      <>
+                        {/* Accordion Header */}
+                        <button
+                          onClick={() => setActiveCalculator(activeCalculator === calculator.id ? "" : calculator.id)}
+                          className="w-full px-6 py-4 text-left bg-gray-50 hover:bg-gray-100 transition-colors rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </button>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-800">{calculator.title}</h3>
+                              <p className="text-sm text-gray-600">{calculator.description}</p>
+                            </div>
+                            <svg
+                              className={`w-5 h-5 text-gray-500 transition-transform ${
+                                activeCalculator === calculator.id ? 'rotate-180' : ''
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </button>
 
-                    {/* Accordion Content */}
-                    {activeCalculator === calculator.id && (
-                      <div className="px-6 py-4 border-t border-gray-200">
+                        {/* Accordion Content */}
+                        {activeCalculator === calculator.id && (
+                          <div className="px-6 py-4 border-t border-gray-200">
                         {calculator.id === "mortgage" && (
                           <div className="space-y-6">
                             {/* Input Form Area */}
@@ -724,6 +756,8 @@ export default function FinancialCalculators() {
                         )}
                       </div>
                     )}
+                  </>
+                )}
                   </div>
                 ))}
               </div>

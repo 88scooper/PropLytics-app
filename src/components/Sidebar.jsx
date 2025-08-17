@@ -27,8 +27,22 @@ const navItems = [
     label: "Data",
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
+        {/* Left half of gear */}
+        <path d="M8 8A4 4 0 0 1 8 16" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M8 8L6 6M8 16L6 18M12 8L14 6M12 16L14 18" strokeWidth={2} strokeLinecap="round"/>
+        
+        {/* Curved circuit/data flow */}
+        <path d="M12 12C12 12 14 12 16 12C18 12 20 10 20 8" strokeWidth={2} strokeLinecap="round"/>
+        
+        {/* Three horizontal lines with nodes */}
+        <path d="M20 8L22 8" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M20 12L22 12" strokeWidth={2} strokeLinecap="round"/>
+        <path d="M20 16L22 16" strokeWidth={2} strokeLinecap="round"/>
+        
+        {/* Circuit nodes */}
+        <circle cx="22" cy="8" r="1" strokeWidth={2}/>
+        <circle cx="22" cy="12" r="1" strokeWidth={2}/>
+        <circle cx="22" cy="16" r="1" strokeWidth={2}/>
       </svg>
     )
   },
