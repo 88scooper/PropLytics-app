@@ -26,6 +26,18 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Temporarily provide a mock user for demo access
+    const mockUser = {
+      uid: 'demo-user',
+      email: 'demo@proplytics.com',
+      displayName: 'Demo User'
+    };
+    
+    setUser(mockUser);
+    setLoading(false);
+    
+    // Keep original Firebase logic commented for later restoration
+    /*
     // Check if Firebase auth is available
     if (!auth) {
       console.warn('Firebase auth not available. Using mock authentication.');
@@ -38,6 +50,7 @@ export function AuthProvider({ children }) {
       setLoading(false);
     });
     return () => unsub();
+    */
   }, []);
 
   const signUp = useCallback(async (email, password) => {
@@ -69,28 +82,7 @@ export function AuthProvider({ children }) {
 }
 
 export function RequireAuth({ children }) {
-  const { user, loading } = useAuth();
-  
-  if (loading) {
-    return (
-      <div className="min-h-screen grid place-items-center">
-        <div className="text-sm text-gray-600 dark:text-gray-300">Loading...</div>
-      </div>
-    );
-  }
-  
-  // For development, allow access without authentication if Firebase is not available
-  if (!user && typeof window !== "undefined") {
-    // Check if we're in development mode and Firebase is not available
-    if (process.env.NODE_ENV === 'development' && !auth) {
-      console.warn('Development mode: Bypassing authentication requirement');
-      return children;
-    }
-    
-    window.location.replace("/login");
-    return null;
-  }
-  
+  // Temporarily allow access without authentication
   return children;
 }
 

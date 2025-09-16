@@ -202,7 +202,7 @@ export default function PropertyDetailPage({ params }) {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Lender</span>
-                      <span className="font-medium">{isRichmondProperty ? 'TD Bank' : property.mortgage.lender}</span>
+                      <span className="font-medium">{isRichmondProperty ? 'RMG' : property.mortgage.lender}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Original Loan</span>
