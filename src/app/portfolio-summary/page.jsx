@@ -538,7 +538,7 @@ export default function PortfolioSummaryPage() {
                     <div key={property.id} className="border-b border-gray-100 dark:border-gray-800 pb-3 last:border-b-0 last:pb-0">
                       <div className="flex justify-between items-start mb-1">
                         <h4 className="font-medium text-gray-900 dark:text-gray-100">{property.nickname}</h4>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                        <span className={`text-sm ${property.tenant.name ? 'text-gray-500 dark:text-gray-400' : 'text-red-600 dark:text-red-400'}`}>
                           {property.tenant.name ? 'Occupied' : 'Vacant'}
                         </span>
                       </div>

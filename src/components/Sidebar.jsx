@@ -105,10 +105,10 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
       {/* Sidebar */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out
-        md:relative md:translate-x-0 md:z-auto
+        md:sticky md:top-0 md:translate-x-0 md:z-auto
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         w-64 bg-white dark:bg-neutral-950 border-r border-black/10 dark:border-white/10
-        flex flex-col shadow-lg
+        flex flex-col shadow-lg h-screen
       `}>
         <div className="px-6 py-6 border-b border-black/10 dark:border-white/10">
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Proplytics</h1>
@@ -136,8 +136,8 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
                     onClick={handleNavClick}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
                       isActive
-                        ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                        ? "text-[#205A3E] dark:text-[#4ade80] hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                        : "text-[#205A3E] dark:text-[#4ade80] hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
                     }`}
                   >
                     {item.icon}
