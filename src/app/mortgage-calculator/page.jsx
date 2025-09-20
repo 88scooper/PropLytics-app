@@ -4,6 +4,7 @@ import Layout from "@/components/Layout.jsx";
 import { RequireAuth } from "@/context/AuthContext";
 import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Share2, MoreVertical, Info, ChevronDown } from "lucide-react";
+import LoadPropertyData from "@/components/mortgages/LoadPropertyData";
 
 export default function MortgageCalculatorPage() {
   return (
@@ -29,6 +30,14 @@ export default function MortgageCalculatorPage() {
               </button>
             </div>
           </div>
+
+          {/* Load Property Data */}
+          <LoadPropertyData 
+            onDataLoaded={(data, property) => {
+              // This will be handled by the calculator component
+              console.log('Data loaded:', data, property);
+            }}
+          />
 
           {/* Calculator Component */}
           <div className="max-w-2xl">

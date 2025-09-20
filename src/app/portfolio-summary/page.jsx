@@ -24,6 +24,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { getAllProperties, getPortfolioMetrics } from "@/lib/propertyData";
+import PortfolioMortgageDashboard from "@/components/mortgages/PortfolioMortgageDashboard";
 
 // ROI data for different time periods
 const roiData = {
@@ -718,6 +719,9 @@ export default function PortfolioSummaryPage() {
               </div>
             </div>
           </div>
+
+          {/* Mortgage Dashboard Section */}
+          <PortfolioMortgageDashboard />
         </div>
       </Layout>
     </RequireAuth>

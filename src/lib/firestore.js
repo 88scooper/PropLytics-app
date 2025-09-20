@@ -15,6 +15,9 @@ import {
 } from "firebase/firestore";
 
 function userCol(userId) {
+  if (!db) {
+    throw new Error('Database not available. Please check your Firebase configuration.');
+  }
   return doc(db, "users", userId);
 }
 
@@ -69,6 +72,54 @@ export async function getPropertyVersions(userId, propertyId) {
   const q = query(versionsCol(userId, propertyId), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+// Mortgage functions
+function mortgagesCol(userId) {
+  if (!db) {
+    throw new Error('Database not available. Please check your Firebase configuration.');
+  }
+  return collection(userCol(userId), "mortgages");
+}
+
+function mortgageDoc(userId, mortgageId) {
+  return doc(mortgagesCol(userId), mortgageId);
+}
+
+export async function addMortgage(userId, mortgageData) {
+  const colRef = mortgagesCol(userId);
+  const payload = { ...mortgageData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+  const newDoc = await addDoc(colRef, payload);
+  return newDoc.id;
+}
+
+export function getMortgages(userId, callback) {
+  const q = query(mortgagesCol(userId), orderBy("createdAt", "desc"));
+  return onSnapshot(q, (snap) => {
+    const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    callback(items);
+  });
+}
+
+export async function getMortgage(userId, mortgageId) {
+  const snap = await getDoc(mortgageDoc(userId, mortgageId));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
+export async function updateMortgage(userId, mortgageId, mortgageData) {
+  await updateDoc(mortgageDoc(userId, mortgageId), { ...mortgageData, updatedAt: serverTimestamp() });
+}
+
+export async function deleteMortgage(userId, mortgageId) {
+  await deleteDoc(mortgageDoc(userId, mortgageId));
+}
+
+export async function getMortgagesByProperty(userId, propertyId) {
+  const q = query(mortgagesCol(userId), orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter(mortgage => mortgage.propertyId === propertyId);
 }
 
 
