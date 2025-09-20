@@ -89,11 +89,18 @@ export default function PortfolioSummaryPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const settingsRef = useRef(null);
 
+  // State for expense settings dropdown visibility
+  const [isExpenseSettingsOpen, setIsExpenseSettingsOpen] = useState(false);
+  const expenseSettingsRef = useRef(null);
+
   // State for metrics (array of objects to preserve order and visibility)
   const [metrics, setMetrics] = useState([]);
 
   // State for ROI time period selection
   const [selectedROIYear, setSelectedROIYear] = useState(2);
+
+  // State for expense view toggle (Annual Expenses vs Annual Deductible Expenses)
+  const [expenseViewType, setExpenseViewType] = useState('annual');
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -109,16 +116,19 @@ export default function PortfolioSummaryPage() {
       if (settingsRef.current && !settingsRef.current.contains(event.target)) {
         setIsSettingsOpen(false);
       }
+      if (expenseSettingsRef.current && !expenseSettingsRef.current.contains(event.target)) {
+        setIsExpenseSettingsOpen(false);
+      }
     };
 
-    if (isSettingsOpen) {
+    if (isSettingsOpen || isExpenseSettingsOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isSettingsOpen]);
+  }, [isSettingsOpen, isExpenseSettingsOpen]);
 
   // Default metrics configuration
   const defaultMetrics = [
@@ -148,6 +158,14 @@ export default function PortfolioSummaryPage() {
       }
     } else {
       setMetrics(defaultMetrics);
+    }
+  }, []);
+
+  // Initialize expense view type from localStorage or use default
+  useEffect(() => {
+    const savedExpenseView = localStorage.getItem('expense-view-type');
+    if (savedExpenseView) {
+      setExpenseViewType(savedExpenseView);
     }
   }, []);
 
@@ -183,6 +201,11 @@ export default function PortfolioSummaryPage() {
     }
   }, [metrics]);
 
+  // Save expense view type to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('expense-view-type', expenseViewType);
+  }, [expenseViewType]);
+
   // Handle metric visibility toggle
   const toggleMetricVisibility = (metricId) => {
     setMetrics(prev => prev.map(metric => 
@@ -190,6 +213,12 @@ export default function PortfolioSummaryPage() {
         ? { ...metric, isVisible: !metric.isVisible }
         : metric
     ));
+  };
+
+  // Handle expense view type toggle
+  const handleExpenseViewChange = (viewType) => {
+    setExpenseViewType(viewType);
+    setIsExpenseSettingsOpen(false);
   };
 
   // Handle drag end
@@ -338,8 +367,6 @@ export default function PortfolioSummaryPage() {
                         key={metric.id}
                         title="Total Estimated Portfolio Value"
                         value={`$${totalPortfolioValue.toLocaleString()}`}
-                        trend="+5.2%"
-                        trendPositive={true}
                         showInfoIcon={true}
                         tooltipText="The estimated current market value of all properties in your portfolio."
                       />
@@ -350,8 +377,6 @@ export default function PortfolioSummaryPage() {
                         key={metric.id}
                         title="Total Estimated Equity"
                         value={`$${totalEquity.toLocaleString()}`}
-                        trend="+8.7%"
-                        trendPositive={true}
                         showInfoIcon={true}
                         tooltipText="The estimated market value of your properties minus the remaining mortgage balances."
                       />
@@ -362,8 +387,6 @@ export default function PortfolioSummaryPage() {
                         key={metric.id}
                         title="Monthly Net Cash Flow"
                         value={`$${portfolioMetrics.totalMonthlyCashFlow?.toLocaleString() || '0'}`}
-                        trend="+2.1%"
-                        trendPositive={true}
                         showInfoIcon={true}
                         tooltipText="The monthly rental income remaining after all operating expenses and mortgage payments."
                       />
@@ -374,8 +397,6 @@ export default function PortfolioSummaryPage() {
                         key={metric.id}
                         title="Total Monthly Expenses"
                         value={`$${totalMonthlyExpenses.toLocaleString()}`}
-                        trend="+1.8%"
-                        trendPositive={false}
                         isExpense={true}
                         showInfoIcon={true}
                         tooltipText="The sum of all recurring monthly costs, including mortgage, taxes, fees, and insurance."
@@ -387,8 +408,6 @@ export default function PortfolioSummaryPage() {
                         key={metric.id}
                         title="Total Properties"
                         value={totalProperties.toString()}
-                        trend="+1"
-                        trendPositive={true}
                         showInfoIcon={true}
                         tooltipText="The total number of investment properties currently in your portfolio."
                       />
@@ -399,8 +418,6 @@ export default function PortfolioSummaryPage() {
                         key={metric.id}
                         title="Average Occupancy Rate"
                         value={`${averageOccupancyRate.toFixed(1)}%`}
-                        trend="-1.2%"
-                        trendPositive={false}
                         showInfoIcon={true}
                         tooltipText="The average percentage of occupied units across all properties in your portfolio."
                       />
@@ -411,8 +428,6 @@ export default function PortfolioSummaryPage() {
                         key={metric.id}
                         title="Average Cap Rate"
                         value={`${averageCapRate.toFixed(1)}%`}
-                        trend="+0.3%"
-                        trendPositive={true}
                         showInfoIcon={true}
                         tooltipText="The rate of return on a real estate investment property based on the income that the property is expected to generate."
                       />
@@ -425,8 +440,8 @@ export default function PortfolioSummaryPage() {
                             <div className="flex items-center gap-2 mb-3">
                               <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Estimate Return on Investment (ROI)</h3>
                               <div className="relative group">
-                                <div className="w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center cursor-help">
-                                  <span className="text-gray-500 dark:text-gray-400 text-xs font-medium">i</span>
+                                <div className="w-4 h-4 rounded-full bg-white dark:bg-gray-100 border-2 border-[#205A3E] dark:border-[#4ade80] flex items-center justify-center cursor-help">
+                                  <span className="text-[#205A3E] dark:text-[#4ade80] text-xs font-bold">i</span>
                                 </div>
                                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-2 bg-[#205A3E] text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-normal z-10 w-64 shadow-lg">
                                   This metric calculates the total return based on the initial capital invested.
@@ -463,8 +478,6 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Financial Goals 2025"
-                        trend=""
-                        trendPositive={true}
                         showInfoIcon={true}
                         tooltipText="This card tracks your progress towards the financial goals set for the current year."
                         isMultiMetric={true}
@@ -480,8 +493,6 @@ export default function PortfolioSummaryPage() {
                         key={metric.id}
                         title="Total Mortgage Debt"
                         value={`$${totalMortgageDebt.toLocaleString()}`}
-                        trend="+2.3%"
-                        trendPositive={false}
                         isExpense={true}
                         showInfoIcon={true}
                         tooltipText="The total remaining mortgage balance across all properties in your portfolio."
@@ -493,8 +504,6 @@ export default function PortfolioSummaryPage() {
                         key={metric.id}
                         title="Cash on Cash"
                         value={`${cashOnCashReturn.toFixed(1)}%`}
-                        trend="+0.8%"
-                        trendPositive={true}
                         showInfoIcon={true}
                         tooltipText="Measures the annual pre-tax cash flow as a percentage of the total cash invested."
                       />
@@ -505,8 +514,6 @@ export default function PortfolioSummaryPage() {
                         key={metric.id}
                         title="Net Operating Income (NOI)"
                         value={`$${netOperatingIncome.toLocaleString()}`}
-                        trend="+3.2%"
-                        trendPositive={true}
                         showInfoIcon={true}
                         tooltipText="Calculates the property's profitability by subtracting operating expenses from total revenue."
                       />
@@ -603,7 +610,78 @@ export default function PortfolioSummaryPage() {
 
             {/* Annual Expenses Chart */}
             <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 bg-white dark:bg-neutral-900">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Annual Expenses (by Property)</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {expenseViewType === 'annual' ? 'Annual Expenses (by Property)' : 'Annual Deductible Expenses (by Property)'}
+                </h3>
+                
+                {/* Expense View Settings */}
+                <div className="relative" ref={expenseSettingsRef}>
+                  <button
+                    onClick={() => setIsExpenseSettingsOpen(!isExpenseSettingsOpen)}
+                    className="p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    aria-label="Customize expense view"
+                  >
+                    <Settings className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                  </button>
+
+                  {/* Expense View Dropdown */}
+                  {isExpenseSettingsOpen && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-neutral-900 rounded-lg shadow-lg border border-black/10 dark:border-white/10 py-2 z-50">
+                      <div className="px-4 pb-2 border-b border-black/10 dark:border-white/10">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Expense View</h3>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          Select which expense data to display
+                        </p>
+                      </div>
+                      
+                      <div className="py-2">
+                        <button
+                          onClick={() => handleExpenseViewChange('annual')}
+                          className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                            expenseViewType === 'annual' 
+                              ? 'text-[#205A3E] dark:text-[#4ade80] font-medium' 
+                              : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span>Annual Expenses</span>
+                            {expenseViewType === 'annual' && (
+                              <div className="w-2 h-2 bg-[#205A3E] dark:bg-[#4ade80] rounded-full"></div>
+                            )}
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => handleExpenseViewChange('deductible')}
+                          className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                            expenseViewType === 'deductible' 
+                              ? 'text-[#205A3E] dark:text-[#4ade80] font-medium' 
+                              : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span>Annual Deductible Expenses</span>
+                              <div className="relative group">
+                                <div className="w-3 h-3 rounded-full bg-white dark:bg-gray-100 border border-[#205A3E] dark:border-[#4ade80] flex items-center justify-center cursor-help">
+                                  <span className="text-[#205A3E] dark:text-[#4ade80] text-xs font-bold">i</span>
+                                </div>
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-2 bg-[#205A3E] text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-normal z-10 w-64 shadow-lg">
+                                  To boost your property's financial performance, you can deduct allowable costs to directly reduce your tax liability on its income. Common write-offs include mortgage interest, property tax, utilities, and home insurance
+                                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[#205A3E]"></div>
+                                </div>
+                              </div>
+                            </div>
+                            {expenseViewType === 'deductible' && (
+                              <div className="w-2 h-2 bg-[#205A3E] dark:bg-[#4ade80] rounded-full"></div>
+                            )}
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="space-y-3">
                 {properties.length > 0 ? (
                   properties.map((property) => (
@@ -662,8 +740,8 @@ function MetricCard({ title, value, description, trend, trendPositive, isExpense
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</h3>
             {showInfoIcon && (
               <div className="relative group">
-                <div className="w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center cursor-help">
-                  <span className="text-gray-500 dark:text-gray-400 text-xs font-medium">i</span>
+                <div className="w-4 h-4 rounded-full bg-white dark:bg-gray-100 border-2 border-[#205A3E] dark:border-[#4ade80] flex items-center justify-center cursor-help">
+                  <span className="text-[#205A3E] dark:text-[#4ade80] text-xs font-bold">i</span>
                 </div>
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-2 bg-[#205A3E] text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-normal z-10 w-64 shadow-lg">
                   {tooltipText}
