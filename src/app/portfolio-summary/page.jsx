@@ -556,36 +556,6 @@ export default function PortfolioSummaryPage() {
                 </div>
               </div>
 
-              {/* Annual Rental Income Chart */}
-              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 bg-white dark:bg-neutral-900">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Annual Rental Income (by Property)</h3>
-                <div className="space-y-3">
-                  {properties.map((property) => (
-                    <div key={property.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div>
-                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{property.nickname}</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{property.address}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900 dark:text-gray-100">
-                          ${(property.monthlyRent * 12).toLocaleString()}
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          ${property.monthlyRent.toLocaleString()}/mo
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">Total Annual Income</span>
-                      <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
-                        ${(portfolioMetrics.totalMonthlyRent * 12).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Right Column: Schedule */}
@@ -597,6 +567,76 @@ export default function PortfolioSummaryPage() {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Key Upcoming Dates (30 days)</h3>
                 
                 <ScheduleEvents properties={properties} />
+              </div>
+            </div>
+
+            {/* Annual Rental Income Chart */}
+            <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 bg-white dark:bg-neutral-900">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Annual Rental Income (by Property)</h3>
+              <div className="space-y-3">
+                {properties.map((property) => (
+                  <div key={property.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">{property.nickname}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{property.address}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">
+                        ${(property.monthlyRent * 12).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        ${property.monthlyRent.toLocaleString()}/mo
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">Total Annual Income</span>
+                    <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
+                      ${(portfolioMetrics.totalMonthlyRent * 12).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Annual Expenses Chart */}
+            <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 bg-white dark:bg-neutral-900">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Annual Expenses (by Property)</h3>
+              <div className="space-y-3">
+                {properties.length > 0 ? (
+                  properties.map((property) => (
+                    <div key={property.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div>
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{property.nickname}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{property.address}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">
+                          ${((property.monthlyExpenses?.total || 0) * 12).toLocaleString()}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          ${(property.monthlyExpenses?.total || 0).toLocaleString()}/mo
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    No properties found
+                  </div>
+                )}
+                {properties.length > 0 && (
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-gray-900 dark:text-gray-100">Total Annual Expenses</span>
+                      <span className="font-bold text-lg text-red-600 dark:text-red-400">
+                        ${((portfolioMetrics?.totalMonthlyExpenses || 0) * 12).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
