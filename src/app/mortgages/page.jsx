@@ -183,7 +183,7 @@ export default function MortgagesPage() {
                   {filteredMortgages.map((mortgage) => (
                     <div
                       key={mortgage.id}
-                      className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow"
+                      className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 md:p-6 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -200,7 +200,7 @@ export default function MortgagesPage() {
                             </span>
                           </div>
                           
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
                             <div>
                               <p className="text-gray-600 dark:text-gray-400">Original Amount</p>
                               <p className="font-medium text-gray-900 dark:text-white">

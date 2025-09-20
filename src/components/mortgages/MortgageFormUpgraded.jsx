@@ -123,7 +123,7 @@ export default function MortgageFormUpgraded({ mortgage, onClose }) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
+    <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <button
@@ -138,8 +138,8 @@ export default function MortgageFormUpgraded({ mortgage, onClose }) {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {/* Lender Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
