@@ -264,8 +264,8 @@ export default function LumpSumPaymentScenarioEnhanced({ propertyId, onClose }) 
         {/* Results Section */}
         <div className="space-y-6">
           {results && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <h3 className="font-medium text-green-900 mb-4 flex items-center gap-2">
+            <div className="bg-[#205A3E]/10 border border-[#205A3E]/20 rounded-lg p-4">
+              <h3 className="font-medium text-[#205A3E] mb-4 flex items-center gap-2">
                 <TrendingDown className="w-5 h-5" />
                 Analysis Results
               </h3>
@@ -274,20 +274,20 @@ export default function LumpSumPaymentScenarioEnhanced({ propertyId, onClose }) 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <DollarSign className="w-4 h-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-900">Total Savings</span>
+                      <DollarSign className="w-4 h-4 text-[#205A3E]" />
+                      <span className="text-sm font-medium text-[#205A3E]">Total Savings</span>
                     </div>
-                    <p className="text-xl font-bold text-green-900">
+                    <p className="text-xl font-bold text-[#205A3E]">
                       {formatCurrency(results.totalSavings)}
                     </p>
                   </div>
                   
                   <div className="bg-white rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <TrendingDown className="w-4 h-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-900">Interest Savings</span>
+                      <TrendingDown className="w-4 h-4 text-[#205A3E]" />
+                      <span className="text-sm font-medium text-[#205A3E]">Interest Savings</span>
                     </div>
-                    <p className="text-xl font-bold text-green-900">
+                    <p className="text-xl font-bold text-[#205A3E]">
                       {formatCurrency(results.interestSavings)}
                     </p>
                   </div>
@@ -295,10 +295,10 @@ export default function LumpSumPaymentScenarioEnhanced({ propertyId, onClose }) 
 
                 <div className="bg-white rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <Calculator className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-900">Payments Eliminated</span>
+                    <Calculator className="w-4 h-4 text-[#205A3E]" />
+                    <span className="text-sm font-medium text-[#205A3E]">Payments Eliminated</span>
                   </div>
-                  <p className="text-lg font-bold text-green-900">
+                  <p className="text-lg font-bold text-[#205A3E]">
                     {results.paymentsEliminated} payments
                   </p>
                 </div>

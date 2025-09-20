@@ -138,8 +138,8 @@ export default function LoadPropertyData({ onDataLoaded, className = "" }) {
                 <span>Loading mortgage data...</span>
               </div>
             ) : hasMortgages ? (
-              <div className="flex items-center gap-2 text-green-600">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="flex items-center gap-2 text-[#205A3E]">
+                <div className="w-2 h-2 bg-[#205A3E] rounded-full"></div>
                 <span>{mortgages.length} mortgage{mortgages.length !== 1 ? 's' : ''} found</span>
               </div>
             ) : (

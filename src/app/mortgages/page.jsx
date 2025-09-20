@@ -194,7 +194,7 @@ export default function MortgagesPage() {
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                               mortgage.rateType === 'FIXED' 
                                 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : 'bg-[#205A3E]/10 text-[#205A3E] dark:bg-[#205A3E]/20 dark:text-[#205A3E]'
                             }`}>
                               {mortgage.rateType || 'FIXED'}
                             </span>

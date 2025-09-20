@@ -133,8 +133,8 @@ export default function MortgageDetails({ mortgage, onClose }) {
 
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-              <Percent className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className="p-2 bg-[#205A3E]/10 dark:bg-[#205A3E]/20 rounded-lg">
+              <Percent className="w-5 h-5 text-[#205A3E] dark:text-[#205A3E]" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Interest Rate</h3>
           </div>
@@ -259,8 +259,8 @@ export default function MortgageDetails({ mortgage, onClose }) {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-              <Calendar className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <div className="p-2 bg-[#205A3E]/10 dark:bg-[#205A3E]/20 rounded-lg">
+              <Calendar className="w-4 h-4 text-[#205A3E] dark:text-[#205A3E]" />
             </div>
             <div>
               <p className="font-medium text-gray-900 dark:text-white">Amortization End Date</p>

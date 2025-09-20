@@ -110,15 +110,15 @@ export default function PortfolioMortgageDashboard({ className = "" }) {
           </p>
         </div>
 
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3 md:p-4">
+        <div className="bg-[#205A3E]/10 border border-[#205A3E]/20 rounded-lg p-3 md:p-4">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-5 h-5 text-green-600" />
-            <span className="text-sm font-medium text-green-900">Average Rate</span>
+            <TrendingUp className="w-5 h-5 text-[#205A3E]" />
+            <span className="text-sm font-medium text-[#205A3E]">Average Rate</span>
           </div>
-          <p className="text-2xl font-bold text-green-900">
+          <p className="text-2xl font-bold text-[#205A3E]">
             {(averageRate * 100).toFixed(2)}%
           </p>
-          <p className="text-xs text-green-700">
+          <p className="text-xs text-[#205A3E]/70">
             {allMortgages.length} mortgage{allMortgages.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -154,9 +154,9 @@ export default function PortfolioMortgageDashboard({ className = "" }) {
                 <div className="flex items-center gap-2">
                   <div className="w-16 bg-gray-200 rounded-full h-2">
                     <div 
-                      className={`h-2 rounded-full ${
-                        type === 'FIXED' ? 'bg-blue-500' : 'bg-green-500'
-                      }`}
+                              className={`h-2 rounded-full ${
+                                type === 'FIXED' ? 'bg-blue-500' : 'bg-[#205A3E]'
+                              }`}
                       style={{ width: `${(count / allMortgages.length) * 100}%` }}
                     ></div>
                   </div>
