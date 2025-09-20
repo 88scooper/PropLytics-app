@@ -89,21 +89,8 @@ export default function PortfolioSummaryPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const settingsRef = useRef(null);
 
-  // State for metrics (array of objects to preserve order)
-  const [metrics, setMetrics] = useState([
-    { id: 'portfolioValue', name: 'Total Estimated Portfolio Value', isVisible: true },
-    { id: 'equity', name: 'Total Estimated Equity', isVisible: true },
-    { id: 'monthlyCashFlow', name: 'Monthly Net Cash Flow', isVisible: true },
-    { id: 'monthlyExpenses', name: 'Total Monthly Expenses', isVisible: true },
-    { id: 'totalProperties', name: 'Total Properties', isVisible: true },
-    { id: 'occupancyRate', name: 'Average Occupancy Rate', isVisible: true },
-    { id: 'capRate', name: 'Average Cap Rate', isVisible: true },
-    { id: 'returnOnCost', name: 'Total Estimate Return on Investment (ROI)', isVisible: true },
-    { id: 'financialGoals', name: 'Financial Goals 2025', isVisible: true },
-    { id: 'mortgageDebt', name: 'Total Mortgage Debt', isVisible: false },
-    { id: 'cashOnCash', name: 'Cash on Cash', isVisible: false },
-    { id: 'netOperatingIncome', name: 'Net Operating Income (NOI)', isVisible: false }
-  ]);
+  // State for metrics (array of objects to preserve order and visibility)
+  const [metrics, setMetrics] = useState([]);
 
   // State for ROI time period selection
   const [selectedROIYear, setSelectedROIYear] = useState(2);
@@ -133,6 +120,37 @@ export default function PortfolioSummaryPage() {
     };
   }, [isSettingsOpen]);
 
+  // Default metrics configuration
+  const defaultMetrics = [
+    { id: 'portfolioValue', name: 'Total Estimated Portfolio Value', isVisible: true },
+    { id: 'equity', name: 'Total Estimated Equity', isVisible: true },
+    { id: 'mortgageDebt', name: 'Total Mortgage Debt', isVisible: true },
+    { id: 'cashOnCash', name: 'Cash on Cash', isVisible: true },
+    { id: 'monthlyCashFlow', name: 'Monthly Net Cash Flow', isVisible: true },
+    { id: 'monthlyExpenses', name: 'Total Monthly Expenses', isVisible: true },
+    { id: 'netOperatingIncome', name: 'Net Operating Income (NOI)', isVisible: true },
+    { id: 'capRate', name: 'Average Cap Rate', isVisible: true },
+    { id: 'returnOnCost', name: 'Total Estimated Return on Investment (ROI)', isVisible: true },
+    { id: 'totalProperties', name: 'Total Properties', isVisible: false },
+    { id: 'occupancyRate', name: 'Average Occupancy Rate', isVisible: false },
+    { id: 'financialGoals', name: 'Financial Goals 2025', isVisible: false },
+  ];
+
+  // Initialize metrics from localStorage or use default
+  useEffect(() => {
+    const savedMetrics = localStorage.getItem('portfolio-dashboard-layout');
+    if (savedMetrics) {
+      try {
+        setMetrics(JSON.parse(savedMetrics));
+      } catch (error) {
+        console.error('Error parsing saved metrics:', error);
+        setMetrics(defaultMetrics);
+      }
+    } else {
+      setMetrics(defaultMetrics);
+    }
+  }, []);
+
   // Load portfolio data
   useEffect(() => {
     const loadData = async () => {
@@ -157,6 +175,13 @@ export default function PortfolioSummaryPage() {
 
     loadData();
   }, []);
+
+  // Save metrics to localStorage whenever metrics change
+  useEffect(() => {
+    if (metrics.length > 0) {
+      localStorage.setItem('portfolio-dashboard-layout', JSON.stringify(metrics));
+    }
+  }, [metrics]);
 
   // Handle metric visibility toggle
   const toggleMetricVisibility = (metricId) => {
@@ -239,10 +264,20 @@ export default function PortfolioSummaryPage() {
               {isSettingsOpen && (
                 <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-neutral-900 rounded-lg shadow-lg border border-black/10 dark:border-white/10 py-4 z-50">
                   <div className="px-4 pb-3 border-b border-black/10 dark:border-white/10">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Customize Metrics</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Select which metrics to display on your portfolio
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Customize Metrics</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          Select which metrics to display on your portfolio
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setMetrics(defaultMetrics)}
+                        className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        Reset to Default
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="px-4 py-3 max-h-96 overflow-y-auto">
@@ -272,10 +307,30 @@ export default function PortfolioSummaryPage() {
             </div>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {metrics
-              .filter(metric => metric.isVisible)
-              .map(metric => {
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {metrics.filter(metric => metric.isVisible).length === 0 ? (
+              <div className="col-span-full flex flex-col items-center justify-center py-12 px-6 text-center">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                  <Settings className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  No Metrics Selected
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4 max-w-md">
+                  Please select key performance metrics to display on your dashboard. 
+                  Use the settings button above to customize your view.
+                </p>
+                <button
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="px-4 py-2 bg-[#205A3E] text-white rounded-md hover:bg-[#1a4a32] transition-colors"
+                >
+                  Customize Dashboard
+                </button>
+              </div>
+            ) : (
+              metrics
+                .filter(metric => metric.isVisible)
+                .map(metric => {
                 switch (metric.id) {
                   case 'portfolioValue':
                     return (
@@ -459,7 +514,8 @@ export default function PortfolioSummaryPage() {
                   default:
                     return null;
                 }
-              })}
+              })
+            )}
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
