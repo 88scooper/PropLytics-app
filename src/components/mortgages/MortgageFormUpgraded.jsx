@@ -43,15 +43,17 @@ export default function MortgageFormUpgraded({ mortgage, onClose }) {
       interestRate: 0,
       rateType: 'FIXED',
       variableRateSpread: null,
-      amortizationPeriodYears: 25,
-      termYears: 5,
+      amortizationValue: 25,
+      amortizationUnit: 'years',
+      termValue: 5,
+      termUnit: 'years',
       startDate: new Date(),
       paymentFrequency: 'MONTHLY'
     }
   });
 
   // Watch form values for payment calculation
-  const watchedValues = watch(['originalAmount', 'interestRate', 'rateType', 'amortizationPeriodYears', 'paymentFrequency']);
+  const watchedValues = watch(['originalAmount', 'interestRate', 'rateType', 'amortizationValue', 'amortizationUnit', 'paymentFrequency']);
 
   // Initialize form with existing mortgage data
   useEffect(() => {
@@ -63,17 +65,20 @@ export default function MortgageFormUpgraded({ mortgage, onClose }) {
 
   // Calculate payment when relevant fields change
   useEffect(() => {
-    const [originalAmount, interestRate, rateType, amortizationPeriodYears, paymentFrequency] = watchedValues;
+    const [originalAmount, interestRate, rateType, amortizationValue, amortizationUnit, paymentFrequency] = watchedValues;
     
-    if (originalAmount > 0 && interestRate > 0 && amortizationPeriodYears > 0) {
+    if (originalAmount > 0 && interestRate > 0 && amortizationValue > 0) {
+      // Convert amortization to years for calculation
+      const amortizationInYears = amortizationUnit === 'years' ? amortizationValue : amortizationValue / 12;
+      
       calculatePayment({
         originalAmount,
         interestRate: interestRate / 100, // Convert percentage to decimal
         rateType,
-        amortizationPeriodYears,
+        amortizationPeriodYears: amortizationInYears,
         paymentFrequency,
         startDate: new Date(),
-        termYears: amortizationPeriodYears
+        termYears: amortizationInYears
       });
     }
   }, [watchedValues]);
@@ -268,36 +273,132 @@ export default function MortgageFormUpgraded({ mortgage, onClose }) {
           {/* Amortization Period */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Amortization Period (Years) *
+              Amortization Period *
             </label>
-            <input
-              {...register('amortizationPeriodYears', { valueAsNumber: true })}
-              type="number"
-              min="1"
-              max="50"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="25"
-            />
-            {errors.amortizationPeriodYears && (
-              <p className="mt-1 text-sm text-red-600">{errors.amortizationPeriodYears.message}</p>
+            <div className="flex gap-2">
+              <input
+                {...register('amortizationValue', { valueAsNumber: true })}
+                type="number"
+                min="1"
+                max={watch('amortizationUnit') === 'years' ? 50 : 600}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder={watch('amortizationUnit') === 'years' ? '25' : '300'}
+              />
+              <Controller
+                name="amortizationUnit"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex bg-gray-100 rounded-lg overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        field.onChange('years');
+                        // Auto-convert value when switching units
+                        const currentValue = watch('amortizationValue');
+                        if (currentValue && watch('amortizationUnit') === 'months') {
+                          setValue('amortizationValue', Math.round(currentValue / 12));
+                        }
+                      }}
+                      className={`px-3 py-2 text-sm font-medium transition-colors ${
+                        field.value === 'years'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Years
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        field.onChange('months');
+                        // Auto-convert value when switching units
+                        const currentValue = watch('amortizationValue');
+                        if (currentValue && watch('amortizationUnit') === 'years') {
+                          setValue('amortizationValue', Math.round(currentValue * 12));
+                        }
+                      }}
+                      className={`px-3 py-2 text-sm font-medium transition-colors ${
+                        field.value === 'months'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Months
+                    </button>
+                  </div>
+                )}
+              />
+            </div>
+            {(errors.amortizationValue || errors.amortizationUnit) && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.amortizationValue?.message || errors.amortizationUnit?.message}
+              </p>
             )}
           </div>
 
-          {/* Term Years */}
+          {/* Term */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Term (Years) *
+              Term *
             </label>
-            <input
-              {...register('termYears', { valueAsNumber: true })}
-              type="number"
-              min="1"
-              max="30"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="5"
-            />
-            {errors.termYears && (
-              <p className="mt-1 text-sm text-red-600">{errors.termYears.message}</p>
+            <div className="flex gap-2">
+              <input
+                {...register('termValue', { valueAsNumber: true })}
+                type="number"
+                min="1"
+                max={watch('termUnit') === 'years' ? 30 : 360}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder={watch('termUnit') === 'years' ? '5' : '60'}
+              />
+              <Controller
+                name="termUnit"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex bg-gray-100 rounded-lg overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        field.onChange('years');
+                        // Auto-convert value when switching units
+                        const currentValue = watch('termValue');
+                        if (currentValue && watch('termUnit') === 'months') {
+                          setValue('termValue', Math.round(currentValue / 12));
+                        }
+                      }}
+                      className={`px-3 py-2 text-sm font-medium transition-colors ${
+                        field.value === 'years'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Years
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        field.onChange('months');
+                        // Auto-convert value when switching units
+                        const currentValue = watch('termValue');
+                        if (currentValue && watch('termUnit') === 'years') {
+                          setValue('termValue', Math.round(currentValue * 12));
+                        }
+                      }}
+                      className={`px-3 py-2 text-sm font-medium transition-colors ${
+                        field.value === 'months'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Months
+                    </button>
+                  </div>
+                )}
+              />
+            </div>
+            {(errors.termValue || errors.termUnit) && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.termValue?.message || errors.termUnit?.message}
+              </p>
             )}
           </div>
 

@@ -16,8 +16,10 @@ export default function MortgageForm({ mortgage, onClose }) {
     interestRate: '',
     rateType: 'FIXED',
     variableRateSpread: '',
-    amortizationPeriodYears: 25,
-    termYears: 5,
+    amortizationValue: 25,
+    amortizationUnit: 'years',
+    termValue: 5,
+    termUnit: 'years',
     startDate: new Date().toISOString().split('T')[0],
     paymentFrequency: 'MONTHLY'
   });
@@ -27,6 +29,10 @@ export default function MortgageForm({ mortgage, onClose }) {
   // Initialize form with existing mortgage data
   useEffect(() => {
     if (mortgage) {
+      // Convert from months to years for display
+      const amortizationMonths = mortgage.amortizationPeriodMonths || mortgage.amortizationPeriodYears * 12;
+      const termMonths = mortgage.termMonths || mortgage.termYears * 12;
+      
       setFormData({
         lenderName: mortgage.lenderName || '',
         propertyId: mortgage.propertyId || '',
@@ -34,8 +40,10 @@ export default function MortgageForm({ mortgage, onClose }) {
         interestRate: mortgage.interestRate?.toString() || '',
         rateType: mortgage.rateType || 'FIXED',
         variableRateSpread: mortgage.variableRateSpread?.toString() || '',
-        amortizationPeriodYears: mortgage.amortizationPeriodYears || 25,
-        termYears: mortgage.termYears || 5,
+        amortizationValue: Math.round(amortizationMonths / 12),
+        amortizationUnit: 'years',
+        termValue: Math.round(termMonths / 12),
+        termUnit: 'years',
         startDate: mortgage.startDate ? 
           (mortgage.startDate.seconds ? 
             new Date(mortgage.startDate.seconds * 1000).toISOString().split('T')[0] :
@@ -50,7 +58,7 @@ export default function MortgageForm({ mortgage, onClose }) {
   useEffect(() => {
     const amount = parseFloat(formData.originalAmount);
     const rate = parseFloat(formData.interestRate);
-    const years = formData.amortizationPeriodYears;
+    const years = formData.amortizationUnit === 'years' ? formData.amortizationValue : formData.amortizationValue / 12;
 
     if (amount > 0 && rate >= 0 && years > 0) {
       const payment = calculateMortgagePayment(amount, rate, years, formData.paymentFrequency);
@@ -58,7 +66,7 @@ export default function MortgageForm({ mortgage, onClose }) {
     } else {
       setCalculatedPayment(0);
     }
-  }, [formData.originalAmount, formData.interestRate, formData.amortizationPeriodYears, formData.paymentFrequency, calculateMortgagePayment]);
+  }, [formData.originalAmount, formData.interestRate, formData.amortizationValue, formData.amortizationUnit, formData.paymentFrequency, calculateMortgagePayment]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -88,6 +96,14 @@ export default function MortgageForm({ mortgage, onClose }) {
     setLoading(true);
 
     try {
+      // Convert to months for API
+      const amortizationInMonths = formData.amortizationUnit === 'years' 
+        ? formData.amortizationValue * 12 
+        : formData.amortizationValue;
+      const termInMonths = formData.termUnit === 'years' 
+        ? formData.termValue * 12 
+        : formData.termValue;
+
       const mortgageData = {
         lenderName: formData.lenderName.trim(),
         propertyId: formData.propertyId.trim() || null,
@@ -95,8 +111,8 @@ export default function MortgageForm({ mortgage, onClose }) {
         interestRate: parseFloat(formData.interestRate),
         rateType: formData.rateType,
         variableRateSpread: formData.variableRateSpread ? parseFloat(formData.variableRateSpread) : null,
-        amortizationPeriodYears: formData.amortizationPeriodYears,
-        termYears: formData.termYears,
+        amortizationPeriodMonths: amortizationInMonths,
+        termMonths: termInMonths,
         startDate: new Date(formData.startDate),
         paymentFrequency: formData.paymentFrequency
       };
@@ -250,40 +266,109 @@ export default function MortgageForm({ mortgage, onClose }) {
           {/* Amortization Period */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Amortization Period (Years)
+              Amortization Period *
             </label>
-            <select
-              value={formData.amortizationPeriodYears}
-              onChange={(e) => handleInputChange('amortizationPeriodYears', parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#205A3E] focus:border-transparent"
-            >
-              <option value={15}>15 Years</option>
-              <option value={20}>20 Years</option>
-              <option value={25}>25 Years</option>
-              <option value={30}>30 Years</option>
-              <option value={35}>35 Years</option>
-            </select>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={formData.amortizationValue}
+                onChange={(e) => handleInputChange('amortizationValue', parseInt(e.target.value))}
+                min="1"
+                max={formData.amortizationUnit === 'years' ? 50 : 600}
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#205A3E] focus:border-transparent"
+                placeholder={formData.amortizationUnit === 'years' ? '25' : '300'}
+              />
+              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleInputChange('amortizationUnit', 'years');
+                    // Auto-convert value when switching units
+                    if (formData.amortizationUnit === 'months') {
+                      handleInputChange('amortizationValue', Math.round(formData.amortizationValue / 12));
+                    }
+                  }}
+                  className={`px-3 py-2 text-sm font-medium transition-colors ${
+                    formData.amortizationUnit === 'years'
+                      ? 'bg-[#205A3E] text-white'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Years
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleInputChange('amortizationUnit', 'months');
+                    // Auto-convert value when switching units
+                    if (formData.amortizationUnit === 'years') {
+                      handleInputChange('amortizationValue', Math.round(formData.amortizationValue * 12));
+                    }
+                  }}
+                  className={`px-3 py-2 text-sm font-medium transition-colors ${
+                    formData.amortizationUnit === 'months'
+                      ? 'bg-[#205A3E] text-white'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Months
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Term Years */}
+          {/* Term */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Term (Years)
+              Term *
             </label>
-            <select
-              value={formData.termYears}
-              onChange={(e) => handleInputChange('termYears', parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#205A3E] focus:border-transparent"
-            >
-              <option value={1}>1 Year</option>
-              <option value={2}>2 Years</option>
-              <option value={3}>3 Years</option>
-              <option value={4}>4 Years</option>
-              <option value={5}>5 Years</option>
-              <option value={6}>6 Years</option>
-              <option value={7}>7 Years</option>
-              <option value={10}>10 Years</option>
-            </select>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={formData.termValue}
+                onChange={(e) => handleInputChange('termValue', parseInt(e.target.value))}
+                min="1"
+                max={formData.termUnit === 'years' ? 30 : 360}
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#205A3E] focus:border-transparent"
+                placeholder={formData.termUnit === 'years' ? '5' : '60'}
+              />
+              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleInputChange('termUnit', 'years');
+                    // Auto-convert value when switching units
+                    if (formData.termUnit === 'months') {
+                      handleInputChange('termValue', Math.round(formData.termValue / 12));
+                    }
+                  }}
+                  className={`px-3 py-2 text-sm font-medium transition-colors ${
+                    formData.termUnit === 'years'
+                      ? 'bg-[#205A3E] text-white'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Years
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleInputChange('termUnit', 'months');
+                    // Auto-convert value when switching units
+                    if (formData.termUnit === 'years') {
+                      handleInputChange('termValue', Math.round(formData.termValue * 12));
+                    }
+                  }}
+                  className={`px-3 py-2 text-sm font-medium transition-colors ${
+                    formData.termUnit === 'months'
+                      ? 'bg-[#205A3E] text-white'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Months
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Start Date */}

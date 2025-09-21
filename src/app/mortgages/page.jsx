@@ -4,9 +4,10 @@ import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import { useMortgages } from "@/context/MortgageContext";
 import { useState } from "react";
-import { Plus, Search, Filter, MoreVertical, Edit, Trash2, Eye } from "lucide-react";
+import { Plus, Search, Filter, MoreVertical, Edit, Trash2, Eye, Upload } from "lucide-react";
 import MortgageFormUpgraded from "@/components/mortgages/MortgageFormUpgraded";
 import MortgageDetails from "@/components/mortgages/MortgageDetails";
+import BulkUploadModal from "@/components/mortgages/BulkUploadModal";
 
 export default function MortgagesPage() {
   const { mortgages, loading, error } = useMortgages();
@@ -15,6 +16,7 @@ export default function MortgagesPage() {
   const [viewingMortgage, setViewingMortgage] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterProperty, setFilterProperty] = useState("");
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   // Get unique properties for filter
   const properties = [...new Set(mortgages.map(m => m.propertyId).filter(Boolean))];
@@ -43,6 +45,12 @@ export default function MortgagesPage() {
 
   const handleCloseDetails = () => {
     setViewingMortgage(null);
+  };
+
+  const handleBulkUploadSuccess = () => {
+    // Refresh the mortgages list or trigger a re-fetch
+    // This would typically involve calling a refresh function from the context
+    window.location.reload(); // Simple refresh for now
   };
 
   const formatCurrency = (amount) => {
@@ -98,13 +106,22 @@ export default function MortgagesPage() {
               </p>
             </div>
             
-            <button
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#205A3E] text-white rounded-lg hover:bg-[#1a4a32] transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Add Mortgage
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowBulkUpload(true)}
+                className="flex items-center gap-2 px-4 py-2 border border-[#205A3E] text-[#205A3E] rounded-lg hover:bg-[#205A3E] hover:text-white transition-colors"
+              >
+                <Upload className="w-4 h-4" />
+                Import from File
+              </button>
+              <button
+                onClick={() => setShowForm(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-[#205A3E] text-white rounded-lg hover:bg-[#1a4a32] transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add Mortgage
+              </button>
+            </div>
           </div>
 
           {/* Search and Filter */}
@@ -269,6 +286,14 @@ export default function MortgagesPage() {
             </div>
           )}
         </div>
+
+        {/* Bulk Upload Modal */}
+        {showBulkUpload && (
+          <BulkUploadModal
+            onClose={() => setShowBulkUpload(false)}
+            onSuccess={handleBulkUploadSuccess}
+          />
+        )}
       </Layout>
     </RequireAuth>
   );

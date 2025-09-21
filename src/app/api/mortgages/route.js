@@ -2,27 +2,8 @@ import { NextResponse } from 'next/server';
 import { authenticateRequest, validateMortgageData, createSuccessResponse, createErrorResponse } from '@/lib/api-utils';
 import { addMortgage, getMortgagesByProperty, getMortgages } from '@/lib/firestore';
 import { validatePropertyExists } from '@/lib/property-validation';
+import { mockMortgages, addMockMortgage } from '@/lib/mock-data';
 import { db } from '@/lib/firebase';
-
-// Mock data storage for development
-let mockMortgages = [
-  {
-    id: 'mock-mortgage-1',
-    userId: 'mock-user-1',
-    lenderName: 'TD Bank',
-    propertyId: 'richmond-st-e-403',
-    originalAmount: 492000,
-    interestRate: 5.2,
-    rateType: 'FIXED',
-    variableRateSpread: null,
-    amortizationPeriodYears: 25,
-    termYears: 5,
-    startDate: new Date('2022-02-04'),
-    paymentFrequency: 'BIWEEKLY',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  }
-];
 
 // POST /api/mortgages - Create a new mortgage
 export async function POST(request) {
@@ -59,6 +40,28 @@ export async function POST(request) {
       }
     }
 
+    // Convert amortization to months
+    let amortizationInMonths;
+    if (body.amortizationValue && body.amortizationUnit) {
+      amortizationInMonths = body.amortizationUnit === 'years' 
+        ? body.amortizationValue * 12 
+        : body.amortizationValue;
+    } else {
+      // Fallback for old format
+      amortizationInMonths = parseInt(body.amortizationPeriodYears) * 12;
+    }
+
+    // Convert term to months
+    let termInMonths;
+    if (body.termValue && body.termUnit) {
+      termInMonths = body.termUnit === 'years' 
+        ? body.termValue * 12 
+        : body.termValue;
+    } else {
+      // Fallback for old format
+      termInMonths = parseInt(body.termYears) * 12;
+    }
+
     // Prepare mortgage data
     const mortgageData = {
       userId: user.uid,
@@ -68,10 +71,12 @@ export async function POST(request) {
       interestRate: parseFloat(body.interestRate),
       rateType: body.rateType,
       variableRateSpread: body.variableRateSpread ? parseFloat(body.variableRateSpread) : null,
-      amortizationPeriodYears: parseInt(body.amortizationPeriodYears),
-      termYears: parseInt(body.termYears),
+      amortizationPeriodMonths: amortizationInMonths,
+      termMonths: termInMonths,
       startDate: new Date(body.startDate),
-      paymentFrequency: body.paymentFrequency
+      paymentFrequency: body.paymentFrequency,
+      mortgageType: body.mortgageType || 'CLOSED',
+      hasFixedPayments: body.hasFixedPayments !== undefined ? body.hasFixedPayments : null
     };
 
     let mortgageId;
@@ -84,7 +89,7 @@ export async function POST(request) {
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      mockMortgages.push(newMortgage);
+      addMockMortgage(newMortgage);
       mortgageId = newMortgage.id;
     } else {
       // Real Firebase implementation

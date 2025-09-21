@@ -1,27 +1,8 @@
 import { NextResponse } from 'next/server';
 import { authenticateRequest, validateMortgageData, createSuccessResponse, createErrorResponse } from '@/lib/api-utils';
 import { updateMortgage, deleteMortgage, getMortgage } from '@/lib/firestore';
+import { mockMortgages } from '@/lib/mock-data';
 import { db } from '@/lib/firebase';
-
-// Mock data storage for development (shared with main route)
-let mockMortgages = [
-  {
-    id: 'mock-mortgage-1',
-    userId: 'mock-user-1',
-    lenderName: 'TD Bank',
-    propertyId: 'richmond-st-e-403',
-    originalAmount: 492000,
-    interestRate: 5.2,
-    rateType: 'FIXED',
-    variableRateSpread: null,
-    amortizationPeriodYears: 25,
-    termYears: 5,
-    startDate: new Date('2022-02-04'),
-    paymentFrequency: 'BIWEEKLY',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  }
-];
 
 // GET /api/mortgages/[id] - Get a specific mortgage
 export async function GET(request, { params }) {
@@ -117,10 +98,31 @@ export async function PUT(request, { params }) {
     if (body.interestRate !== undefined) updateData.interestRate = parseFloat(body.interestRate);
     if (body.rateType !== undefined) updateData.rateType = body.rateType;
     if (body.variableRateSpread !== undefined) updateData.variableRateSpread = body.variableRateSpread ? parseFloat(body.variableRateSpread) : null;
-    if (body.amortizationPeriodYears !== undefined) updateData.amortizationPeriodYears = parseInt(body.amortizationPeriodYears);
-    if (body.termYears !== undefined) updateData.termYears = parseInt(body.termYears);
+    
+    // Handle amortization conversion to months
+    if (body.amortizationValue !== undefined && body.amortizationUnit !== undefined) {
+      updateData.amortizationPeriodMonths = body.amortizationUnit === 'years' 
+        ? body.amortizationValue * 12 
+        : body.amortizationValue;
+    } else if (body.amortizationPeriodYears !== undefined) {
+      // Fallback for old format
+      updateData.amortizationPeriodMonths = parseInt(body.amortizationPeriodYears) * 12;
+    }
+    
+    // Handle term conversion to months
+    if (body.termValue !== undefined && body.termUnit !== undefined) {
+      updateData.termMonths = body.termUnit === 'years' 
+        ? body.termValue * 12 
+        : body.termValue;
+    } else if (body.termYears !== undefined) {
+      // Fallback for old format
+      updateData.termMonths = parseInt(body.termYears) * 12;
+    }
+    
     if (body.startDate !== undefined) updateData.startDate = new Date(body.startDate);
     if (body.paymentFrequency !== undefined) updateData.paymentFrequency = body.paymentFrequency;
+    if (body.mortgageType !== undefined) updateData.mortgageType = body.mortgageType;
+    if (body.hasFixedPayments !== undefined) updateData.hasFixedPayments = body.hasFixedPayments;
 
     if (!db) {
       // Mock implementation for development
