@@ -1,3 +1,6 @@
+// Import mortgage calculator utilities
+import { getMonthlyMortgagePayment, getMonthlyMortgageInterest, getMonthlyMortgagePrincipal } from '@/utils/mortgageCalculator';
+
 // Centralized property data source parsed from CSV files
 export const properties = [
   {
@@ -61,7 +64,10 @@ export const properties = [
       insurance: 42.67,
       maintenance: 69.10,
       professionalFees: 324.88,
-      total: 1450.00
+      mortgagePayment: 0, // Will be calculated below
+      mortgageInterest: 0, // Will be calculated below
+      mortgagePrincipal: 0, // Will be calculated below
+      total: 1450.00 // Will be recalculated below
     },
     
     monthlyCashFlow: 2000.00, // monthlyRent - monthlyExpenses.total
@@ -148,7 +154,10 @@ export const properties = [
       condoFees: 433.74,
       insurance: 46.08,
       professionalFees: 226.00,
-      total: 897.00
+      mortgagePayment: 0, // Will be calculated below
+      mortgageInterest: 0, // Will be calculated below
+      mortgagePrincipal: 0, // Will be calculated below
+      total: 897.00 // Will be recalculated below
     },
     
     monthlyCashFlow: 1403.00, // monthlyRent - monthlyExpenses.total
@@ -241,7 +250,10 @@ export const properties = [
       maintenance: 21.16,
       professionalFees: 226.00,
       utilities: 14.66,
-      total: 320.99
+      mortgagePayment: 0, // Will be calculated below
+      mortgageInterest: 0, // Will be calculated below
+      mortgagePrincipal: 0, // Will be calculated below
+      total: 320.99 // Will be recalculated below
     },
     
     monthlyCashFlow: 2079.01, // monthlyRent - monthlyExpenses.total
@@ -270,6 +282,45 @@ export const properties = [
     ]
   }
 ];
+
+// Calculate mortgage payments for each property and update monthly expenses
+properties.forEach(property => {
+  try {
+    // Calculate mortgage payments
+    const mortgagePayment = getMonthlyMortgagePayment(property.mortgage);
+    const mortgageInterest = getMonthlyMortgageInterest(property.mortgage);
+    const mortgagePrincipal = getMonthlyMortgagePrincipal(property.mortgage);
+    
+    // Update monthly expenses
+    property.monthlyExpenses.mortgagePayment = mortgagePayment;
+    property.monthlyExpenses.mortgageInterest = mortgageInterest;
+    property.monthlyExpenses.mortgagePrincipal = mortgagePrincipal;
+    
+    // Recalculate total monthly expenses (handle different expense structures)
+    property.monthlyExpenses.total = 
+      (property.monthlyExpenses.propertyTax || 0) +
+      (property.monthlyExpenses.condoFees || 0) +
+      (property.monthlyExpenses.insurance || 0) +
+      (property.monthlyExpenses.maintenance || 0) +
+      (property.monthlyExpenses.professionalFees || 0) +
+      (property.monthlyExpenses.utilities || 0) +
+      property.monthlyExpenses.mortgagePayment;
+    
+    // Recalculate cash flow
+    property.monthlyCashFlow = property.rent.monthlyRent - property.monthlyExpenses.total;
+    property.annualCashFlow = property.monthlyCashFlow * 12;
+    
+    // Recalculate cap rate
+    property.capRate = (property.rent.annualRent / property.currentMarketValue) * 100;
+    
+    // Recalculate cash-on-cash return
+    property.cashOnCashReturn = (property.annualCashFlow / property.totalInvestment) * 100;
+    
+  } catch (error) {
+    console.warn(`Error calculating mortgage payments for ${property.id}:`, error);
+    // Keep default values if calculation fails
+  }
+});
 
 // Helper function to get property by ID
 export const getPropertyById = (id) => {

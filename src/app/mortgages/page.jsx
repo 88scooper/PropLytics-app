@@ -4,21 +4,42 @@ import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import { useMortgages } from "@/hooks/useMortgages";
 import { useState } from "react";
-import { Plus, Filter, MoreVertical, Edit, Trash2, Eye, Upload } from "lucide-react";
+import { Plus, Filter, MoreVertical, Edit, Trash2, Eye, Upload, Calculator } from "lucide-react";
 import MortgageFormUpgraded from "@/components/mortgages/MortgageFormUpgraded";
 import MortgageDetails from "@/components/mortgages/MortgageDetails";
 import BulkUploadModal from "@/components/mortgages/BulkUploadModal";
+import AmortizationSchedule from "@/components/mortgages/AmortizationSchedule";
+import { useProperties } from "@/context/PropertyContext";
 
 export default function MortgagesPage() {
-  const { data: mortgages = [], isLoading: loading, error } = useMortgages();
+  const { data: apiMortgages = [], isLoading: loading, error } = useMortgages();
+  const properties = useProperties();
+  
+  // Create mortgages array from properties data
+  const mortgages = properties.map(property => ({
+    id: `property-${property.id}`,
+    propertyId: property.id,
+    lenderName: property.mortgage.lender,
+    originalAmount: property.mortgage.originalAmount,
+    interestRate: property.mortgage.interestRate * 100, // Convert to percentage for display
+    rateType: property.mortgage.rateType,
+    amortizationPeriodYears: property.mortgage.amortizationYears,
+    termYears: property.mortgage.termMonths / 12,
+    startDate: property.mortgage.startDate,
+    paymentFrequency: property.mortgage.paymentFrequency,
+    mortgage: property.mortgage, // Include the full mortgage object
+    propertyName: property.nickname
+  }));
   const [showForm, setShowForm] = useState(false);
   const [editingMortgage, setEditingMortgage] = useState(null);
   const [viewingMortgage, setViewingMortgage] = useState(null);
   const [filterProperty, setFilterProperty] = useState("");
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showAmortization, setShowAmortization] = useState(false);
+  const [selectedMortgage, setSelectedMortgage] = useState(null);
 
-  // Get unique properties for filter
-  const properties = [...new Set(mortgages.map(m => m.propertyId).filter(Boolean))];
+  // Get unique property IDs for filter
+  const propertyIds = [...new Set(mortgages.map(m => m.propertyId).filter(Boolean))];
 
   // Filter mortgages based on property filter
   const filteredMortgages = mortgages.filter(mortgage => {
@@ -33,6 +54,11 @@ export default function MortgagesPage() {
 
   const handleView = (mortgage) => {
     setViewingMortgage(mortgage);
+  };
+
+  const handleViewAmortization = (mortgage) => {
+    setSelectedMortgage(mortgage);
+    setShowAmortization(true);
   };
 
   const handleCloseForm = () => {
@@ -131,9 +157,9 @@ export default function MortgagesPage() {
                 className="pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#205A3E] focus:border-transparent appearance-none"
               >
                 <option value="">All Properties</option>
-                {properties.map(propertyId => (
-                  <option key={propertyId} value={propertyId}>
-                    {propertyId}
+                {properties.map(property => (
+                  <option key={property.id} value={property.id}>
+                    {property.nickname || property.name}
                   </option>
                 ))}
               </select>
@@ -230,11 +256,11 @@ export default function MortgagesPage() {
                             </div>
                           </div>
 
-                          {mortgage.propertyId && (
+                          {mortgage.propertyName && (
                             <div className="mt-3">
                               <p className="text-gray-600 dark:text-gray-400 text-sm">Property</p>
                               <p className="font-medium text-gray-900 dark:text-white text-sm">
-                                {mortgage.propertyId}
+                                {mortgage.propertyName}
                               </p>
                             </div>
                           )}
@@ -247,6 +273,13 @@ export default function MortgagesPage() {
                             title="View Details"
                           >
                             <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleViewAmortization(mortgage)}
+                            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                            title="View Amortization Schedule"
+                          >
+                            <Calculator className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleEdit(mortgage)}
@@ -278,6 +311,18 @@ export default function MortgagesPage() {
           <BulkUploadModal
             onClose={() => setShowBulkUpload(false)}
             onSuccess={handleBulkUploadSuccess}
+          />
+        )}
+
+        {/* Amortization Schedule Modal */}
+        {showAmortization && selectedMortgage && (
+          <AmortizationSchedule
+            mortgage={selectedMortgage.mortgage}
+            propertyName={selectedMortgage.propertyName || 'Unknown Property'}
+            onClose={() => {
+              setShowAmortization(false);
+              setSelectedMortgage(null);
+            }}
           />
         )}
       </Layout>
