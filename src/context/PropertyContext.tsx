@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useMemo, useCallback, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useMemo, useCallback, ReactNode, useEffect, useState } from 'react';
 import { properties, getPropertyById, getAllProperties, getPortfolioMetrics } from '@/data/properties';
 
 // Define TypeScript interfaces for better type safety
@@ -106,6 +106,9 @@ export interface PropertyContextType {
   // Portfolio metrics
   portfolioMetrics: PortfolioMetrics;
   
+  // Calculation state
+  calculationsComplete: boolean;
+  
   // Helper functions
   getPropertyById: (id: string) => Property | undefined;
   getPropertiesByType: (type: string) => Property[];
@@ -123,6 +126,8 @@ const PropertyContext = createContext<PropertyContextType | undefined>(undefined
 
 // Provider component
 export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [calculationsComplete, setCalculationsComplete] = useState(false);
+  
   // Calculate mortgage payments and update property data in browser environment
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -164,9 +169,15 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
             console.warn(`Error calculating mortgage payments for ${property.id}:`, error);
           }
         });
+        
+        // Mark calculations as complete to trigger re-render
+        setCalculationsComplete(true);
       }).catch(error => {
         console.warn('Could not load mortgage calculator utilities:', error);
+        setCalculationsComplete(true); // Still mark as complete to avoid infinite loading
       });
+    } else {
+      setCalculationsComplete(true); // Server-side rendering
     }
   }, []);
   
@@ -178,6 +189,7 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
   const contextValue = useMemo(() => ({
     properties: allProperties,
     portfolioMetrics: metrics,
+    calculationsComplete,
     
     // Helper functions
     getPropertyById: (id: string) => getPropertyById(id),
@@ -199,7 +211,7 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
     // Loading and error states (currently static, can be enhanced later)
     loading: false,
     error: null,
-  }), [allProperties, metrics]);
+  }), [allProperties, metrics, calculationsComplete]);
 
   return (
     <PropertyContext.Provider value={contextValue}>
