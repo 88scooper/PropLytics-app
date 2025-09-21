@@ -87,11 +87,11 @@ function PropertyCard({ property }) {
         <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
           <div>
             <div className="text-gray-500 dark:text-gray-400">Type</div>
-            <div className="font-medium">{property.type}</div>
+            <div className="font-medium">{property.propertyType || property.type}</div>
           </div>
           <div>
             <div className="text-gray-500 dark:text-gray-400">Units</div>
-            <div className="font-medium">{property.units}</div>
+            <div className="font-medium">{property.units || 1}</div>
           </div>
           <div>
             <div className="text-gray-500 dark:text-gray-400">Purchase Price</div>

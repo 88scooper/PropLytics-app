@@ -24,6 +24,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useProperties, usePortfolioMetrics } from "@/context/PropertyContext";
+import { getCurrentMortgageBalance } from "@/utils/mortgageCalculator";
 import PortfolioMortgageDashboard from "@/components/mortgages/PortfolioMortgageDashboard";
 
 // ROI data for different time periods
@@ -216,9 +217,7 @@ export default function PortfolioSummaryPage() {
   const totalMonthlyExpenses = portfolioMetrics.totalMonthlyExpenses || 0;
 
   // Calculate additional metrics
-  const totalMortgageDebt = properties.reduce((total, property) => {
-    return total + (property.mortgage?.remainingBalance || 0);
-  }, 0);
+  const totalMortgageDebt = portfolioMetrics.totalMortgageBalance || 0;
 
   const annualCashFlow = portfolioMetrics.totalAnnualCashFlow || 0;
   const totalCashInvested = portfolioMetrics.totalInvestment || 0;

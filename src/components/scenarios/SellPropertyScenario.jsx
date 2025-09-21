@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getAllProperties } from '@/lib/propertyData';
+import { useProperties } from '@/context/PropertyContext';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 
 export default function SellPropertyScenario({ propertyId, onClose }) {
-  const [properties] = useState(getAllProperties());
+  const properties = useProperties();
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [salePrice, setSalePrice] = useState(0);
   const [sellingCosts, setSellingCosts] = useState(0);

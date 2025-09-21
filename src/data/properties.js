@@ -354,7 +354,24 @@ export const getPortfolioMetrics = () => {
   const totalMonthlyRent = properties.reduce((sum, property) => sum + property.rent.monthlyRent, 0);
   const totalMonthlyExpenses = properties.reduce((sum, property) => sum + property.monthlyExpenses.total, 0);
   const totalMonthlyCashFlow = properties.reduce((sum, property) => sum + property.monthlyCashFlow, 0);
-  const totalMortgageBalance = properties.reduce((sum, property) => sum + property.mortgage.originalAmount, 0);
+  
+  // Calculate current mortgage balance using the mortgage calculator
+  let totalMortgageBalance = 0;
+  try {
+    const { getCurrentMortgageBalance } = require('@/utils/mortgageCalculator');
+    totalMortgageBalance = properties.reduce((sum, property) => {
+      try {
+        return sum + getCurrentMortgageBalance(property.mortgage);
+      } catch (error) {
+        console.warn(`Error calculating current balance for ${property.id}:`, error);
+        return sum + property.mortgage.originalAmount; // Fallback to original amount
+      }
+    }, 0);
+  } catch (error) {
+    console.warn('Mortgage calculator not available, using original amounts:', error);
+    totalMortgageBalance = properties.reduce((sum, property) => sum + property.mortgage.originalAmount, 0);
+  }
+  
   const totalEquity = totalValue - totalMortgageBalance;
   
   return {

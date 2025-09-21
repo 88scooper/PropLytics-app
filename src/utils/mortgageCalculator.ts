@@ -273,3 +273,11 @@ export function getMonthlyMortgagePrincipal(mortgage: MortgageData): number {
       return currentPayment.principal;
   }
 }
+
+/**
+ * Calculate current mortgage balance based on payments made to date
+ */
+export function getCurrentMortgageBalance(mortgage: MortgageData): number {
+  const currentPayment = getCurrentMortgagePayment(mortgage);
+  return currentPayment.remainingBalance;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { getAllProperties } from '@/lib/propertyData';
+import { useProperties } from '@/context/PropertyContext';
 import RentChangeScenario from './RentChangeScenario';
 import ExpenseChangeScenario from './ExpenseChangeScenario';
 import UnitVacancyScenario from './UnitVacancyScenario';
@@ -117,7 +117,7 @@ const scenarios = [
 export default function ScenarioAnalysisDashboard() {
   const [activeScenario, setActiveScenario] = useState(null);
   const [selectedProperty, setSelectedProperty] = useState(null);
-  const properties = getAllProperties();
+  const properties = useProperties();
 
   const handleScenarioSelect = (scenario) => {
     if (scenario.component) {
