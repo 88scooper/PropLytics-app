@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import { authenticateRequest, createSuccessResponse, createErrorResponse } from '@/lib/api-utils';
 import { bulkImportRowSchema, transformBulkImportRow } from '@/lib/mortgage-validation';
+import { mockMortgages, addMockMortgage } from '@/lib/mock-data';
 import { z } from 'zod';
-
-// Local mock storage for testing
-let uploadMockMortgages = [];
 
 // POST /api/mortgages/upload - Bulk upload mortgages from CSV/Excel
 export async function POST(request) {
@@ -105,7 +103,7 @@ export async function POST(request) {
         };
         
         // Add to mock storage (in real implementation, this would be saved to database)
-        uploadMockMortgages.push(newMortgage);
+        addMockMortgage(newMortgage);
         
         results.successful.push({
           row: rowNumber,
