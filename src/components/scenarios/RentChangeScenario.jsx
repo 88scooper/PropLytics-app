@@ -87,7 +87,7 @@ export default function RentChangeScenario({ propertyId, onClose }) {
           >
             {properties.map(property => (
               <option key={property.id} value={property.id}>
-                {property.nickname} - ${property.monthlyRent.toLocaleString()}/month
+                {property.nickname} - ${property.rent.monthlyRent.toLocaleString()}/month
               </option>
             ))}
           </select>

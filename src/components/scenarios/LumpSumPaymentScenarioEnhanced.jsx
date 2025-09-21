@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import { useMortgages } from "@/hooks/useMortgages";
 import { usePrepaymentAnalysis } from "@/hooks/useMortgages";
-import { usePropertyData } from "@/context/PropertyDataContext";
+import { useProperty } from "@/context/PropertyContext";
 import { useToast } from "@/context/ToastContext";
-import { ArrowLeft, Calculator, TrendingDown, DollarSign, ToggleLeft, ToggleRight, Loader2 } from "lucide-react";
+import { ArrowLeft, Calculator, TrendingDown, DollarSign, Loader2 } from "lucide-react";
 
 export default function LumpSumPaymentScenarioEnhanced({ propertyId, onClose }) {
   const { data: mortgages, isLoading: mortgagesLoading } = useMortgages(propertyId);
   const prepaymentAnalysis = usePrepaymentAnalysis();
-  const propertyData = usePropertyData();
+  const propertyData = useProperty(propertyId);
   
   // Create a properties array from the single property data
   const properties = propertyData ? [{
@@ -21,7 +21,6 @@ export default function LumpSumPaymentScenarioEnhanced({ propertyId, onClose }) 
   
   const { showToast } = useToast();
   
-  const [useRealData, setUseRealData] = useState(false);
   const [selectedMortgage, setSelectedMortgage] = useState("");
   const [lumpSumAmount, setLumpSumAmount] = useState("");
   const [lumpSumPaymentNumber, setLumpSumPaymentNumber] = useState(12);
@@ -31,20 +30,8 @@ export default function LumpSumPaymentScenarioEnhanced({ propertyId, onClose }) 
   // Filter mortgages for the selected property
   const propertyMortgages = mortgages || [];
 
-  // Mock data for when real data is not used
-  const mockMortgage = {
-    id: 'mock-mortgage',
-    lenderName: 'TD Bank',
-    originalAmount: 500000,
-    interestRate: 0.0525,
-    rateType: 'FIXED',
-    amortizationPeriodYears: 25,
-    termYears: 5,
-    startDate: new Date('2022-01-01'),
-    paymentFrequency: 'MONTHLY'
-  };
-
-  const currentMortgages = useRealData ? propertyMortgages : [mockMortgage];
+  // Use real mortgage data from the centralized source
+  const currentMortgages = propertyMortgages;
 
   const calculateLumpSumImpact = async () => {
     if (!selectedMortgage || !lumpSumAmount) {

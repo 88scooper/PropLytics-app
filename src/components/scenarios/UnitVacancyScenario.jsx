@@ -99,7 +99,7 @@ export default function UnitVacancyScenario({ propertyId, onClose }) {
           >
             {properties.map(property => (
               <option key={property.id} value={property.id}>
-                {property.nickname} - ${property.monthlyRent.toLocaleString()}/month rent
+                {property.nickname} - ${property.rent.monthlyRent.toLocaleString()}/month rent
               </option>
             ))}
           </select>

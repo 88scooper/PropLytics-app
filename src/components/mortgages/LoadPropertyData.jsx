@@ -2,21 +2,15 @@
 
 import { useState } from "react";
 import { useMortgages } from "@/hooks/useMortgages";
-import { usePropertyData } from "@/context/PropertyDataContext";
+import { useProperties } from "@/context/PropertyContext";
 import { useToast } from "@/context/ToastContext";
 import { Download, Loader2, AlertCircle } from "lucide-react";
 
 export default function LoadPropertyData({ onDataLoaded, className = "" }) {
   const [selectedPropertyId, setSelectedPropertyId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const propertyData = usePropertyData();
-  
-  // Create a properties array from the single property data
-  const properties = propertyData ? [{
-    id: propertyData.id,
-    address: propertyData.address,
-    name: propertyData.address
-  }] : [];
+  // Get all properties from PropertyContext
+  const properties = useProperties();
   
   const { data: mortgages, isLoading: mortgagesLoading } = useMortgages(selectedPropertyId);
   const { showToast } = useToast();

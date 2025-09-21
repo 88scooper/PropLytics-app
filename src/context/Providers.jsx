@@ -3,7 +3,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from "@/context/ToastContext";
 import { AuthProvider } from "@/context/AuthContext";
-import { PropertyDataProvider } from "@/context/PropertyDataContext";
+import { PropertyProvider } from "@/context/PropertyContext";
 import { MortgageProvider } from "@/context/MortgageContext";
 import { queryClient } from "@/lib/query-client";
 
@@ -12,11 +12,11 @@ export default function Providers({ children }) {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ToastProvider>
-          <PropertyDataProvider>
+          <PropertyProvider>
             <MortgageProvider>
               {children}
             </MortgageProvider>
-          </PropertyDataProvider>
+          </PropertyProvider>
         </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>

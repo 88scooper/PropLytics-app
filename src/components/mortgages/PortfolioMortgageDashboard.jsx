@@ -1,7 +1,7 @@
 "use client";
 
 import { useMortgages } from "@/hooks/useMortgages";
-import { usePropertyData } from "@/context/PropertyDataContext";
+import { useProperties } from "@/context/PropertyContext";
 import { 
   CreditCard, 
   TrendingUp, 
@@ -15,15 +15,8 @@ import {
 
 export default function PortfolioMortgageDashboard({ className = "" }) {
   const { data: allMortgages, isLoading, error } = useMortgages();
-  const propertyData = usePropertyData();
-  
-  // Create a properties array from the single property data
-  // In a real app, this would come from a proper properties context
-  const properties = propertyData ? [{
-    id: propertyData.id,
-    address: propertyData.address,
-    name: propertyData.address
-  }] : [];
+  // Get all properties from PropertyContext
+  const properties = useProperties();
 
   if (isLoading) {
     return (

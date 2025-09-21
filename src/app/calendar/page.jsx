@@ -3,11 +3,13 @@
 import { useState, useMemo } from "react";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
+import { useProperties } from "@/context/PropertyContext";
 import Button from "@/components/Button";
 import { useToast } from "@/context/ToastContext";
 
 export default function CalendarPage() {
   const { addToast } = useToast();
+  const properties = useProperties(); // Get properties from context
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [events, setEvents] = useState([
@@ -16,7 +18,7 @@ export default function CalendarPage() {
       date: '2025-08-10', 
       time: '10:00', 
       description: 'Property Tax Due', 
-      property: '30 Tretti Way',
+      property: '317-30 Tretti Way',
       notify: true 
     },
     { 
@@ -24,7 +26,7 @@ export default function CalendarPage() {
       date: '2025-08-15', 
       time: '14:30', 
       description: 'Insurance Renewal', 
-      property: '311 Richmond St E',
+      property: '403-311 Richmond St E',
       notify: true 
     },
     { 
@@ -32,7 +34,7 @@ export default function CalendarPage() {
       date: '2025-08-20', 
       time: '09:00', 
       description: 'Property Inspection', 
-      property: '30 Tretti Way',
+      property: '415-500 Wilson Ave',
       notify: false 
     },
   ]);
@@ -45,12 +47,8 @@ export default function CalendarPage() {
     notify: false
   });
 
-  const properties = [
-    '311 Richmond St E',
-    '30 Tretti Way',
-    'Maple Street Duplex',
-    'Willow Apartments'
-  ];
+  // Get property names from context
+  const propertyNames = properties.map(prop => prop.address);
 
   // Get current month and year
   const currentMonth = currentDate.getMonth();
@@ -314,7 +312,7 @@ export default function CalendarPage() {
                       className="w-full rounded-md border border-black/15 dark:border-white/15 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20"
                     >
                       <option value="">Select a property</option>
-                      {properties.map(property => (
+                      {propertyNames.map(property => (
                         <option key={property} value={property}>{property}</option>
                       ))}
                     </select>

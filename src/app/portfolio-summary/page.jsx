@@ -23,7 +23,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { getAllProperties, getPortfolioMetrics } from "@/lib/propertyData";
+import { useProperties, usePortfolioMetrics } from "@/context/PropertyContext";
 import PortfolioMortgageDashboard from "@/components/mortgages/PortfolioMortgageDashboard";
 
 // ROI data for different time periods
@@ -80,11 +80,9 @@ function SortableMetricItem({ metric, onToggleVisibility }) {
 }
 
 export default function PortfolioSummaryPage() {
-  // Loading state
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // State for portfolio data
-  const [portfolioData, setPortfolioData] = useState(null);
+  // Get data from PropertyContext
+  const properties = useProperties();
+  const portfolioMetrics = usePortfolioMetrics();
   
   // State for settings dropdown visibility
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -170,30 +168,6 @@ export default function PortfolioSummaryPage() {
     }
   }, []);
 
-  // Load portfolio data
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Get real portfolio data
-        const properties = getAllProperties();
-        const portfolioMetrics = getPortfolioMetrics();
-        
-        // Set the portfolio data
-        setPortfolioData({ properties, portfolioMetrics });
-        
-        // Update the loading state
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error loading portfolio data:', error);
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
 
   // Save metrics to localStorage whenever metrics change
   useEffect(() => {
@@ -236,9 +210,7 @@ export default function PortfolioSummaryPage() {
     }
   };
 
-  // Get portfolio data from state
-  const properties = portfolioData?.properties || [];
-  const portfolioMetrics = portfolioData?.portfolioMetrics || {};
+  // Data is now coming from PropertyContext
   
   // Calculate total monthly expenses
   const totalMonthlyExpenses = portfolioMetrics.totalMonthlyExpenses || 0;
@@ -263,10 +235,6 @@ export default function PortfolioSummaryPage() {
   const averageOccupancyRate = portfolioMetrics.averageOccupancy || 0;
   const averageCapRate = portfolioMetrics.averageCapRate || 0;
 
-  // Loading state check
-  if (isLoading) {
-    return <Layout><div>Loading portfolio data...</div></Layout>;
-  }
 
   return (
     <RequireAuth>
@@ -549,14 +517,14 @@ export default function PortfolioSummaryPage() {
                             {property.tenant.name ? property.tenant.name : 'No tenant'}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {property.tenant.leaseStart ? 
-                              `Lease: ${new Date(property.tenant.leaseStart).toLocaleDateString()} - ${new Date(property.tenant.leaseEnd).toLocaleDateString()}` :
+                            {property.tenant.leaseStartDate ? 
+                              `Lease: ${new Date(property.tenant.leaseStartDate).toLocaleDateString()} - ${new Date(property.tenant.leaseEndDate).toLocaleDateString()}` :
                               'No lease'
                             }
                           </p>
                         </div>
                         <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                          ${property.monthlyRent.toLocaleString()}/mo
+                          ${property.rent.monthlyRent.toLocaleString()}/mo
                         </span>
                       </div>
                     </div>
@@ -590,10 +558,10 @@ export default function PortfolioSummaryPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-900 dark:text-gray-100">
-                        ${(property.monthlyRent * 12).toLocaleString()}
+                        ${(property.rent.monthlyRent * 12).toLocaleString()}
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        ${property.monthlyRent.toLocaleString()}/mo
+                        ${property.rent.monthlyRent.toLocaleString()}/mo
                       </p>
                     </div>
                   </div>
@@ -792,11 +760,11 @@ function ScheduleEvents({ properties = [] }) {
     ];
     
     // Add lease-related events if tenant exists
-    if (property.tenant.name && property.tenant.leaseEnd) {
+    if (property.tenant.name && property.tenant.leaseEndDate) {
       events.push({
         propertyName: property.nickname,
         eventType: "Lease Renewal",
-        date: property.tenant.leaseEnd
+        date: property.tenant.leaseEndDate
       });
     }
     

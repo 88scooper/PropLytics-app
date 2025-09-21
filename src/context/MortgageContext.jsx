@@ -29,35 +29,49 @@ export const MortgageProvider = ({ children }) => {
     }
 
     if (!db) {
-      // Provide mock data when Firebase is not available
+      // Provide mock data when Firebase is not available - Updated with real data from CSV
       setMortgages([
         {
           id: 'mock-mortgage-1',
-          lenderName: 'TD Bank',
+          lenderName: 'RMG',
           propertyId: 'richmond-st-e-403',
-          originalAmount: 492000,
-          interestRate: 5.2,
+          originalAmount: 443146.14,
+          interestRate: 2.69,
           rateType: 'FIXED',
-          amortizationPeriodYears: 25,
+          amortizationPeriodYears: 20,
           termYears: 5,
-          startDate: new Date('2022-02-04'),
+          startDate: new Date('2022-02-03'),
           paymentFrequency: 'BIWEEKLY',
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: new Date('2022-02-03'),
+          updatedAt: new Date('2022-02-03')
         },
         {
           id: 'mock-mortgage-2',
-          lenderName: 'RBC Royal Bank',
-          propertyId: 'wilson-ave-415',
-          originalAmount: 385000,
-          interestRate: 4.8,
+          lenderName: 'RBC',
+          propertyId: 'tretti-way-317',
+          originalAmount: 358000,
+          interestRate: -0.75,
           rateType: 'VARIABLE',
           amortizationPeriodYears: 30,
           termYears: 5,
-          startDate: new Date('2023-01-15'),
+          startDate: new Date('2025-03-21'),
           paymentFrequency: 'MONTHLY',
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: new Date('2025-03-21'),
+          updatedAt: new Date('2025-03-21')
+        },
+        {
+          id: 'mock-mortgage-3',
+          lenderName: 'RBC',
+          propertyId: 'wilson-ave-415',
+          originalAmount: 426382.1,
+          interestRate: 4.45,
+          rateType: 'FIXED',
+          amortizationPeriodYears: 30,
+          termYears: 3,
+          startDate: new Date('2025-01-22'),
+          paymentFrequency: 'MONTHLY',
+          createdAt: new Date('2025-01-22'),
+          updatedAt: new Date('2025-01-22')
         }
       ]);
       setLoading(false);

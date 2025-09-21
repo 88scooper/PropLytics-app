@@ -7,14 +7,15 @@ import { useAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
 import Input from "@/components/Input";
 import { useToast } from "@/context/ToastContext";
+import { useProperties, useProperty } from "@/context/PropertyContext";
 import { Download, Upload, X } from "lucide-react";
 import * as XLSX from 'xlsx';
 
 export default function DataPage() {
   const { addToast } = useToast();
   const { user } = useAuth();
+  const properties = useProperties(); // Get properties from context
   const [saving, setSaving] = useState(false);
-  const [properties, setProperties] = useState([]);
   const [selectedProperty, setSelectedProperty] = useState("");
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -69,71 +70,54 @@ export default function DataPage() {
   const [versions, setVersions] = useState([]);
 
   // Fetch user's properties from Firestore
-  useEffect(() => {
-    if (user) {
-      fetchUserProperties();
-    }
-  }, [user]);
+  // Properties are now available from PropertyContext
 
-  async function fetchUserProperties() {
+  function fetchPropertyDetails(propertyId) {
     try {
-      // Mock data for now - replace with actual Firestore fetch
-      const mockProperties = [
-        { id: '1', name: 'Maple Street Duplex', address: '123 Maple St, Toronto, ON' },
-        { id: '2', name: 'Willow Apartments', address: '456 Willow Ave, Mississauga, ON' },
-        { id: '3', name: 'Cedar Townhome', address: '789 Cedar Rd, Oakville, ON' },
-      ];
-      setProperties(mockProperties);
-    } catch (error) {
-      addToast("Failed to fetch properties.", { type: "error" });
-    }
-  }
-
-  async function fetchPropertyDetails(propertyId) {
-    try {
-      // Mock data for now - replace with actual Firestore fetch
-      const mockPropertyData = {
-        '1': {
-          name: "Maple Street Duplex",
-          address: "123 Maple St",
-          city: "Toronto",
-          state: "ON",
-          zipCode: "M5V 2H1",
-          propertyType: "Duplex",
-          units: "2",
-          squareFootage: "2400",
-          yearBuilt: "1985",
-          bedrooms: "3",
-          bathrooms: "2",
-          purchaseDate: "2023-06-01",
-          closingDate: "2023-06-15",
-          purchasePrice: "850000",
-          downPayment: "170000",
-          closingCosts: "25000",
-          renovationCosts: "45000",
-          otherCosts: "0",
-          lender: "TD Bank",
-          loanAmount: "680000",
-          interestRate: "4.25",
-          loanTerm: "25",
-          monthlyPayment: "3200",
-          remainingBalance: "665000",
-          nextPaymentDate: "2024-02-01",
-          monthlyRent: "4200",
-          propertyTax: "450",
-          insurance: "180",
-          utilities: "120",
-          maintenance: "150",
-          propertyManagement: "210",
-          hoaFees: "0",
-          currentValue: "920000",
-          lastAppraisalDate: "2023-12-01"
-        }
-      };
+      // Find property from context data
+      const realPropertyData = properties.find(p => p.id === propertyId);
       
-      if (mockPropertyData[propertyId]) {
-        setForm(mockPropertyData[propertyId]);
+      if (realPropertyData) {
+        const formattedPropertyData = {
+          name: realPropertyData.nickname || realPropertyData.name,
+          address: realPropertyData.address,
+          city: "Toronto", // Extract from address if needed
+          state: "ON",
+          zipCode: realPropertyData.address.split(' ').pop() || "",
+          propertyType: realPropertyData.propertyType,
+          units: "1",
+          squareFootage: realPropertyData.size?.toString() || realPropertyData.squareFootage?.toString(),
+          yearBuilt: realPropertyData.yearBuilt?.toString(),
+          bedrooms: realPropertyData.bedrooms?.[0]?.toString() || "2",
+          bathrooms: realPropertyData.bathrooms?.[0]?.toString() || "2",
+          purchaseDate: realPropertyData.purchaseDate || realPropertyData.purchaseDate,
+          closingDate: realPropertyData.purchaseDate,
+          purchasePrice: realPropertyData.purchasePrice?.toString(),
+          downPayment: (realPropertyData.purchasePrice - realPropertyData.mortgage.originalAmount)?.toString(),
+          closingCosts: realPropertyData.closingCosts?.toString(),
+          renovationCosts: realPropertyData.renovationCosts?.toString(),
+          otherCosts: "0",
+          lender: realPropertyData.mortgage.lender,
+          loanAmount: realPropertyData.mortgage.originalAmount?.toString(),
+          interestRate: (realPropertyData.mortgage.interestRate * 100)?.toString(),
+          loanTerm: realPropertyData.mortgage.amortizationYears?.toString(),
+          monthlyPayment: "0", // Would need to calculate
+          remainingBalance: realPropertyData.mortgage.originalAmount?.toString(),
+          nextPaymentDate: "2024-02-01",
+          monthlyRent: realPropertyData.rent?.monthlyRent?.toString(),
+          propertyTax: realPropertyData.monthlyPropertyTax?.toString(),
+          insurance: realPropertyData.monthlyInsurance?.toString(),
+          utilities: "0",
+          maintenance: realPropertyData.monthlyMaintenance?.toString(),
+          propertyManagement: "0",
+          hoaFees: realPropertyData.monthlyCondoFees?.toString(),
+          currentValue: realPropertyData.currentMarketValue?.toString() || realPropertyData.currentValue?.toString(),
+          lastAppraisalDate: "2023-12-01"
+        };
+        setForm(formattedPropertyData);
         addToast("Property data loaded successfully!", { type: "success" });
+      } else {
+        addToast("Property not found.", { type: "error" });
       }
     } catch (error) {
       addToast("Failed to load property details.", { type: "error" });

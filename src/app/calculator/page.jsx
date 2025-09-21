@@ -3,39 +3,25 @@
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout.jsx";
 import { RequireAuth } from "@/context/AuthContext";
+import { useProperties } from "@/context/PropertyContext";
 import Link from "next/link";
 
 export default function FinancialCalculators() {
   const [activeCalculator, setActiveCalculator] = useState("mortgage");
   const [selectedProperty, setSelectedProperty] = useState("");
 
-  // Property data from "My Investment Properties" page
-  const myProperties = [
-    {
-      id: 1,
-      address: "Richmond St E Condo",
-      purchasePrice: 815000,
-      downPayment: 163000,
-      interestRate: 5.2,
-      amortization: 25
-    },
-    {
-      id: 2,
-      address: "Tretti Way Condo",
-      purchasePrice: 448878,
-      downPayment: 89776,
-      interestRate: 5.1,
-      amortization: 25
-    },
-    {
-      id: 3,
-      address: "Wilson Ave Condo",
-      purchasePrice: 532379,
-      downPayment: 106476,
-      interestRate: 5.0,
-      amortization: 25
-    }
-  ];
+  // Get properties from PropertyContext
+  const properties = useProperties();
+  
+  // Transform properties for calculator use
+  const myProperties = properties.map(property => ({
+    id: property.id,
+    address: property.nickname || property.name,
+    purchasePrice: property.purchasePrice,
+    downPayment: property.purchasePrice - property.mortgage.originalAmount,
+    interestRate: property.mortgage.interestRate * 100, // Convert to percentage
+    amortization: property.mortgage.amortizationYears
+  }));
 
   // Mortgage Calculator State
   const [mortgageData, setMortgageData] = useState({

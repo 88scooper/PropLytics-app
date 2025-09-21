@@ -4,11 +4,11 @@ import Link from "next/link";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
-import { getAllProperties } from "@/lib/propertyData";
+import { useProperties } from "@/context/PropertyContext";
 import PropertyMortgageSummary from "@/components/mortgages/PropertyMortgageSummary";
 
 export default function MyPropertiesPage() {
-  const properties = getAllProperties();
+  const properties = useProperties();
   
   return (
     <RequireAuth>
@@ -97,7 +97,7 @@ function PropertyCard({ property }) {
           <div>
             <div className="text-gray-500 dark:text-gray-400">Monthly Rent</div>
             <div className="font-medium text-emerald-600 dark:text-emerald-400">
-              ${property.monthlyRent.toLocaleString()}
+              ${property.rent.monthlyRent.toLocaleString()}
             </div>
           </div>
           <div>

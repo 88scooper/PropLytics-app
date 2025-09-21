@@ -5,7 +5,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCreateMortgage, useUpdateMortgage, useCalculateMortgage } from "@/hooks/useMortgages";
 import { useToast } from "@/context/ToastContext";
-import { usePropertyData } from "@/context/PropertyDataContext";
+import { useProperties } from "@/context/PropertyContext";
 import { mortgageSchema, transformMortgageFormData, transformMortgageApiData } from "@/lib/mortgage-validation";
 import { ArrowLeft, Save, X, Calculator, Loader2 } from "lucide-react";
 
@@ -14,10 +14,8 @@ export default function MortgageFormUpgraded({ mortgage, onClose }) {
   const updateMortgage = useUpdateMortgage();
   const calculateMortgage = useCalculateMortgage();
   const { showToast } = useToast();
-  const propertyData = usePropertyData();
-  
-  // Use all properties from the context
-  const properties = propertyData?.properties || propertyData?.allProperties || [];
+  // Use all properties from the PropertyContext
+  const properties = useProperties();
   
   const [calculatedPayment, setCalculatedPayment] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);

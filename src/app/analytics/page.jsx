@@ -3,12 +3,12 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
-import { getAllProperties } from "@/lib/propertyData";
+import { useProperties } from "@/context/PropertyContext";
 import ScenarioAnalysisDashboard from "@/components/scenarios/ScenarioAnalysisDashboard";
 
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState('scenarios');
-  const properties = getAllProperties();
+  const properties = useProperties();
 
   const tabs = [
     { id: 'scenarios', label: 'Scenario Analysis', icon: '📊' },
@@ -113,7 +113,7 @@ export default function AnalyticsPage() {
                               {property.nickname}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                              ${property.monthlyRent.toLocaleString()}
+                              ${property.rent.monthlyRent.toLocaleString()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                               <span className={`font-medium ${property.monthlyCashFlow >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>

@@ -4,20 +4,13 @@ import { useState, use } from "react";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
-import { getPropertyById } from "@/lib/propertyData";
-import { usePropertyData } from "@/context/PropertyDataContext";
+import { useProperty } from "@/context/PropertyContext";
 
 export default function PropertyDetailPage({ params }) {
   const { propertyId } = use(params) || {};
   
-  // Get property data using propertyId from our centralized data source
-  const property = getPropertyById(propertyId);
-  
-  // Get real mortgage data from context for Richmond St E property
-  const mortgageData = usePropertyData();
-  
-  // Use real mortgage data if this is the Richmond St E property, otherwise use property data
-  const isRichmondProperty = propertyId === 'richmond-st-e-403';
+  // Get property data using propertyId from PropertyContext
+  const property = useProperty(propertyId);
 
   if (!property) {
     return (
@@ -93,7 +86,7 @@ export default function PropertyDetailPage({ params }) {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Down Payment</span>
-                      <span className="font-medium">${property.downPayment.toLocaleString()}</span>
+                      <span className="font-medium">${(property.purchasePrice - property.mortgage.originalAmount).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Closing Costs</span>
@@ -143,7 +136,7 @@ export default function PropertyDetailPage({ params }) {
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">Rental Income</span>
                         <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                          ${property.monthlyRent.toLocaleString()}
+                          ${property.rent.monthlyRent.toLocaleString()}
                         </span>
                       </div>
                     </div>

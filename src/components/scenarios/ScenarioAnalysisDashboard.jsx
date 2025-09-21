@@ -169,7 +169,7 @@ export default function ScenarioAnalysisDashboard() {
               <option value="">All Properties (will prompt for selection)</option>
               {properties.map(property => (
                 <option key={property.id} value={property.id}>
-                  {property.nickname} - ${property.monthlyRent.toLocaleString()}/month
+                  {property.nickname} - ${property.rent.monthlyRent.toLocaleString()}/month
                 </option>
               ))}
             </select>
