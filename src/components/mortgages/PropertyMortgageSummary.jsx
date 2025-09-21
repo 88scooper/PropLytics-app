@@ -16,9 +16,21 @@ export default function PropertyMortgageSummary({ propertyId, className = "" }) 
   }
 
   // Calculate summary statistics using the property's mortgage data
-  const currentBalance = getCurrentMortgageBalance(property.mortgage);
-  const monthlyPayment = property.monthlyExpenses.mortgagePayment || 0;
-  const interestRate = property.mortgage.interestRate * 100; // Convert to percentage
+  let currentBalance;
+  try {
+    currentBalance = getCurrentMortgageBalance(property.mortgage);
+  } catch (error) {
+    console.warn(`Error calculating mortgage balance for ${propertyId}:`, error);
+    currentBalance = property.mortgage.originalAmount; // Fallback to original amount
+  }
+  
+  // Ensure currentBalance is a valid number
+  if (typeof currentBalance !== 'number' || isNaN(currentBalance)) {
+    currentBalance = property.mortgage.originalAmount || 0;
+  }
+  
+  const monthlyPayment = property.monthlyExpenses?.mortgagePayment || 0;
+  const interestRate = (property.mortgage.interestRate || 0) * 100; // Convert to percentage
 
   return (
     <div className={`space-y-2 ${className}`}>

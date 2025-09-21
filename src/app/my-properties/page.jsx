@@ -5,11 +5,36 @@ import Image from "next/image";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
-import { useProperties } from "@/context/PropertyContext";
+import { useProperties, usePropertyContext } from "@/context/PropertyContext";
 import PropertyMortgageSummary from "@/components/mortgages/PropertyMortgageSummary";
 
 export default function MyPropertiesPage() {
+  const { calculationsComplete } = usePropertyContext();
   const properties = useProperties();
+  
+  // Show loading state until calculations are complete to prevent undefined values
+  if (!calculationsComplete) {
+    return (
+      <RequireAuth>
+        <Layout>
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold">My Investment Properties</h1>
+                <p className="mt-2 text-gray-600 dark:text-gray-300">
+                  Manage and view details for all your properties.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#205A3E]"></div>
+              <span className="ml-3 text-lg text-gray-600 dark:text-gray-400">Loading property data...</span>
+            </div>
+          </div>
+        </Layout>
+      </RequireAuth>
+    );
+  }
   
   return (
     <RequireAuth>
