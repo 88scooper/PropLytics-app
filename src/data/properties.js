@@ -77,6 +77,7 @@ export const properties = [
     bathrooms: [2],
     squareFootage: 946,
     currentValue: 800000,
+    imageUrl: '/images/311 Richmond St E.png',
     tenants: [
       {
         name: 'Steve MacNeil, Kate St John',
@@ -163,6 +164,7 @@ export const properties = [
     bathrooms: [2],
     squareFootage: 553,
     currentValue: 550000,
+    imageUrl: '/images/30 Tretti Way.png',
     tenants: [
       {
         name: 'Pratikkumar Chaudary',
@@ -255,6 +257,7 @@ export const properties = [
     bathrooms: [2],
     squareFootage: 557,
     currentValue: 550000,
+    imageUrl: '/images/500 Wilson Ave.png',
     tenants: [
       {
         name: 'Aanal Shah, Kavya Gandhi, Parth Patel',

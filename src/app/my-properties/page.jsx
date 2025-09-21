@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
@@ -59,9 +60,11 @@ function PropertyCard({ property }) {
     >
       <div className="aspect-square relative overflow-hidden">
         {property.imageUrl ? (
-          <img 
+          <Image 
             src={property.imageUrl} 
-            alt={property.name}
+            alt={property.nickname || property.name}
+            width={400}
+            height={400}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
@@ -73,7 +76,7 @@ function PropertyCard({ property }) {
       <div className="p-3 sm:p-4">
         <div className="mb-2">
           <h3 className="font-semibold text-base sm:text-lg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-            {property.name}
+            {property.nickname || property.name}
           </h3>
         </div>
         

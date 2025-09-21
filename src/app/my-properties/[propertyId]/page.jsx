@@ -195,46 +195,46 @@ export default function PropertyDetailPage({ params }) {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Lender</span>
-                      <span className="font-medium">{isRichmondProperty ? 'RMG' : property.mortgage.lender}</span>
+                      <span className="font-medium">{property.mortgage.lender}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Original Loan</span>
-                      <span className="font-medium">${isRichmondProperty ? mortgageData.purchasePrice.toLocaleString() : property.mortgage.loanAmount.toLocaleString()}</span>
+                      <span className="font-medium">${property.mortgage.originalAmount.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Interest Rate</span>
-                      <span className="font-medium">{isRichmondProperty ? mortgageData.interestRate : property.mortgage.interestRate}%</span>
+                      <span className="font-medium">{(property.mortgage.interestRate * 100).toFixed(2)}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Term</span>
-                      <span className="font-medium">{isRichmondProperty ? '25' : property.mortgage.term} years</span>
+                      <span className="font-medium">{property.mortgage.termMonths / 12} years</span>
                     </div>
                   </div>
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Monthly Payment</span>
-                      <span className="font-medium">${isRichmondProperty ? mortgageData.paymentAmount.toLocaleString() : property.mortgage.monthlyPayment.toLocaleString()}</span>
+                      <span className="font-medium">Calculated</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Remaining Balance</span>
-                      <span className="font-medium">${isRichmondProperty ? mortgageData.currentBalance.toLocaleString() : property.mortgage.remainingBalance.toLocaleString()}</span>
+                      <span className="font-medium">${property.mortgage.originalAmount.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Next Payment</span>
-                      <span className="font-medium">{isRichmondProperty ? '1/14/2024' : new Date(property.mortgage.nextPayment).toLocaleDateString()}</span>
+                      <span className="font-medium">Monthly</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Principal Paid</span>
                       <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                        ${isRichmondProperty ? (mortgageData.purchasePrice - mortgageData.currentBalance).toLocaleString() : (property.mortgage.loanAmount - property.mortgage.remainingBalance).toLocaleString()}
+                        $0
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Payment History - Only show for Richmond St E property */}
-              {isRichmondProperty && (
+              {/* Payment History - Coming Soon */}
+              {false && (
                 <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
                   <h2 className="text-xl font-semibold mb-4">Payment History</h2>
                   <div className="overflow-x-auto">
@@ -293,8 +293,8 @@ export default function PropertyDetailPage({ params }) {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Mortgage Summary - Only show for Richmond St E property */}
-              {isRichmondProperty && (
+              {/* Mortgage Summary - Coming Soon */}
+              {false && (
                 <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                   <h3 className="font-semibold mb-3">Mortgage Summary</h3>
                   <div className="space-y-2 text-sm">
