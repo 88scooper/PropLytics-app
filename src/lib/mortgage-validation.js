@@ -33,15 +33,7 @@ export const mortgageSchema = z.object({
   amortizationValue: z.number()
     .int('Amortization period must be a whole number')
     .min(1, 'Amortization period must be at least 1')
-    .refine((val, ctx) => {
-      const unit = ctx.parent?.amortizationUnit;
-      if (unit === 'years') {
-        return val <= 50;
-      } else if (unit === 'months') {
-        return val <= 600;
-      }
-      return true;
-    }, 'Amortization period exceeds maximum allowed'),
+    .max(600, 'Amortization period must be less than 600 months (50 years)'),
   
   amortizationUnit: z.enum(['years', 'months'], {
     errorMap: () => ({ message: 'Amortization unit must be either years or months' })
@@ -50,15 +42,7 @@ export const mortgageSchema = z.object({
   termValue: z.number()
     .int('Term must be a whole number')
     .min(1, 'Term must be at least 1')
-    .refine((val, ctx) => {
-      const unit = ctx.parent?.termUnit;
-      if (unit === 'years') {
-        return val <= 30;
-      } else if (unit === 'months') {
-        return val <= 360;
-      }
-      return true;
-    }, 'Term exceeds maximum allowed'),
+    .max(360, 'Term must be less than 360 months (30 years)'),
   
   termUnit: z.enum(['years', 'months'], {
     errorMap: () => ({ message: 'Term unit must be either years or months' })
@@ -84,6 +68,34 @@ export const mortgageSchema = z.object({
   }).optional(),
   
   hasFixedPayments: z.boolean().optional(),
+}).refine((data) => {
+  // Validate amortization period based on unit
+  if (data.amortizationValue && data.amortizationUnit) {
+    if (data.amortizationUnit === 'years' && data.amortizationValue > 50) {
+      return false;
+    }
+    if (data.amortizationUnit === 'months' && data.amortizationValue > 600) {
+      return false;
+    }
+  }
+  return true;
+}, {
+  message: 'Amortization period exceeds maximum allowed',
+  path: ['amortizationValue']
+}).refine((data) => {
+  // Validate term based on unit
+  if (data.termValue && data.termUnit) {
+    if (data.termUnit === 'years' && data.termValue > 30) {
+      return false;
+    }
+    if (data.termUnit === 'months' && data.termValue > 360) {
+      return false;
+    }
+  }
+  return true;
+}, {
+  message: 'Term exceeds maximum allowed',
+  path: ['termValue']
 });
 
 // Partial mortgage schema for updates

@@ -2,31 +2,28 @@
 
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
-import { useMortgages } from "@/context/MortgageContext";
+import { useMortgages } from "@/hooks/useMortgages";
 import { useState } from "react";
-import { Plus, Search, Filter, MoreVertical, Edit, Trash2, Eye, Upload } from "lucide-react";
+import { Plus, Filter, MoreVertical, Edit, Trash2, Eye, Upload } from "lucide-react";
 import MortgageFormUpgraded from "@/components/mortgages/MortgageFormUpgraded";
 import MortgageDetails from "@/components/mortgages/MortgageDetails";
 import BulkUploadModal from "@/components/mortgages/BulkUploadModal";
 
 export default function MortgagesPage() {
-  const { mortgages, loading, error } = useMortgages();
+  const { data: mortgages = [], isLoading: loading, error } = useMortgages();
   const [showForm, setShowForm] = useState(false);
   const [editingMortgage, setEditingMortgage] = useState(null);
   const [viewingMortgage, setViewingMortgage] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
   const [filterProperty, setFilterProperty] = useState("");
   const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   // Get unique properties for filter
   const properties = [...new Set(mortgages.map(m => m.propertyId).filter(Boolean))];
 
-  // Filter mortgages based on search and property filter
+  // Filter mortgages based on property filter
   const filteredMortgages = mortgages.filter(mortgage => {
-    const matchesSearch = mortgage.lenderName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         mortgage.propertyId?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesProperty = !filterProperty || mortgage.propertyId === filterProperty;
-    return matchesSearch && matchesProperty;
+    return matchesProperty;
   });
 
   const handleEdit = (mortgage) => {
@@ -124,19 +121,8 @@ export default function MortgagesPage() {
             </div>
           </div>
 
-          {/* Search and Filter */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search by lender or property..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#205A3E] focus:border-transparent"
-              />
-            </div>
-            
+          {/* Filter */}
+          <div className="flex justify-end">
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <select
@@ -180,12 +166,12 @@ export default function MortgagesPage() {
                     No mortgages found
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    {searchTerm || filterProperty 
-                      ? "Try adjusting your search or filter criteria."
+                    {filterProperty 
+                      ? "Try adjusting your filter criteria."
                       : "Get started by adding your first mortgage."
                     }
                   </p>
-                  {!searchTerm && !filterProperty && (
+                  {!filterProperty && (
                     <button
                       onClick={() => setShowForm(true)}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-[#205A3E] text-white rounded-lg hover:bg-[#1a4a32] transition-colors"

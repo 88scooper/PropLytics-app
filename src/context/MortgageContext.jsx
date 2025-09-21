@@ -44,10 +44,24 @@ export const MortgageProvider = ({ children }) => {
           paymentFrequency: 'BIWEEKLY',
           createdAt: new Date(),
           updatedAt: new Date()
+        },
+        {
+          id: 'mock-mortgage-2',
+          lenderName: 'RBC Royal Bank',
+          propertyId: 'wilson-ave-415',
+          originalAmount: 385000,
+          interestRate: 4.8,
+          rateType: 'VARIABLE',
+          amortizationPeriodYears: 30,
+          termYears: 5,
+          startDate: new Date('2023-01-15'),
+          paymentFrequency: 'MONTHLY',
+          createdAt: new Date(),
+          updatedAt: new Date()
         }
       ]);
       setLoading(false);
-      setError('Firebase not configured. Showing mock data.');
+      setError(null); // Clear error to prevent display issues
       return;
     }
 

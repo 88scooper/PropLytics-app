@@ -1,6 +1,10 @@
 import React, { createContext, useContext } from 'react';
+import { getAllProperties } from '@/lib/propertyData';
 
-// Centralized property data source parsed from 311-403 Richmond St E - Mortgage Data.xlsx - Mortgage Summary.csv
+// Get all properties from the centralized data source
+const allPropertiesData = getAllProperties();
+
+// For backward compatibility, also provide the first property as the default
 const richmondPropertyData = {
   id: 1,
   address: "403-311 Richmond St E",
@@ -1291,8 +1295,18 @@ const PropertyDataContext = createContext();
 
 // Create the Provider component
 export const PropertyDataProvider = ({ children }) => {
+  // Provide both the legacy single property and all properties
+  const contextValue = {
+    // Legacy single property (for backward compatibility)
+    ...richmondPropertyData,
+    // All properties array
+    allProperties: allPropertiesData,
+    // Individual properties for easy access
+    properties: allPropertiesData
+  };
+  
   return (
-    <PropertyDataContext.Provider value={richmondPropertyData}>
+    <PropertyDataContext.Provider value={contextValue}>
       {children}
     </PropertyDataContext.Provider>
   );

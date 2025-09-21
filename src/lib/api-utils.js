@@ -2,9 +2,9 @@ import { auth } from '@/lib/firebase';
 
 // Mock user data for development when Firebase is not configured
 const mockUsers = {
-  'mock-user-1': {
-    uid: 'mock-user-1',
-    email: 'user@example.com',
+  'demo-user': {
+    uid: 'demo-user',
+    email: 'demo@proplytics.com',
     email_verified: true
   }
 };
@@ -15,7 +15,7 @@ export async function authenticateRequest(req) {
     // Check if Firebase is configured
     if (!auth) {
       // Return mock user for development
-      return mockUsers['mock-user-1'];
+      return mockUsers['demo-user'];
     }
 
     const authHeader = req.headers.authorization;
@@ -40,7 +40,7 @@ export async function authenticateRequest(req) {
   } catch (error) {
     // Fallback to mock user for development
     console.warn('Authentication failed, using mock user:', error.message);
-    return mockUsers['mock-user-1'];
+    return mockUsers['demo-user'];
   }
 }
 
@@ -49,12 +49,9 @@ export function validateMortgageData(data, isUpdate = false) {
   const errors = [];
   const requiredFields = [
     'lenderName',
-    'propertyId',
     'originalAmount',
     'interestRate',
     'rateType',
-    'amortizationPeriodYears',
-    'termYears',
     'startDate',
     'paymentFrequency'
   ];
@@ -87,15 +84,25 @@ export function validateMortgageData(data, isUpdate = false) {
     errors.push('rateType must be either FIXED or VARIABLE');
   }
 
-  if (data.amortizationPeriodYears !== undefined) {
-    const years = parseInt(data.amortizationPeriodYears);
+  // Validate amortization period (new format or old format)
+  const amortizationYears = data.amortizationValue && data.amortizationUnit 
+    ? (data.amortizationUnit === 'years' ? data.amortizationValue : data.amortizationValue / 12)
+    : data.amortizationPeriodYears;
+  
+  if (amortizationYears !== undefined) {
+    const years = parseInt(amortizationYears);
     if (isNaN(years) || years < 1 || years > 50) {
       errors.push('amortizationPeriodYears must be between 1 and 50');
     }
   }
 
-  if (data.termYears !== undefined) {
-    const years = parseInt(data.termYears);
+  // Validate term (new format or old format)
+  const termYears = data.termValue && data.termUnit 
+    ? (data.termUnit === 'years' ? data.termValue : data.termValue / 12)
+    : data.termYears;
+  
+  if (termYears !== undefined) {
+    const years = parseInt(termYears);
     if (isNaN(years) || years < 1 || years > 30) {
       errors.push('termYears must be between 1 and 30');
     }

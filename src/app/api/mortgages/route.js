@@ -151,6 +151,7 @@ export async function GET(request) {
         const matchesProperty = !propertyId || mortgage.propertyId === propertyId;
         return matchesUser && matchesProperty;
       });
+      console.log('Using mock mortgages:', mortgages.length, 'for user:', user.uid);
     } else {
       // Real Firebase implementation
       if (propertyId) {

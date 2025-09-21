@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCreateMortgage, useUpdateMortgage, useCalculateMortgage } from "@/hooks/useMortgages";
@@ -16,12 +16,8 @@ export default function MortgageFormUpgraded({ mortgage, onClose }) {
   const { showToast } = useToast();
   const propertyData = usePropertyData();
   
-  // Create a properties array from the single property data
-  const properties = propertyData ? [{
-    id: propertyData.id,
-    address: propertyData.address,
-    name: propertyData.address
-  }] : [];
+  // Use all properties from the context
+  const properties = propertyData?.properties || propertyData?.allProperties || [];
   
   const [calculatedPayment, setCalculatedPayment] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -63,6 +59,20 @@ export default function MortgageFormUpgraded({ mortgage, onClose }) {
     }
   }, [mortgage, reset]);
 
+  // Memoize the calculatePayment function to prevent infinite loops
+  const calculatePayment = useCallback(async (mortgageData) => {
+    setIsCalculating(true);
+    try {
+      const result = await calculateMortgage.mutateAsync(mortgageData);
+      setCalculatedPayment(result.payment);
+    } catch (error) {
+      console.error('Error calculating payment:', error);
+      setCalculatedPayment(0);
+    } finally {
+      setIsCalculating(false);
+    }
+  }, [calculateMortgage]);
+
   // Calculate payment when relevant fields change
   useEffect(() => {
     const [originalAmount, interestRate, rateType, amortizationValue, amortizationUnit, paymentFrequency] = watchedValues;
@@ -81,20 +91,7 @@ export default function MortgageFormUpgraded({ mortgage, onClose }) {
         termYears: amortizationInYears
       });
     }
-  }, [watchedValues]);
-
-  const calculatePayment = async (mortgageData) => {
-    setIsCalculating(true);
-    try {
-      const result = await calculateMortgage.mutateAsync(mortgageData);
-      setCalculatedPayment(result.payment);
-    } catch (error) {
-      console.error('Error calculating payment:', error);
-      setCalculatedPayment(0);
-    } finally {
-      setIsCalculating(false);
-    }
-  };
+  }, [watchedValues, calculatePayment]);
 
   const onSubmit = async (data) => {
     try {
@@ -414,7 +411,7 @@ export default function MortgageFormUpgraded({ mortgage, onClose }) {
                 <input
                   {...field}
                   type="date"
-                  value={field.value ? field.value.toISOString().split('T')[0] : ''}
+                  value={field.value && field.value instanceof Date && !isNaN(field.value.getTime()) ? field.value.toISOString().split('T')[0] : ''}
                   onChange={(e) => field.onChange(new Date(e.target.value))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
