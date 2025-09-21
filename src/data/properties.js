@@ -23,7 +23,7 @@ export const properties = [
       interestRate: 0.0269, // 2.69% as decimal
       rateType: 'Fixed',
       termMonths: 60,
-      amortizationYears: 20, // 239 months / 12
+      amortizationYears: 19.92, // 239 months / 12
       paymentFrequency: 'Bi-weekly',
       startDate: '2022-02-03', // Start date of current mortgage
     },
@@ -116,7 +116,7 @@ export const properties = [
       interestRate: -0.0075, // -0.75% as decimal (variable rate)
       rateType: 'Variable',
       termMonths: 60,
-      amortizationYears: 30, // 361 months / 12
+      amortizationYears: 30.08, // 361 months / 12
       paymentFrequency: 'Monthly',
       startDate: '2025-03-21', // Start date of current mortgage
     },
@@ -191,7 +191,7 @@ export const properties = [
     nickname: 'Wilson Ave',
     address: '415-500 Wilson Ave, Toronto, ON M3H0E5',
     purchasePrice: 533379.47,
-    purchaseDate: '2025-01-22',
+    purchaseDate: '2025-01-20',
     closingCosts: 53241.9,
     renovationCosts: 0,
     currentMarketValue: 550000, // Estimated based on similar properties
