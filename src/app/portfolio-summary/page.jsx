@@ -93,8 +93,24 @@ export default function PortfolioSummaryPage() {
   const [isExpenseSettingsOpen, setIsExpenseSettingsOpen] = useState(false);
   const expenseSettingsRef = useRef(null);
 
+  // Default metrics configuration
+  const defaultMetrics = [
+    { id: 'portfolioValue', name: 'Total Estimated Portfolio Value', isVisible: true },
+    { id: 'equity', name: 'Total Estimated Equity', isVisible: true },
+    { id: 'mortgageDebt', name: 'Total Mortgage Debt', isVisible: true },
+    { id: 'cashOnCash', name: 'Cash on Cash', isVisible: true },
+    { id: 'monthlyCashFlow', name: 'Monthly Net Cash Flow', isVisible: true },
+    { id: 'monthlyExpenses', name: 'Total Monthly Expenses', isVisible: true },
+    { id: 'netOperatingIncome', name: 'Net Operating Income (NOI)', isVisible: true },
+    { id: 'capRate', name: 'Average Cap Rate', isVisible: true },
+    { id: 'returnOnCost', name: 'Total Estimated Return on Investment (ROI)', isVisible: true },
+    { id: 'totalProperties', name: 'Total Properties', isVisible: false },
+    { id: 'occupancyRate', name: 'Average Occupancy Rate', isVisible: false },
+    { id: 'financialGoals', name: 'Financial Goals 2025', isVisible: false },
+  ];
+
   // State for metrics (array of objects to preserve order and visibility)
-  const [metrics, setMetrics] = useState([]);
+  const [metrics, setMetrics] = useState(defaultMetrics);
 
   // State for ROI time period selection
   const [selectedROIYear, setSelectedROIYear] = useState(2);
@@ -129,22 +145,6 @@ export default function PortfolioSummaryPage() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isSettingsOpen, isExpenseSettingsOpen]);
-
-  // Default metrics configuration
-  const defaultMetrics = [
-    { id: 'portfolioValue', name: 'Total Estimated Portfolio Value', isVisible: true },
-    { id: 'equity', name: 'Total Estimated Equity', isVisible: true },
-    { id: 'mortgageDebt', name: 'Total Mortgage Debt', isVisible: true },
-    { id: 'cashOnCash', name: 'Cash on Cash', isVisible: true },
-    { id: 'monthlyCashFlow', name: 'Monthly Net Cash Flow', isVisible: true },
-    { id: 'monthlyExpenses', name: 'Total Monthly Expenses', isVisible: true },
-    { id: 'netOperatingIncome', name: 'Net Operating Income (NOI)', isVisible: true },
-    { id: 'capRate', name: 'Average Cap Rate', isVisible: true },
-    { id: 'returnOnCost', name: 'Total Estimated Return on Investment (ROI)', isVisible: true },
-    { id: 'totalProperties', name: 'Total Properties', isVisible: false },
-    { id: 'occupancyRate', name: 'Average Occupancy Rate', isVisible: false },
-    { id: 'financialGoals', name: 'Financial Goals 2025', isVisible: false },
-  ];
 
   // Initialize metrics from localStorage or use default
   useEffect(() => {

@@ -1,8 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useMemo, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, useCallback, ReactNode, useEffect } from 'react';
 import { properties, getPropertyById, getAllProperties, getPortfolioMetrics } from '@/data/properties';
-import { usePropertyCalculations } from '@/hooks/usePropertyCalculations';
 
 // Define TypeScript interfaces for better type safety
 export interface Property {
@@ -124,8 +123,52 @@ const PropertyContext = createContext<PropertyContextType | undefined>(undefined
 
 // Provider component
 export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Calculate mortgage payments and update property data
-  usePropertyCalculations();
+  // Calculate mortgage payments and update property data in browser environment
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Import mortgage calculator utilities dynamically in browser environment
+      import('@/utils/mortgageCalculator').then(({ getMonthlyMortgagePayment, getMonthlyMortgageInterest, getMonthlyMortgagePrincipal }) => {
+        properties.forEach(property => {
+          try {
+            // Calculate mortgage payments
+            const mortgagePayment = getMonthlyMortgagePayment(property.mortgage);
+            const mortgageInterest = getMonthlyMortgageInterest(property.mortgage);
+            const mortgagePrincipal = getMonthlyMortgagePrincipal(property.mortgage);
+            
+            // Update monthly expenses
+            property.monthlyExpenses.mortgagePayment = mortgagePayment;
+            property.monthlyExpenses.mortgageInterest = mortgageInterest;
+            property.monthlyExpenses.mortgagePrincipal = mortgagePrincipal;
+            
+            // Recalculate total monthly expenses
+            property.monthlyExpenses.total = 
+              (property.monthlyExpenses.propertyTax || 0) +
+              (property.monthlyExpenses.condoFees || 0) +
+              (property.monthlyExpenses.insurance || 0) +
+              (property.monthlyExpenses.maintenance || 0) +
+              (property.monthlyExpenses.professionalFees || 0) +
+              (property.monthlyExpenses.utilities || 0) +
+              property.monthlyExpenses.mortgagePayment;
+            
+            // Recalculate cash flow
+            property.monthlyCashFlow = property.rent.monthlyRent - property.monthlyExpenses.total;
+            property.annualCashFlow = property.monthlyCashFlow * 12;
+            
+            // Recalculate cap rate
+            property.capRate = (property.rent.annualRent / property.currentMarketValue) * 100;
+            
+            // Recalculate cash-on-cash return
+            property.cashOnCashReturn = (property.annualCashFlow / property.totalInvestment) * 100;
+            
+          } catch (error) {
+            console.warn(`Error calculating mortgage payments for ${property.id}:`, error);
+          }
+        });
+      }).catch(error => {
+        console.warn('Could not load mortgage calculator utilities:', error);
+      });
+    }
+  }, []);
   
   // Get all properties and portfolio metrics
   const allProperties = getAllProperties();
