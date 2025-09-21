@@ -23,7 +23,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useProperties, usePortfolioMetrics } from "@/context/PropertyContext";
+import { useProperties, usePortfolioMetrics, usePropertyContext } from "@/context/PropertyContext";
 import { getCurrentMortgageBalance } from "@/utils/mortgageCalculator";
 import PortfolioMortgageDashboard from "@/components/mortgages/PortfolioMortgageDashboard";
 
@@ -82,6 +82,7 @@ function SortableMetricItem({ metric, onToggleVisibility }) {
 
 export default function PortfolioSummaryPage() {
   // Get data from PropertyContext
+  const { calculationsComplete } = usePropertyContext();
   const properties = useProperties();
   const portfolioMetrics = usePortfolioMetrics();
   
@@ -234,6 +235,23 @@ export default function PortfolioSummaryPage() {
   const averageOccupancyRate = portfolioMetrics.averageOccupancy || 0;
   const averageCapRate = portfolioMetrics.averageCapRate || 0;
 
+  // Show loading state until calculations are complete to prevent hydration mismatch
+  if (!calculationsComplete) {
+    return (
+      <RequireAuth>
+        <Layout>
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            <div className="container mx-auto px-4 py-8">
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#205A3E]"></div>
+                <span className="ml-3 text-lg text-gray-600 dark:text-gray-400">Loading portfolio data...</span>
+              </div>
+            </div>
+          </div>
+        </Layout>
+      </RequireAuth>
+    );
+  }
 
   return (
     <RequireAuth>
