@@ -1,7 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, useCallback, ReactNode } from 'react';
 import { properties, getPropertyById, getAllProperties, getPortfolioMetrics } from '@/data/properties';
+import { usePropertyCalculations } from '@/hooks/usePropertyCalculations';
 
 // Define TypeScript interfaces for better type safety
 export interface Property {
@@ -123,6 +124,9 @@ const PropertyContext = createContext<PropertyContextType | undefined>(undefined
 
 // Provider component
 export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Calculate mortgage payments and update property data
+  usePropertyCalculations();
+  
   // Get all properties and portfolio metrics
   const allProperties = getAllProperties();
   const metrics = getPortfolioMetrics();
