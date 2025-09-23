@@ -224,9 +224,8 @@ export default function PortfolioSummaryPage() {
   const totalCashInvested = portfolioMetrics.totalInvestment || 0;
   const cashOnCashReturn = portfolioMetrics.cashOnCashReturn || 0;
 
-  const totalRevenue = (portfolioMetrics.totalMonthlyRent || 0) * 12;
-  const totalOperatingExpenses = totalMonthlyExpenses * 12;
-  const netOperatingIncome = totalRevenue - totalOperatingExpenses;
+    const totalRevenue = (portfolioMetrics.totalMonthlyRent || 0) * 12;
+    const netOperatingIncome = portfolioMetrics.netOperatingIncome || 0;
 
   // Calculate portfolio totals from actual data
   const totalPortfolioValue = portfolioMetrics.totalValue || 0;
@@ -565,7 +564,7 @@ export default function PortfolioSummaryPage() {
 
             {/* Annual Rental Income Chart */}
             <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 bg-white dark:bg-neutral-900">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Annual Rental Income (by Property)</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Annual Rental Income </h3>
               <div className="space-y-3">
                 {properties.map((property) => (
                   <div key={property.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -598,7 +597,7 @@ export default function PortfolioSummaryPage() {
             <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 bg-white dark:bg-neutral-900">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {expenseViewType === 'annual' ? 'Annual Expenses (by Property)' : 'Annual Deductible Expenses (by Property)'}
+                  {expenseViewType === 'annual' ? 'Annual Expenses ' : 'Annual Deductible Expenses '}
                 </h3>
                 
                 {/* Expense View Settings */}
@@ -670,22 +669,49 @@ export default function PortfolioSummaryPage() {
               </div>
               <div className="space-y-3">
                 {properties.length > 0 ? (
-                  properties.map((property) => (
-                    <div key={property.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div>
-                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{property.nickname}</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{property.address}</p>
+                  properties.map((property) => {
+                    // Calculate deductible expenses for this property
+                    const propertyDeductibleExpenses = expenseViewType === 'deductible' 
+                      ? (() => {
+                          try {
+                            // Calculate annual operating expenses (excluding mortgage principal)
+                            const annualOperatingExpenses = 
+                              (property.monthlyExpenses.propertyTax || 0) * 12 +
+                              (property.monthlyExpenses.condoFees || 0) * 12 +
+                              (property.monthlyExpenses.insurance || 0) * 12 +
+                              (property.monthlyExpenses.maintenance || 0) * 12 +
+                              (property.monthlyExpenses.professionalFees || 0) * 12 +
+                              (property.monthlyExpenses.utilities || 0) * 12;
+                            
+                            // Add estimated annual mortgage interest
+                            const estimatedAnnualInterest = property.mortgage.originalAmount * property.mortgage.interestRate;
+                            
+                            return annualOperatingExpenses + estimatedAnnualInterest;
+                          } catch (error) {
+                            // Fallback: use total expenses minus estimated principal
+                            const estimatedAnnualPrincipal = (property.mortgage.originalAmount / property.mortgage.amortizationYears);
+                            return (property.monthlyExpenses?.total || 0) * 12 - estimatedAnnualPrincipal;
+                          }
+                        })()
+                      : (property.monthlyExpenses?.total || 0) * 12;
+
+                    return (
+                      <div key={property.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div>
+                          <h4 className="font-medium text-gray-900 dark:text-gray-100">{property.nickname}</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{property.address}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">
+                            ${propertyDeductibleExpenses.toLocaleString()}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            ${(propertyDeductibleExpenses / 12).toLocaleString()}/mo
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900 dark:text-gray-100">
-                          ${((property.monthlyExpenses?.total || 0) * 12).toLocaleString()}
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          ${(property.monthlyExpenses?.total || 0).toLocaleString()}/mo
-                        </p>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                     No properties found
@@ -694,9 +720,14 @@ export default function PortfolioSummaryPage() {
                 {properties.length > 0 && (
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
                     <div className="flex justify-between items-center">
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">Total Annual Expenses</span>
+                      <span className="font-semibold text-gray-900 dark:text-gray-100">
+                        {expenseViewType === 'deductible' ? 'Total Annual Deductible Expenses' : 'Total Annual Expenses'}
+                      </span>
                       <span className="font-bold text-lg text-red-600 dark:text-red-400">
-                        ${((portfolioMetrics?.totalMonthlyExpenses || 0) * 12).toLocaleString()}
+                        ${expenseViewType === 'deductible' 
+                          ? (portfolioMetrics?.totalAnnualDeductibleExpenses || 0).toLocaleString()
+                          : ((portfolioMetrics?.totalMonthlyExpenses || 0) * 12).toLocaleString()
+                        }
                       </span>
                     </div>
                   </div>

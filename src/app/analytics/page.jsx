@@ -3,12 +3,13 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
-import { useProperties } from "@/context/PropertyContext";
+import { useProperties, usePortfolioMetrics } from "@/context/PropertyContext";
 import ScenarioAnalysisDashboard from "@/components/scenarios/ScenarioAnalysisDashboard";
 
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState('scenarios');
   const properties = useProperties();
+  const portfolioMetrics = usePortfolioMetrics();
 
   const tabs = [
     { id: 'scenarios', label: 'Scenario Analysis', icon: '📊' },
@@ -55,29 +56,41 @@ export default function AnalyticsPage() {
               <div className="space-y-6">
                 <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
                   <h2 className="text-lg font-semibold mb-4">Portfolio Performance</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
                     <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                       <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Portfolio Value</div>
                       <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                        ${properties.reduce((sum, p) => sum + p.marketValue, 0).toLocaleString()}
+                        ${portfolioMetrics.totalValue.toLocaleString()}
                       </div>
                     </div>
                     <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                       <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Monthly Cash Flow</div>
                       <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                        ${properties.reduce((sum, p) => sum + p.monthlyCashFlow, 0).toLocaleString()}
+                        ${portfolioMetrics.totalMonthlyCashFlow.toLocaleString()}
                       </div>
                     </div>
                     <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                       <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Average Cap Rate</div>
                       <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                        {properties.length > 0 ? (properties.reduce((sum, p) => sum + p.capRate, 0) / properties.length).toFixed(1) : 0}%
+                        {portfolioMetrics.averageCapRate.toFixed(1)}%
                       </div>
                     </div>
                     <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                       <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Equity</div>
                       <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                        ${properties.reduce((sum, p) => sum + (p.marketValue - p.mortgage.remainingBalance), 0).toLocaleString()}
+                        ${portfolioMetrics.totalEquity.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Net Operating Income (NOI)</div>
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        ${portfolioMetrics.netOperatingIncome.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Annual Deductible Expenses</div>
+                      <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                        ${portfolioMetrics.totalAnnualDeductibleExpenses.toLocaleString()}
                       </div>
                     </div>
                   </div>

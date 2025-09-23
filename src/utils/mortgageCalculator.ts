@@ -278,6 +278,68 @@ export function getMonthlyMortgagePrincipal(mortgage: MortgageData): number {
  * Calculate current mortgage balance based on payments made to date
  */
 export function getCurrentMortgageBalance(mortgage: MortgageData): number {
-  const currentPayment = getCurrentMortgagePayment(mortgage);
-  return currentPayment.remainingBalance;
+  try {
+    const schedule = calculateAmortizationSchedule(mortgage);
+    const currentDate = new Date();
+    
+    // Find the most recent payment that has occurred
+    const pastPayments = schedule.payments.filter(payment => {
+      const paymentDate = new Date(payment.paymentDate);
+      return paymentDate <= currentDate;
+    });
+
+    if (pastPayments.length === 0) {
+      // No payments made yet, return original amount
+      return mortgage.originalAmount;
+    }
+
+    // Return the remaining balance from the most recent payment
+    const mostRecentPayment = pastPayments[pastPayments.length - 1];
+    return mostRecentPayment.remainingBalance;
+  } catch (error) {
+    console.warn(`Error calculating current mortgage balance for ${mortgage.lender}:`, error);
+    // Fallback to original amount if calculation fails
+    return mortgage.originalAmount;
+  }
+}
+
+/**
+ * Calculate total annual mortgage interest for the next 12 months
+ * This is used for deductible expenses calculations
+ */
+export function getAnnualMortgageInterest(mortgage: MortgageData): number {
+  try {
+    const schedule = calculateAmortizationSchedule(mortgage);
+    const currentDate = new Date();
+    
+    // Find the current payment period
+    const currentPaymentIndex = schedule.payments.findIndex(payment => {
+      const paymentDate = new Date(payment.paymentDate);
+      return paymentDate <= currentDate;
+    });
+
+    if (currentPaymentIndex === -1) {
+      // No payments made yet, use first 12 payments
+      const first12Payments = schedule.payments.slice(0, 12);
+      return first12Payments.reduce((sum, payment) => sum + payment.interest, 0);
+    }
+
+    // Get the next 12 payments from current position
+    const next12Payments = schedule.payments.slice(currentPaymentIndex, currentPaymentIndex + 12);
+    
+    // If we don't have 12 payments remaining, use what we have
+    const paymentsToUse = next12Payments.length > 0 ? next12Payments : schedule.payments.slice(-12);
+    
+    return paymentsToUse.reduce((sum, payment) => sum + payment.interest, 0);
+  } catch (error) {
+    console.warn(`Error calculating annual mortgage interest for ${mortgage.lender}:`, error);
+    // Fallback: estimate annual interest as 12 months of current interest
+    try {
+      const currentPayment = getCurrentMortgagePayment(mortgage);
+      return currentPayment.interest * 12;
+    } catch (fallbackError) {
+      // Final fallback: estimate based on original amount and rate
+      return mortgage.originalAmount * mortgage.interestRate;
+    }
+  }
 }

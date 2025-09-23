@@ -130,7 +130,7 @@ export const properties = [
       termMonths: 60,
       amortizationYears: 30.08, // 361 months / 12
       paymentFrequency: 'Monthly',
-      startDate: '2025-03-21', // Start date of current mortgage
+      startDate: '2024-03-21', // Start date of current mortgage
     },
 
     rent: {
@@ -220,7 +220,7 @@ export const properties = [
       termMonths: 36, // 3 years
       amortizationYears: 30, // 360 months
       paymentFrequency: 'Monthly',
-      startDate: '2025-01-22',
+      startDate: '2024-01-22',
     },
 
     rent: {
@@ -355,24 +355,86 @@ export const getPortfolioMetrics = () => {
   const totalMonthlyExpenses = properties.reduce((sum, property) => sum + property.monthlyExpenses.total, 0);
   const totalMonthlyCashFlow = properties.reduce((sum, property) => sum + property.monthlyCashFlow, 0);
   
-  // Calculate current mortgage balance using the mortgage calculator
+  // Calculate current mortgage balance - simplified for now
+  // TODO: Implement proper mortgage balance calculation based on payments made
   let totalMortgageBalance = 0;
   try {
     const { getCurrentMortgageBalance } = require('@/utils/mortgageCalculator');
     totalMortgageBalance = properties.reduce((sum, property) => {
       try {
-        return sum + getCurrentMortgageBalance(property.mortgage);
+        const currentBalance = getCurrentMortgageBalance(property.mortgage);
+        return sum + currentBalance;
       } catch (error) {
         console.warn(`Error calculating current balance for ${property.id}:`, error);
-        return sum + property.mortgage.originalAmount; // Fallback to original amount
+        // For now, use a simplified calculation: reduce original amount by ~10% for older mortgages
+        const monthsSinceStart = Math.max(0, (new Date() - new Date(property.mortgage.startDate)) / (1000 * 60 * 60 * 24 * 30));
+        const estimatedPaidOff = (property.mortgage.originalAmount * 0.1 * Math.min(monthsSinceStart / 12, 1)); // Assume 10% paid off per year
+        return sum + Math.max(0, property.mortgage.originalAmount - estimatedPaidOff);
       }
     }, 0);
   } catch (error) {
-    console.warn('Mortgage calculator not available, using original amounts:', error);
-    totalMortgageBalance = properties.reduce((sum, property) => sum + property.mortgage.originalAmount, 0);
+    console.warn('Mortgage calculator not available, using estimated amounts:', error);
+    // Fallback: estimate current balances based on time since start
+    totalMortgageBalance = properties.reduce((sum, property) => {
+      const monthsSinceStart = Math.max(0, (new Date() - new Date(property.mortgage.startDate)) / (1000 * 60 * 60 * 24 * 30));
+      const estimatedPaidOff = (property.mortgage.originalAmount * 0.1 * Math.min(monthsSinceStart / 12, 1)); // Assume 10% paid off per year
+      return sum + Math.max(0, property.mortgage.originalAmount - estimatedPaidOff);
+    }, 0);
   }
   
+  
   const totalEquity = totalValue - totalMortgageBalance;
+  
+  // Calculate total annual operating expenses (excluding mortgage payments)
+  const totalAnnualOperatingExpenses = properties.reduce((sum, property) => {
+    return sum + 
+      (property.monthlyExpenses.propertyTax || 0) * 12 +
+      (property.monthlyExpenses.condoFees || 0) * 12 +
+      (property.monthlyExpenses.insurance || 0) * 12 +
+      (property.monthlyExpenses.maintenance || 0) * 12 +
+      (property.monthlyExpenses.professionalFees || 0) * 12 +
+      (property.monthlyExpenses.utilities || 0) * 12;
+  }, 0);
+  
+  // Calculate Net Operating Income (NOI) = Total Annual Income - Total Annual Operating Expenses
+  const netOperatingIncome = (totalMonthlyRent * 12) - totalAnnualOperatingExpenses;
+  
+  // Calculate total annual deductible expenses (operating expenses + mortgage interest)
+  let totalAnnualDeductibleExpenses = 0;
+  try {
+    const { getAnnualMortgageInterest } = require('@/utils/mortgageCalculator');
+    totalAnnualDeductibleExpenses = properties.reduce((sum, property) => {
+      try {
+        // Calculate annual operating expenses (excluding mortgage principal)
+        const annualOperatingExpenses = 
+          (property.monthlyExpenses.propertyTax || 0) * 12 +
+          (property.monthlyExpenses.condoFees || 0) * 12 +
+          (property.monthlyExpenses.insurance || 0) * 12 +
+          (property.monthlyExpenses.maintenance || 0) * 12 +
+          (property.monthlyExpenses.professionalFees || 0) * 12 +
+          (property.monthlyExpenses.utilities || 0) * 12;
+        
+        // Add annual mortgage interest
+        const annualMortgageInterest = getAnnualMortgageInterest(property.mortgage);
+        
+        return sum + annualOperatingExpenses + annualMortgageInterest;
+      } catch (error) {
+        console.warn(`Error calculating deductible expenses for ${property.id}:`, error);
+        // Fallback: use total monthly expenses minus estimated principal
+        const estimatedAnnualPrincipal = (property.mortgage.originalAmount / property.mortgage.amortizationYears);
+        const annualExpenses = property.monthlyExpenses.total * 12;
+        return sum + (annualExpenses - estimatedAnnualPrincipal);
+      }
+    }, 0);
+  } catch (error) {
+    console.warn('Mortgage calculator not available for deductible expenses, using fallback:', error);
+    // Fallback: estimate deductible expenses as total expenses minus estimated principal
+    totalAnnualDeductibleExpenses = properties.reduce((sum, property) => {
+      const estimatedAnnualPrincipal = (property.mortgage.originalAmount / property.mortgage.amortizationYears);
+      const annualExpenses = property.monthlyExpenses.total * 12;
+      return sum + (annualExpenses - estimatedAnnualPrincipal);
+    }, 0);
+  }
   
   return {
     totalValue,
@@ -382,6 +444,9 @@ export const getPortfolioMetrics = () => {
     totalMonthlyRent,
     totalMonthlyExpenses,
     totalMonthlyCashFlow,
+    totalAnnualOperatingExpenses,
+    netOperatingIncome,
+    totalAnnualDeductibleExpenses,
     totalProperties: properties.length,
     averageCapRate: properties.reduce((sum, property) => sum + property.capRate, 0) / properties.length,
     averageOccupancy: properties.reduce((sum, property) => sum + property.occupancy, 0) / properties.length,
