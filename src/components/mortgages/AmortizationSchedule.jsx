@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { calculateAmortizationSchedule } from "@/utils/mortgageCalculator";
-import { ChevronLeft, ChevronRight, Download, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, FileText, FileSpreadsheet } from "lucide-react";
 
 export default function AmortizationSchedule({ mortgage, propertyName, onClose }) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const downloadMenuRef = useRef(null);
   const paymentsPerPage = 12; // Show 12 payments per page (1 year)
 
   // Calculate amortization schedule
@@ -33,33 +35,44 @@ export default function AmortizationSchedule({ mortgage, propertyName, onClose }
     setCurrentPage(prev => Math.min(totalPages, prev + 1));
   };
 
-  const handleExportCSV = () => {
-    if (!schedule) return;
+  const handleDownload = (format) => {
+    if (!schedule || !mortgage) return;
     
-    const csvContent = [
-      // Header
-      ["Payment #", "Date", "Payment", "Principal", "Interest", "Remaining Balance"].join(","),
-      // Data rows
-      ...schedule.payments.map(payment => [
-        payment.paymentNumber,
-        payment.paymentDate,
-        payment.monthlyPayment.toFixed(2),
-        payment.principal.toFixed(2),
-        payment.interest.toFixed(2),
-        payment.remainingBalance.toFixed(2)
-      ].join(","))
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${propertyName}_amortization_schedule.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    // Generate a unique mortgage ID for the API call
+    const mortgageId = `mortgage-${mortgage.lender}-${mortgage.originalAmount}-${mortgage.interestRate}`.replace(/[^a-zA-Z0-9-]/g, '-');
+    
+    // Make API call to download the file
+    const downloadUrl = `/api/mortgages/${encodeURIComponent(mortgageId)}/download?format=${format}&propertyName=${encodeURIComponent(propertyName)}&lender=${encodeURIComponent(mortgage.lender)}&originalAmount=${mortgage.originalAmount}&interestRate=${mortgage.interestRate}&amortizationYears=${mortgage.amortizationYears}&paymentFrequency=${mortgage.paymentFrequency}&startDate=${mortgage.startDate}`;
+    
+    // Trigger download
+    window.location.href = downloadUrl;
+    setShowDownloadMenu(false);
   };
+
+  const handleExportCSV = () => {
+    handleDownload('csv');
+  };
+
+  const handleExportPDF = () => {
+    handleDownload('pdf');
+  };
+
+  // Close download menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target)) {
+        setShowDownloadMenu(false);
+      }
+    };
+
+    if (showDownloadMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDownloadMenu]);
 
   if (!mortgage || !schedule) {
     return (
@@ -147,13 +160,36 @@ export default function AmortizationSchedule({ mortgage, propertyName, onClose }
             </button>
           </div>
           
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export CSV</span>
-          </button>
+          <div className="relative" ref={downloadMenuRef}>
+            <button
+              onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Schedule</span>
+            </button>
+            
+            {showDownloadMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+                <div className="py-1">
+                  <button
+                    onClick={handleExportCSV}
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 mr-3" />
+                    Download as CSV
+                  </button>
+                  <button
+                    onClick={handleExportPDF}
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <FileText className="w-4 h-4 mr-3" />
+                    Download as PDF
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Table */}
