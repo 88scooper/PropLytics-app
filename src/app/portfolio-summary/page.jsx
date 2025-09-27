@@ -150,28 +150,10 @@ export default function PortfolioSummaryPage() {
 
   // Initialize metrics from localStorage or use default
   useEffect(() => {
-    const savedMetrics = localStorage.getItem('portfolio-dashboard-layout');
-    if (savedMetrics) {
-      try {
-        const parsedMetrics = JSON.parse(savedMetrics);
-        // Check if the saved metrics match the new default order
-        // If not, reset to default order
-        if (parsedMetrics.length !== defaultMetrics.length || 
-            parsedMetrics[0]?.id !== 'portfolioValue' || 
-            parsedMetrics[1]?.id !== 'equity') {
-          console.log('Resetting metrics to new default order');
-          setMetrics(defaultMetrics);
-          localStorage.setItem('portfolio-dashboard-layout', JSON.stringify(defaultMetrics));
-        } else {
-          setMetrics(parsedMetrics);
-        }
-      } catch (error) {
-        console.error('Error parsing saved metrics:', error);
-        setMetrics(defaultMetrics);
-      }
-    } else {
-      setMetrics(defaultMetrics);
-    }
+    // Force reset to new default order for now
+    console.log('Forcing reset to new default metrics order');
+    setMetrics(defaultMetrics);
+    localStorage.setItem('portfolio-dashboard-layout', JSON.stringify(defaultMetrics));
   }, []);
 
   // Initialize expense view type from localStorage or use default
