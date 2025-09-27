@@ -13,6 +13,12 @@ export default function PropertyDetailPage({ params }) {
   // Get property data using propertyId from PropertyContext
   const property = useProperty(propertyId);
 
+  // Debug logging for capRate and cashOnCashReturn
+  if (property) {
+    console.log('DEBUG - Cap Rate:', property.capRate, 'Type:', typeof property.capRate);
+    console.log('DEBUG - Cash on Cash:', property.cashOnCashReturn, 'Type:', typeof property.cashOnCashReturn);
+  }
+
   if (!property) {
     return (
       <RequireAuth>
@@ -178,11 +184,11 @@ export default function PropertyDetailPage({ params }) {
                       <div className="text-sm text-gray-600 dark:text-gray-400">Monthly Cash Flow</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold">{property.capRate}%</div>
+                      <div className="text-2xl font-bold">{formatPercentage(property.capRate)}</div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Cap Rate</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold">{property.cashOnCashReturn}%</div>
+                      <div className="text-2xl font-bold">{formatPercentage(property.cashOnCashReturn)}</div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Cash on Cash</div>
                     </div>
                   </div>
