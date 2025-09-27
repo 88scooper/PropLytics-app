@@ -273,7 +273,7 @@ export default function MortgagesPage() {
                         <div className="bg-gradient-to-r from-[#205A3E] to-[#2d7a5a] rounded-lg p-4 text-white">
                           <div className="flex items-center justify-between">
                             <div>
-                              <h3 className="text-xl font-semibold">{property?.nickname || 'Unknown Property'}</h3>
+                              <h3 className="text-lg font-semibold">{property?.nickname || 'Unknown Property'}</h3>
                               <p className="text-[#205A3E]/80 text-sm">{property?.address || 'No address available'}</p>
                               <p className="text-[#205A3E]/80 text-xs mt-1">
                                 {propertyMortgages.length} mortgage{propertyMortgages.length !== 1 ? 's' : ''}
