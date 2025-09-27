@@ -7,7 +7,7 @@ import { useCreateMortgage, useUpdateMortgage, useCalculateMortgage } from "@/ho
 import { useToast } from "@/context/ToastContext";
 import { useProperties } from "@/context/PropertyContext";
 import { mortgageSchema, transformMortgageFormData, transformMortgageApiData } from "@/lib/mortgage-validation";
-import { ArrowLeft, Save, X, Calculator, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, X, Calculator, Loader2, AlertCircle, CheckCircle, Info, TrendingUp, TrendingDown } from "lucide-react";
 
 export default function MortgageFormUpgraded({ mortgage, onClose }) {
   const createMortgage = useCreateMortgage();
@@ -19,6 +19,8 @@ export default function MortgageFormUpgraded({ mortgage, onClose }) {
   
   const [calculatedPayment, setCalculatedPayment] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [mortgageInsights, setMortgageInsights] = useState(null);
+  const [validationWarnings, setValidationWarnings] = useState([]);
 
   const {
     register,
@@ -71,7 +73,7 @@ export default function MortgageFormUpgraded({ mortgage, onClose }) {
     }
   }, [calculateMortgage]);
 
-  // Calculate payment when relevant fields change
+  // Calculate payment and insights when relevant fields change
   useEffect(() => {
     const [originalAmount, interestRate, rateType, amortizationValue, amortizationUnit, paymentFrequency] = watchedValues;
     
@@ -88,8 +90,74 @@ export default function MortgageFormUpgraded({ mortgage, onClose }) {
         startDate: new Date(),
         termYears: amortizationInYears
       });
+
+      // Calculate mortgage insights
+      const totalPayments = amortizationInYears * 12;
+      const totalInterest = (calculatedPayment * totalPayments) - originalAmount;
+      const interestToPrincipalRatio = totalInterest / originalAmount;
+      
+      // Generate insights
+      const insights = [];
+      const warnings = [];
+
+      // Interest rate insights
+      if (interestRate > 7) {
+        warnings.push({
+          type: 'warning',
+          message: 'High interest rate detected. Consider shopping around for better rates.',
+          icon: AlertCircle
+        });
+      } else if (interestRate < 3) {
+        insights.push({
+          type: 'success',
+          message: 'Excellent interest rate! This is below current market averages.',
+          icon: CheckCircle
+        });
+      }
+
+      // Amortization period insights
+      if (amortizationInYears > 30) {
+        warnings.push({
+          type: 'warning',
+          message: 'Long amortization period will result in higher total interest costs.',
+          icon: AlertCircle
+        });
+      } else if (amortizationInYears <= 15) {
+        insights.push({
+          type: 'success',
+          message: 'Short amortization period will save significant interest over time.',
+          icon: CheckCircle
+        });
+      }
+
+      // Payment frequency insights
+      if (paymentFrequency === 'ACCELERATED_BI_WEEKLY' || paymentFrequency === 'ACCELERATED_WEEKLY') {
+        insights.push({
+          type: 'info',
+          message: 'Accelerated payments will help you pay off your mortgage faster.',
+          icon: TrendingUp
+        });
+      }
+
+      // Loan amount insights
+      if (originalAmount > 1000000) {
+        warnings.push({
+          type: 'info',
+          message: 'Large loan amount. Ensure you have adequate income to support payments.',
+          icon: Info
+        });
+      }
+
+      setMortgageInsights({
+        totalInterest,
+        interestToPrincipalRatio,
+        totalPayments,
+        insights,
+        warnings
+      });
+      setValidationWarnings(warnings);
     }
-  }, [watchedValues, calculatePayment]);
+  }, [watchedValues, calculatePayment, calculatedPayment]);
 
   const onSubmit = async (data) => {
     try {
@@ -462,6 +530,75 @@ export default function MortgageFormUpgraded({ mortgage, onClose }) {
             <p className="text-sm text-blue-700">
               {watch('paymentFrequency')?.replace(/_/g, ' ').toLowerCase()} payment
             </p>
+          </div>
+        )}
+
+        {/* Mortgage Insights and Warnings */}
+        {mortgageInsights && (
+          <div className="space-y-4">
+            {/* Insights */}
+            {mortgageInsights.insights.length > 0 && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h3 className="font-medium text-green-900 mb-3 flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  Mortgage Insights
+                </h3>
+                <div className="space-y-2">
+                  {mortgageInsights.insights.map((insight, index) => (
+                    <div key={index} className="flex items-start gap-2">
+                      <insight.icon className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-green-800">{insight.message}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Warnings */}
+            {mortgageInsights.warnings.length > 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h3 className="font-medium text-yellow-900 mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  Important Considerations
+                </h3>
+                <div className="space-y-2">
+                  {mortgageInsights.warnings.map((warning, index) => (
+                    <div key={index} className="flex items-start gap-2">
+                      <warning.icon className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-yellow-800">{warning.message}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Financial Summary */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                <Info className="w-5 h-5" />
+                Financial Summary
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-600">Total Interest</p>
+                  <p className="font-semibold text-gray-900">
+                    {formatCurrency(mortgageInsights.totalInterest)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Interest to Principal Ratio</p>
+                  <p className="font-semibold text-gray-900">
+                    {(mortgageInsights.interestToPrincipalRatio * 100).toFixed(1)}%
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Total Payments</p>
+                  <p className="font-semibold text-gray-900">
+                    {mortgageInsights.totalPayments}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
