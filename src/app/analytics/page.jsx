@@ -5,6 +5,7 @@ import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import { useProperties, usePortfolioMetrics } from "@/context/PropertyContext";
 import ScenarioAnalysisDashboard from "@/components/scenarios/ScenarioAnalysisDashboard";
+import { formatCurrency, formatPercentage } from "@/utils/formatting";
 
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState('scenarios');
@@ -60,37 +61,37 @@ export default function AnalyticsPage() {
                     <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                       <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Portfolio Value</div>
                       <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                        ${portfolioMetrics.totalValue.toLocaleString()}
+                        {formatCurrency(portfolioMetrics.totalValue)}
                       </div>
                     </div>
                     <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                       <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Monthly Cash Flow</div>
                       <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                        ${portfolioMetrics.totalMonthlyCashFlow.toLocaleString()}
+                        {formatCurrency(portfolioMetrics.totalMonthlyCashFlow)}
                       </div>
                     </div>
                     <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                       <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Average Cap Rate</div>
                       <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                        {portfolioMetrics.averageCapRate.toFixed(1)}%
+                        {formatPercentage(portfolioMetrics.averageCapRate)}
                       </div>
                     </div>
                     <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                       <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Equity</div>
                       <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                        ${portfolioMetrics.totalEquity.toLocaleString()}
+                        {formatCurrency(portfolioMetrics.totalEquity)}
                       </div>
                     </div>
                     <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                       <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Net Operating Income (NOI)</div>
                       <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                        ${portfolioMetrics.netOperatingIncome.toLocaleString()}
+                        {formatCurrency(portfolioMetrics.netOperatingIncome)}
                       </div>
                     </div>
                     <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                       <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Annual Deductible Expenses</div>
                       <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                        ${portfolioMetrics.totalAnnualDeductibleExpenses.toLocaleString()}
+                        {formatCurrency(portfolioMetrics.totalAnnualDeductibleExpenses)}
                       </div>
                     </div>
                   </div>
@@ -126,18 +127,18 @@ export default function AnalyticsPage() {
                               {property.nickname}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                              ${property.rent.monthlyRent.toLocaleString()}
+                              {formatCurrency(property.rent.monthlyRent)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                               <span className={`font-medium ${property.monthlyCashFlow >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                                ${property.monthlyCashFlow.toLocaleString()}
+                                {formatCurrency(property.monthlyCashFlow)}
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                              {property.capRate.toFixed(1)}%
+                              {formatPercentage(property.capRate)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                              ${property.marketValue.toLocaleString()}
+                              {formatCurrency(property.marketValue)}
                             </td>
                           </tr>
                         ))}
@@ -157,7 +158,7 @@ export default function AnalyticsPage() {
                       <h3 className="font-medium mb-2">💡 Top Performing Property</h3>
                       <p className="text-gray-600 dark:text-gray-300">
                         {properties.length > 0 ? 
-                          `${properties.reduce((best, current) => current.monthlyCashFlow > best.monthlyCashFlow ? current : best).nickname} has the highest monthly cash flow at $${properties.reduce((best, current) => current.monthlyCashFlow > best.monthlyCashFlow ? current : best).monthlyCashFlow.toLocaleString()}.`
+                          `${properties.reduce((best, current) => current.monthlyCashFlow > best.monthlyCashFlow ? current : best).nickname} has the highest monthly cash flow at ${formatCurrency(properties.reduce((best, current) => current.monthlyCashFlow > best.monthlyCashFlow ? current : best).monthlyCashFlow)}.`
                           : 'No properties available for analysis.'
                         }
                       </p>
@@ -166,7 +167,7 @@ export default function AnalyticsPage() {
                     <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                       <h3 className="font-medium mb-2">📈 Portfolio Diversification</h3>
                       <p className="text-gray-600 dark:text-gray-300">
-                        Your portfolio consists of {properties.length} properties with an average cap rate of {properties.length > 0 ? (properties.reduce((sum, p) => sum + p.capRate, 0) / properties.length).toFixed(1) : 0}%. 
+                        Your portfolio consists of {properties.length} properties with an average cap rate of {properties.length > 0 ? formatPercentage(properties.reduce((sum, p) => sum + p.capRate, 0) / properties.length) : formatPercentage(0)}. 
                         Consider diversifying across different property types or locations for risk reduction.
                       </p>
                     </div>
@@ -175,7 +176,7 @@ export default function AnalyticsPage() {
                       <h3 className="font-medium mb-2">⚠️ Risk Assessment</h3>
                       <p className="text-gray-600 dark:text-gray-300">
                         Monitor vacancy rates and market conditions. Consider setting aside 5-10% of annual rent as a vacancy allowance. 
-                        Your current portfolio generates ${properties.reduce((sum, p) => sum + p.annualCashFlow, 0).toLocaleString()} in annual cash flow.
+                        Your current portfolio generates {formatCurrency(properties.reduce((sum, p) => sum + p.annualCashFlow, 0))} in annual cash flow.
                       </p>
                     </div>
                   </div>

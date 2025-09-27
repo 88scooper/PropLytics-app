@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Input from "@/components/Input";
+import { formatCurrency } from "@/utils/formatting";
 
 export default function MortgageCalculator() {
   const [purchasePrice, setPurchasePrice] = useState("");
@@ -104,15 +105,6 @@ export default function MortgageCalculator() {
     calculateMortgage();
   }, [purchasePrice, downPayment, interestRate, amortizationPeriod]);
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-CA', {
-      style: 'currency',
-      currency: 'CAD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">

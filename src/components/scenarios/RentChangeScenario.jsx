@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useProperties } from '@/context/PropertyContext';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import { formatCurrency, formatPercentage } from '@/utils/formatting';
 
 export default function RentChangeScenario({ propertyId, onClose }) {
   const properties = useProperties();
@@ -87,7 +88,7 @@ export default function RentChangeScenario({ propertyId, onClose }) {
           >
             {properties.map(property => (
               <option key={property.id} value={property.id}>
-                {property.nickname} - ${property.rent.monthlyRent.toLocaleString()}/month
+                {property.nickname} - {formatCurrency(property.rent.monthlyRent)}/month
               </option>
             ))}
           </select>
@@ -100,13 +101,13 @@ export default function RentChangeScenario({ propertyId, onClose }) {
             <div>
               <div className="text-sm text-gray-500 dark:text-gray-400">Monthly Rent</div>
               <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                ${selectedProperty.monthlyRent.toLocaleString()}
+                {formatCurrency(selectedProperty.monthlyRent)}
               </div>
             </div>
             <div>
               <div className="text-sm text-gray-500 dark:text-gray-400">Annual Cash Flow</div>
               <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                ${selectedProperty.annualCashFlow.toLocaleString()}
+                {formatCurrency(selectedProperty.annualCashFlow)}
               </div>
             </div>
           </div>
@@ -152,20 +153,20 @@ export default function RentChangeScenario({ propertyId, onClose }) {
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                 <h4 className="font-medium mb-2">New Rent</h4>
                 <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                  ${analysisResults.newRent.toLocaleString()}/month
+                  {formatCurrency(analysisResults.newRent)}/month
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {analysisResults.changeAmount > 0 ? '+' : ''}${analysisResults.changeAmount.toLocaleString()}/month
+                  {analysisResults.changeAmount > 0 ? '+' : ''}{formatCurrency(analysisResults.changeAmount)}/month
                 </p>
               </div>
 
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                 <h4 className="font-medium mb-2">New Cash Flow</h4>
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  ${analysisResults.newMonthlyCashFlow.toLocaleString()}/month
+                  {formatCurrency(analysisResults.newMonthlyCashFlow)}/month
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {analysisResults.monthlyImpact > 0 ? '+' : ''}${analysisResults.monthlyImpact.toLocaleString()}/month
+                  {analysisResults.monthlyImpact > 0 ? '+' : ''}{formatCurrency(analysisResults.monthlyImpact)}/month
                 </p>
               </div>
             </div>
@@ -174,29 +175,29 @@ export default function RentChangeScenario({ propertyId, onClose }) {
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                 <h4 className="font-medium mb-1">Annual Impact</h4>
                 <p className="text-lg font-semibold">
-                  {analysisResults.annualImpact > 0 ? '+' : ''}${analysisResults.annualImpact.toLocaleString()}
+                  {analysisResults.annualImpact > 0 ? '+' : ''}{formatCurrency(analysisResults.annualImpact)}
                 </p>
               </div>
 
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                 <h4 className="font-medium mb-1">New Cap Rate</h4>
                 <p className="text-lg font-semibold">
-                  {analysisResults.newCapRate.toFixed(2)}%
+                  {formatPercentage(analysisResults.newCapRate)}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   {analysisResults.newCapRate > analysisResults.currentCapRate ? '+' : ''}
-                  {(analysisResults.newCapRate - analysisResults.currentCapRate).toFixed(2)}%
+                  {formatPercentage(analysisResults.newCapRate - analysisResults.currentCapRate)}
                 </p>
               </div>
 
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
                 <h4 className="font-medium mb-1">Cash-on-Cash Return</h4>
                 <p className="text-lg font-semibold">
-                  {analysisResults.newCashOnCashReturn.toFixed(2)}%
+                  {formatPercentage(analysisResults.newCashOnCashReturn)}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   {analysisResults.newCashOnCashReturn > analysisResults.currentCashOnCashReturn ? '+' : ''}
-                  {(analysisResults.newCashOnCashReturn - analysisResults.currentCashOnCashReturn).toFixed(2)}%
+                  {formatPercentage(analysisResults.newCashOnCashReturn - analysisResults.currentCashOnCashReturn)}
                 </p>
               </div>
             </div>

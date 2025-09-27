@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { calculateAmortizationSchedule } from "@/utils/mortgageCalculator";
 import { ChevronLeft, ChevronRight, Download, FileText, FileSpreadsheet } from "lucide-react";
+import { formatCurrency } from "@/utils/formatting";
 
 export default function AmortizationSchedule({ mortgage, propertyName, onClose }) {
   const [currentPage, setCurrentPage] = useState(1);
@@ -125,7 +126,7 @@ export default function AmortizationSchedule({ mortgage, propertyName, onClose }
             </div>
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
               <p className="text-sm text-gray-600 dark:text-gray-300">Total Interest</p>
-              <p className="text-lg font-semibold">${schedule.totalInterest.toLocaleString()}</p>
+              <p className="text-lg font-semibold">{formatCurrency(schedule.totalInterest)}</p>
             </div>
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
               <p className="text-sm text-gray-600 dark:text-gray-300">Final Payment</p>
@@ -213,16 +214,16 @@ export default function AmortizationSchedule({ mortgage, propertyName, onClose }
                     {new Date(payment.paymentDate).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
-                    ${payment.monthlyPayment.toLocaleString()}
+                    {formatCurrency(payment.monthlyPayment)}
                   </td>
                   <td className="px-4 py-3 text-right text-green-600 dark:text-green-400">
-                    ${payment.principal.toLocaleString()}
+                    {formatCurrency(payment.principal)}
                   </td>
                   <td className="px-4 py-3 text-right text-red-600 dark:text-red-400">
-                    ${payment.interest.toLocaleString()}
+                    {formatCurrency(payment.interest)}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-300">
-                    ${payment.remainingBalance.toLocaleString()}
+                    {formatCurrency(payment.remainingBalance)}
                   </td>
                 </tr>
               ))}

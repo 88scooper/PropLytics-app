@@ -2,11 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Input from "@/components/Input";
-
-function formatCurrency(n) {
-  if (Number.isNaN(n) || !Number.isFinite(n)) return "-";
-  return n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-}
+import { formatCurrency } from "@/utils/formatting";
 
 export default function MortgagePaymentCalculator() {
   const [price, setPrice] = useState(500000);

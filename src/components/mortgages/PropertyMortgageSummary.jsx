@@ -3,6 +3,7 @@
 import { useProperty } from "@/context/PropertyContext";
 import { getCurrentMortgageBalance } from "@/utils/mortgageCalculator";
 import { CreditCard, TrendingUp, Calendar, DollarSign } from "lucide-react";
+import { formatCurrency, formatPercentage } from "@/utils/formatting";
 
 export default function PropertyMortgageSummary({ propertyId, className = "" }) {
   const property = useProperty(propertyId);
@@ -43,7 +44,7 @@ export default function PropertyMortgageSummary({ propertyId, className = "" }) 
           </span>
         </div>
         <span className="text-sm text-gray-600">
-          ${currentBalance.toLocaleString()}
+          {formatCurrency(currentBalance)}
         </span>
       </div>
 
@@ -51,7 +52,7 @@ export default function PropertyMortgageSummary({ propertyId, className = "" }) 
       <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
         <div className="flex items-center gap-1">
           <TrendingUp className="w-3 h-3" />
-          <span>{interestRate.toFixed(2)}%</span>
+          <span>{formatPercentage(interestRate)}</span>
         </div>
         <div className="flex items-center gap-1">
           <Calendar className="w-3 h-3" />
@@ -76,13 +77,4 @@ function getPaymentsPerYear(frequency) {
   }
 }
 
-// Helper function to format currency
-function formatCurrency(amount) {
-  return new Intl.NumberFormat('en-CA', {
-    style: 'currency',
-    currency: 'CAD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
 

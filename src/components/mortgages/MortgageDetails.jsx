@@ -3,20 +3,13 @@
 import { useState, useEffect } from "react";
 import { useMortgages } from "@/context/MortgageContext";
 import { ArrowLeft, Edit, Trash2, Download, Calendar, DollarSign, Percent, Clock } from "lucide-react";
+import { formatCurrency, formatPercentage } from "@/utils/formatting";
 
 export default function MortgageDetails({ mortgage, onClose }) {
   const { calculateMortgagePayment, calculateRemainingBalance, removeMortgage } = useMortgages();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-CA', {
-      style: 'currency',
-      currency: 'CAD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
 
   const formatDate = (date) => {
     if (!date) return 'N/A';
@@ -139,7 +132,7 @@ export default function MortgageDetails({ mortgage, onClose }) {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Interest Rate</h3>
           </div>
           <p className="text-3xl font-bold text-gray-900 dark:text-white">
-            {mortgage.interestRate.toFixed(2)}%
+            {formatPercentage(mortgage.interestRate * 100)}
           </p>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             {mortgage.rateType}

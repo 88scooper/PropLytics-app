@@ -5,6 +5,7 @@ import { RequireAuth } from "@/context/AuthContext";
 import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Share2, MoreVertical, Info, ChevronDown } from "lucide-react";
 import LoadPropertyData from "@/components/mortgages/LoadPropertyData";
+import { formatCurrency, formatNumber } from "@/utils/formatting";
 
 export default function MortgageCalculatorPage() {
   return (
@@ -206,7 +207,7 @@ function MortgageCalculator() {
               <ChevronDown className="w-4 h-4 text-[#205A3E]" />
             </div>
             <div className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-              ${results.monthlyPayment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatCurrency(results.monthlyPayment)}
             </div>
           </div>
           
@@ -225,7 +226,7 @@ function MortgageCalculator() {
           min={100000}
           max={2000000}
           step={10000}
-          formatValue={(value) => `$${value.toLocaleString()}`}
+          formatValue={(value) => formatCurrency(value)}
           onChange={(value) => handleSliderChange('mortgageAmount', value)}
         />
 
@@ -329,7 +330,7 @@ function MortgageCalculator() {
                   <span className="text-sm text-gray-900 dark:text-gray-100">Principal Paid</span>
                 </div>
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  ${results.principalPaid.toLocaleString()}
+                  {formatCurrency(results.principalPaid)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -338,14 +339,14 @@ function MortgageCalculator() {
                   <span className="text-sm text-gray-900 dark:text-gray-100">Interest Paid</span>
                 </div>
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  ${results.interestPaid.toLocaleString()}
+                  {formatCurrency(results.interestPaid)}
                 </span>
               </div>
               <div className="border-t border-black/10 dark:border-white/10 pt-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Total Paid</span>
                   <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                    ${results.totalPaid.toLocaleString()}
+                    {formatCurrency(results.totalPaid)}
                   </span>
                 </div>
               </div>
@@ -357,13 +358,13 @@ function MortgageCalculator() {
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600 dark:text-gray-400">Balance end of term</span>
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                ${results.balanceEndOfTerm.toLocaleString()}
+                {formatCurrency(results.balanceEndOfTerm)}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600 dark:text-gray-400">Effective Amortization</span>
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                {results.effectiveAmortization.toFixed(1)} years
+                {formatNumber(results.effectiveAmortization)} years
               </span>
             </div>
           </div>

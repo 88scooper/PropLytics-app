@@ -5,6 +5,7 @@ import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
 import { useProperty } from "@/context/PropertyContext";
+import { formatCurrency, formatPercentage, formatNumber } from "@/utils/formatting";
 
 export default function PropertyDetailPage({ params }) {
   const { propertyId } = use(params) || {};
@@ -44,7 +45,7 @@ export default function PropertyDetailPage({ params }) {
                   {property.units} unit{property.units > 1 ? 's' : ''}
                 </span>
                 <span className="text-gray-500 dark:text-gray-400">
-                  {property.squareFootage.toLocaleString()} sq ft
+                  {formatNumber(property.squareFootage)} sq ft
                 </span>
               </div>
             </div>
@@ -82,24 +83,24 @@ export default function PropertyDetailPage({ params }) {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Purchase Price</span>
-                      <span className="font-medium">${property.purchasePrice.toLocaleString()}</span>
+                      <span className="font-medium">{formatCurrency(property.purchasePrice)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Down Payment</span>
-                      <span className="font-medium">${(property.purchasePrice - property.mortgage.originalAmount).toLocaleString()}</span>
+                      <span className="font-medium">{formatCurrency(property.purchasePrice - property.mortgage.originalAmount)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Closing Costs</span>
-                      <span className="font-medium">${property.closingCosts.toLocaleString()}</span>
+                      <span className="font-medium">{formatCurrency(property.closingCosts)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Renovation Costs</span>
-                      <span className="font-medium">${property.renovationCosts.toLocaleString()}</span>
+                      <span className="font-medium">{formatCurrency(property.renovationCosts)}</span>
                     </div>
                     <div className="pt-2 border-t border-black/10 dark:border-white/10">
                       <div className="flex justify-between font-semibold">
                         <span>Total Investment</span>
-                        <span>${property.totalInvestment.toLocaleString()}</span>
+                        <span>{formatCurrency(property.totalInvestment)}</span>
                       </div>
                     </div>
                   </div>
@@ -114,12 +115,12 @@ export default function PropertyDetailPage({ params }) {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Current Value</span>
-                      <span className="font-medium">${property.currentValue.toLocaleString()}</span>
+                      <span className="font-medium">{formatCurrency(property.currentValue)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Appreciation</span>
                       <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                        +${(property.currentValue - property.purchasePrice).toLocaleString()}
+                        +{formatCurrency(property.currentValue - property.purchasePrice)}
                       </span>
                     </div>
                   </div>
@@ -136,7 +137,7 @@ export default function PropertyDetailPage({ params }) {
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">Rental Income</span>
                         <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                          ${property.rent.monthlyRent.toLocaleString()}
+                          {formatCurrency(property.rent.monthlyRent)}
                         </span>
                       </div>
                     </div>
@@ -152,7 +153,7 @@ export default function PropertyDetailPage({ params }) {
                               {key.replace(/([A-Z])/g, ' $1').trim()}
                             </span>
                             <span className="font-medium text-red-600 dark:text-red-400">
-                              -${value.toLocaleString()}
+                              -{formatCurrency(value)}
                             </span>
                           </div>
                         );
@@ -161,7 +162,7 @@ export default function PropertyDetailPage({ params }) {
                         <div className="flex justify-between font-semibold">
                           <span>Total Expenses</span>
                           <span className="text-red-600 dark:text-red-400">
-                            -${property.monthlyExpenses.total.toLocaleString()}
+                            -{formatCurrency(property.monthlyExpenses.total)}
                           </span>
                         </div>
                       </div>
@@ -172,7 +173,7 @@ export default function PropertyDetailPage({ params }) {
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                        ${property.monthlyCashFlow.toLocaleString()}
+                        {formatCurrency(property.monthlyCashFlow)}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Monthly Cash Flow</div>
                     </div>
@@ -199,11 +200,11 @@ export default function PropertyDetailPage({ params }) {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Original Loan</span>
-                      <span className="font-medium">${property.mortgage.originalAmount.toLocaleString()}</span>
+                      <span className="font-medium">{formatCurrency(property.mortgage.originalAmount)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Interest Rate</span>
-                      <span className="font-medium">{(property.mortgage.interestRate * 100).toFixed(2)}%</span>
+                      <span className="font-medium">{formatPercentage(property.mortgage.interestRate * 100)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Term</span>
@@ -217,7 +218,7 @@ export default function PropertyDetailPage({ params }) {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Remaining Balance</span>
-                      <span className="font-medium">${property.mortgage.originalAmount.toLocaleString()}</span>
+                      <span className="font-medium">{formatCurrency(property.mortgage.originalAmount)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Next Payment</span>
@@ -252,11 +253,11 @@ export default function PropertyDetailPage({ params }) {
                         {mortgageData.paymentHistory.slice(0, 10).map((payment, index) => (
                           <tr key={index} className="border-b border-black/5 dark:border-white/5">
                             <td className="py-2">{new Date(payment.date).toLocaleDateString()}</td>
-                            <td className="text-right py-2">${Math.abs(payment.principal).toLocaleString()}</td>
-                            <td className="text-right py-2">${Math.abs(payment.interest).toLocaleString()}</td>
-                            <td className="text-right py-2 font-medium">${Math.abs(payment.total).toLocaleString()}</td>
+                            <td className="text-right py-2">{formatCurrency(Math.abs(payment.principal))}</td>
+                            <td className="text-right py-2">{formatCurrency(Math.abs(payment.interest))}</td>
+                            <td className="text-right py-2 font-medium">{formatCurrency(Math.abs(payment.total))}</td>
                             <td className="text-right py-2 text-gray-600 dark:text-gray-400">
-                              {payment.remaining > 0 ? `$${payment.remaining.toLocaleString()}` : 'Paid Off'}
+                              {payment.remaining > 0 ? formatCurrency(payment.remaining) : 'Paid Off'}
                             </td>
                           </tr>
                         ))}
@@ -300,11 +301,11 @@ export default function PropertyDetailPage({ params }) {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Current Balance</span>
-                      <span className="font-medium">${mortgageData.currentBalance.toLocaleString()}</span>
+                      <span className="font-medium">{formatCurrency(mortgageData.currentBalance)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Monthly Payment</span>
-                      <span className="font-medium">${mortgageData.paymentAmount.toLocaleString()}</span>
+                      <span className="font-medium">{formatCurrency(mortgageData.paymentAmount)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Interest Rate</span>
@@ -313,7 +314,7 @@ export default function PropertyDetailPage({ params }) {
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Principal Paid</span>
                       <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                        ${(mortgageData.purchasePrice - mortgageData.currentBalance).toLocaleString()}
+                        {formatCurrency(mortgageData.purchasePrice - mortgageData.currentBalance)}
                       </span>
                     </div>
                     <div className="pt-2 border-t border-black/10 dark:border-white/10">
@@ -337,7 +338,7 @@ export default function PropertyDetailPage({ params }) {
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Annual Cash Flow</span>
                     <span className={`font-medium ${property.annualCashFlow >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                      ${property.annualCashFlow.toLocaleString()}
+                      {formatCurrency(property.annualCashFlow)}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -355,7 +356,7 @@ export default function PropertyDetailPage({ params }) {
                     <div key={index} className="text-sm">
                       <div className="font-medium">{tenant.name}</div>
                       <div className="text-gray-600 dark:text-gray-400">{tenant.unit}</div>
-                      <div className="text-emerald-600 dark:text-emerald-400">${tenant.rent.toLocaleString()}/mo</div>
+                      <div className="text-emerald-600 dark:text-emerald-400">{formatCurrency(tenant.rent)}/mo</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         Lease: {new Date(tenant.leaseStart).toLocaleDateString()} - {new Date(tenant.leaseEnd).toLocaleDateString()}
                       </div>
@@ -370,7 +371,7 @@ export default function PropertyDetailPage({ params }) {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Square Footage</span>
-                    <span className="font-medium">{property.squareFootage.toLocaleString()} sq ft</span>
+                    <span className="font-medium">{formatNumber(property.squareFootage)} sq ft</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Year Built</span>

@@ -7,6 +7,7 @@ import { RequireAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
 import { useProperties, usePropertyContext } from "@/context/PropertyContext";
 import PropertyMortgageSummary from "@/components/mortgages/PropertyMortgageSummary";
+import { formatCurrency, formatPercentage } from "@/utils/formatting";
 
 export default function MyPropertiesPage() {
   const { calculationsComplete } = usePropertyContext();
@@ -120,18 +121,18 @@ function PropertyCard({ property }) {
           </div>
           <div>
             <div className="text-gray-500 dark:text-gray-400">Purchase Price</div>
-            <div className="font-medium">${property.purchasePrice.toLocaleString()}</div>
+            <div className="font-medium">{formatCurrency(property.purchasePrice)}</div>
           </div>
           <div>
             <div className="text-gray-500 dark:text-gray-400">Monthly Rent</div>
             <div className="font-medium text-emerald-600 dark:text-emerald-400">
-              ${property.rent.monthlyRent.toLocaleString()}
+              {formatCurrency(property.rent.monthlyRent)}
             </div>
           </div>
           <div>
             <div className="text-gray-500 dark:text-gray-400">Cash Flow</div>
             <div className={`font-medium ${monthlyCashFlow >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-              ${monthlyCashFlow.toLocaleString()}
+              {formatCurrency(monthlyCashFlow)}
             </div>
           </div>
         </div>
@@ -139,7 +140,7 @@ function PropertyCard({ property }) {
         <div className="mt-3 pt-3 border-t border-black/10 dark:border-white/10">
           <div className="flex items-center justify-between text-xs sm:text-sm mb-2">
             <span className="text-gray-500 dark:text-gray-400">Cap Rate</span>
-            <span className="font-medium">{capRate.toFixed(1)}%</span>
+            <span className="font-medium">{formatPercentage(capRate)}</span>
           </div>
           
           {/* Mortgage Summary */}

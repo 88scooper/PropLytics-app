@@ -26,6 +26,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useProperties, usePortfolioMetrics, usePropertyContext } from "@/context/PropertyContext";
 import { getCurrentMortgageBalance } from "@/utils/mortgageCalculator";
 import PortfolioMortgageDashboard from "@/components/mortgages/PortfolioMortgageDashboard";
+import { formatCurrency, formatPercentage } from "@/utils/formatting";
 
 // ROI data for different time periods
 const roiData = {
@@ -351,7 +352,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Total Estimated Portfolio Value"
-                        value={`$${totalPortfolioValue.toLocaleString()}`}
+                        value={formatCurrency(totalPortfolioValue)}
                         showInfoIcon={true}
                         tooltipText="The estimated current market value of all properties in your portfolio."
                       />
@@ -361,7 +362,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Total Estimated Equity"
-                        value={`$${totalEquity.toLocaleString()}`}
+                        value={formatCurrency(totalEquity)}
                         showInfoIcon={true}
                         tooltipText="The estimated market value of your properties minus the remaining mortgage balances."
                       />
@@ -371,7 +372,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Monthly Net Cash Flow"
-                        value={`$${portfolioMetrics.totalMonthlyCashFlow?.toLocaleString() || '0'}`}
+                        value={formatCurrency(portfolioMetrics.totalMonthlyCashFlow || 0)}
                         showInfoIcon={true}
                         tooltipText="The monthly rental income remaining after all operating expenses and mortgage payments."
                       />
@@ -381,7 +382,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Total Monthly Expenses"
-                        value={`$${totalMonthlyExpenses.toLocaleString()}`}
+                        value={formatCurrency(totalMonthlyExpenses)}
                         isExpense={true}
                         showInfoIcon={true}
                         tooltipText="The sum of all recurring monthly costs, including mortgage, taxes, fees, and insurance."
@@ -402,7 +403,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Average Occupancy Rate"
-                        value={`${averageOccupancyRate.toFixed(1)}%`}
+                        value={formatPercentage(averageOccupancyRate)}
                         showInfoIcon={true}
                         tooltipText="The average percentage of occupied units across all properties in your portfolio."
                       />
@@ -412,7 +413,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Average Cap Rate"
-                        value={`${averageCapRate.toFixed(1)}%`}
+                        value={formatPercentage(averageCapRate)}
                         showInfoIcon={true}
                         tooltipText="The rate of return on a real estate investment property based on the income that the property is expected to generate."
                       />
@@ -467,8 +468,8 @@ export default function PortfolioSummaryPage() {
                         tooltipText="This card tracks your progress towards the financial goals set for the current year."
                         isMultiMetric={true}
                         multiMetrics={[
-                          { label: "Portfolio Value", value: `$${(totalPortfolioValue * 1.1).toLocaleString()}` },
-                          { label: "Cash on Cash", value: `${(cashOnCashReturn * 1.2).toFixed(1)}%` }
+                          { label: "Portfolio Value", value: formatCurrency(totalPortfolioValue * 1.1) },
+                          { label: "Cash on Cash", value: formatPercentage(cashOnCashReturn * 1.2) }
                         ]}
                       />
                     );
@@ -477,7 +478,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Total Mortgage Debt"
-                        value={`$${totalMortgageDebt.toLocaleString()}`}
+                        value={formatCurrency(totalMortgageDebt)}
                         isExpense={true}
                         showInfoIcon={true}
                         tooltipText="The total remaining mortgage balance across all properties in your portfolio."
@@ -488,7 +489,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Cash on Cash"
-                        value={`${cashOnCashReturn.toFixed(1)}%`}
+                        value={formatPercentage(cashOnCashReturn)}
                         showInfoIcon={true}
                         tooltipText="Measures the annual pre-tax cash flow as a percentage of the total cash invested."
                       />
@@ -498,7 +499,7 @@ export default function PortfolioSummaryPage() {
                       <MetricCard
                         key={metric.id}
                         title="Net Operating Income (NOI)"
-                        value={`$${netOperatingIncome.toLocaleString()}`}
+                        value={formatCurrency(netOperatingIncome)}
                         showInfoIcon={true}
                         tooltipText="Calculates the property's profitability by subtracting operating expenses from total revenue."
                       />
@@ -540,7 +541,7 @@ export default function PortfolioSummaryPage() {
                           </p>
                         </div>
                         <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                          ${property.rent.monthlyRent.toLocaleString()}/mo
+                          {formatCurrency(property.rent.monthlyRent)}/mo
                         </span>
                       </div>
                     </div>
@@ -574,10 +575,10 @@ export default function PortfolioSummaryPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-900 dark:text-gray-100">
-                        ${(property.rent.monthlyRent * 12).toLocaleString()}
+                        {formatCurrency(property.rent.monthlyRent * 12)}
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        ${property.rent.monthlyRent.toLocaleString()}/mo
+                        {formatCurrency(property.rent.monthlyRent)}/mo
                       </p>
                     </div>
                   </div>
@@ -586,7 +587,7 @@ export default function PortfolioSummaryPage() {
                   <div className="flex justify-between items-center">
                     <span className="font-semibold text-gray-900 dark:text-gray-100">Total Annual Income</span>
                     <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
-                      ${(portfolioMetrics.totalMonthlyRent * 12).toLocaleString()}
+                      {formatCurrency(portfolioMetrics.totalMonthlyRent * 12)}
                     </span>
                   </div>
                 </div>
@@ -703,10 +704,10 @@ export default function PortfolioSummaryPage() {
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-gray-900 dark:text-gray-100">
-                            ${propertyDeductibleExpenses.toLocaleString()}
+                            {formatCurrency(propertyDeductibleExpenses)}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            ${(propertyDeductibleExpenses / 12).toLocaleString()}/mo
+                            {formatCurrency(propertyDeductibleExpenses / 12)}/mo
                           </p>
                         </div>
                       </div>
@@ -724,9 +725,9 @@ export default function PortfolioSummaryPage() {
                         {expenseViewType === 'deductible' ? 'Total Annual Deductible Expenses' : 'Total Annual Expenses'}
                       </span>
                       <span className="font-bold text-lg text-red-600 dark:text-red-400">
-                        ${expenseViewType === 'deductible' 
-                          ? (portfolioMetrics?.totalAnnualDeductibleExpenses || 0).toLocaleString()
-                          : ((portfolioMetrics?.totalMonthlyExpenses || 0) * 12).toLocaleString()
+                        {expenseViewType === 'deductible' 
+                          ? formatCurrency(portfolioMetrics?.totalAnnualDeductibleExpenses || 0)
+                          : formatCurrency((portfolioMetrics?.totalMonthlyExpenses || 0) * 12)
                         }
                       </span>
                     </div>
