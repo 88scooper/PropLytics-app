@@ -47,6 +47,19 @@ export default function MortgagesPage() {
     return matchesProperty;
   });
 
+  // Group mortgages by property
+  const mortgagesByProperty = filteredMortgages.reduce((acc, mortgage) => {
+    const propertyId = mortgage.propertyId;
+    if (!acc[propertyId]) {
+      acc[propertyId] = {
+        property: properties.find(p => p.id === propertyId),
+        mortgages: []
+      };
+    }
+    acc[propertyId].mortgages.push(mortgage);
+    return acc;
+  }, {});
+
   const handleEdit = (mortgage) => {
     setEditingMortgage(mortgage);
     setShowForm(true);
@@ -208,95 +221,110 @@ export default function MortgagesPage() {
                   )}
                 </div>
               ) : (
-                <div className="grid gap-4">
-                  {filteredMortgages.map((mortgage) => (
-                    <div
-                      key={mortgage.id}
-                      className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 md:p-6 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                              {mortgage.lenderName || 'Unnamed Mortgage'}
-                            </h3>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              mortgage.rateType === 'FIXED' 
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                : 'bg-[#205A3E]/10 text-[#205A3E] dark:bg-[#205A3E]/20 dark:text-[#205A3E]'
-                            }`}>
-                              {mortgage.rateType || 'FIXED'}
-                            </span>
+                <div className="space-y-6">
+                  {Object.entries(mortgagesByProperty).map(([propertyId, { property, mortgages: propertyMortgages }]) => (
+                    <div key={propertyId} className="space-y-4">
+                      {/* Property Header */}
+                      <div className="bg-gradient-to-r from-[#205A3E] to-[#2d7a5a] rounded-lg p-4 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-xl font-semibold">{property?.nickname || 'Unknown Property'}</h3>
+                            <p className="text-[#205A3E]/80 text-sm">{property?.address || 'No address available'}</p>
+                            <p className="text-[#205A3E]/80 text-xs mt-1">
+                              {propertyMortgages.length} mortgage{propertyMortgages.length !== 1 ? 's' : ''}
+                            </p>
                           </div>
-                          
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
-                            <div>
-                              <p className="text-gray-600 dark:text-gray-400">Original Amount</p>
-                              <p className="font-medium text-gray-900 dark:text-white">
-                                {formatCurrency(mortgage.originalAmount || 0)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-gray-600 dark:text-gray-400">Interest Rate</p>
-                              <p className="font-medium text-gray-900 dark:text-white">
-                                {(mortgage.interestRate || 0).toFixed(2)}%
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-gray-600 dark:text-gray-400">Term</p>
-                              <p className="font-medium text-gray-900 dark:text-white">
-                                {mortgage.termYears || 0} years
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-gray-600 dark:text-gray-400">Start Date</p>
-                              <p className="font-medium text-gray-900 dark:text-white">
-                                {formatDate(mortgage.startDate)}
-                              </p>
-                            </div>
-                          </div>
-
-                          {mortgage.propertyName && (
-                            <div className="mt-3">
-                              <p className="text-gray-600 dark:text-gray-400 text-sm">Property</p>
-                              <p className="font-medium text-gray-900 dark:text-white text-sm">
-                                {mortgage.propertyName}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2 ml-4">
-                          <button
-                            onClick={() => handleView(mortgage)}
-                            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                            title="View Details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleViewAmortization(mortgage)}
-                            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                            title="View Amortization Schedule"
-                          >
-                            <Calculator className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(mortgage)}
-                            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                            title="Edit Mortgage"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <div className="relative">
-                            <button
-                              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                              title="More Options"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
+                          <div className="text-right">
+                            <p className="text-sm text-[#205A3E]/80">Property Value</p>
+                            <p className="text-lg font-semibold">{formatCurrency(property?.currentValue || 0)}</p>
                           </div>
                         </div>
+                      </div>
+
+                      {/* Mortgages for this Property */}
+                      <div className="grid gap-4">
+                        {propertyMortgages.map((mortgage) => (
+                          <div
+                            key={mortgage.id}
+                            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 md:p-6 hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                    {mortgage.lenderName || 'Unnamed Mortgage'}
+                                  </h4>
+                                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                    mortgage.rateType === 'FIXED' 
+                                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                      : 'bg-[#205A3E]/10 text-[#205A3E] dark:bg-[#205A3E]/20 dark:text-[#205A3E]'
+                                  }`}>
+                                    {mortgage.rateType || 'FIXED'}
+                                  </span>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
+                                  <div>
+                                    <p className="text-gray-600 dark:text-gray-400">Original Amount</p>
+                                    <p className="font-medium text-gray-900 dark:text-white">
+                                      {formatCurrency(mortgage.originalAmount || 0)}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-600 dark:text-gray-400">Interest Rate</p>
+                                    <p className="font-medium text-gray-900 dark:text-white">
+                                      {(mortgage.interestRate || 0).toFixed(2)}%
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-600 dark:text-gray-400">Term</p>
+                                    <p className="font-medium text-gray-900 dark:text-white">
+                                      {mortgage.termYears || 0} years
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-600 dark:text-gray-400">Start Date</p>
+                                    <p className="font-medium text-gray-900 dark:text-white">
+                                      {formatDate(mortgage.startDate)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 ml-4">
+                                <button
+                                  onClick={() => handleView(mortgage)}
+                                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                  title="View Details"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleViewAmortization(mortgage)}
+                                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                  title="View Amortization Schedule"
+                                >
+                                  <Calculator className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleEdit(mortgage)}
+                                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                  title="Edit Mortgage"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <div className="relative">
+                                  <button
+                                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                    title="More Options"
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}
