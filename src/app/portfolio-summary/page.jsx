@@ -153,7 +153,18 @@ export default function PortfolioSummaryPage() {
     const savedMetrics = localStorage.getItem('portfolio-dashboard-layout');
     if (savedMetrics) {
       try {
-        setMetrics(JSON.parse(savedMetrics));
+        const parsedMetrics = JSON.parse(savedMetrics);
+        // Check if the saved metrics match the new default order
+        // If not, reset to default order
+        if (parsedMetrics.length !== defaultMetrics.length || 
+            parsedMetrics[0]?.id !== 'portfolioValue' || 
+            parsedMetrics[1]?.id !== 'equity') {
+          console.log('Resetting metrics to new default order');
+          setMetrics(defaultMetrics);
+          localStorage.setItem('portfolio-dashboard-layout', JSON.stringify(defaultMetrics));
+        } else {
+          setMetrics(parsedMetrics);
+        }
       } catch (error) {
         console.error('Error parsing saved metrics:', error);
         setMetrics(defaultMetrics);
