@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import Button from "@/components/Button";
-import Logo from "@/components/Logo";
 import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
 
