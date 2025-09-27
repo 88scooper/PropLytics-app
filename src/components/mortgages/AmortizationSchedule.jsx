@@ -4,23 +4,38 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { calculateAmortizationSchedule } from "@/utils/mortgageCalculator";
 import { ChevronLeft, ChevronRight, Download, FileText, FileSpreadsheet } from "lucide-react";
 import { formatCurrency } from "@/utils/formatting";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 export default function AmortizationSchedule({ mortgage, propertyName, onClose }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const downloadMenuRef = useRef(null);
+  const parentRef = useRef(null);
   const paymentsPerPage = 12; // Show 12 payments per page (1 year)
 
-  // Calculate amortization schedule
+  // Calculate amortization schedule with loading state
   const schedule = useMemo(() => {
     if (!mortgage) return null;
+    setIsLoading(true);
     try {
-      return calculateAmortizationSchedule(mortgage);
+      const result = calculateAmortizationSchedule(mortgage);
+      setIsLoading(false);
+      return result;
     } catch (error) {
       console.error("Error calculating amortization schedule:", error);
+      setIsLoading(false);
       return null;
     }
   }, [mortgage]);
+
+  // Virtualization setup
+  const virtualizer = useVirtualizer({
+    count: schedule?.payments?.length || 0,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 50, // Estimated row height
+    overscan: 10, // Render 10 extra rows for smooth scrolling
+  });
 
   // Pagination logic
   const totalPages = schedule ? Math.ceil(schedule.payments.length / paymentsPerPage) : 1;
@@ -75,7 +90,47 @@ export default function AmortizationSchedule({ mortgage, propertyName, onClose }
     };
   }, [showDownloadMenu]);
 
-  if (!mortgage || !schedule) {
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#205A3E] mx-auto mb-4"></div>
+            <h3 className="text-lg font-semibold mb-2">Calculating Schedule</h3>
+            <p className="text-gray-600 dark:text-gray-300">
+              Please wait while we calculate the amortization schedule...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (!mortgage) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold mb-4">No Mortgage Selected</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              Please select a property to view its mortgage schedule.
+            </p>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (!schedule) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
@@ -142,23 +197,9 @@ export default function AmortizationSchedule({ mortgage, propertyName, onClose }
         {/* Controls */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <button
-              onClick={handlePreviousPage}
-              disabled={currentPage === 1}
-              className="p-2 rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
             <span className="text-sm text-gray-600 dark:text-gray-300">
-              Page {currentPage} of {totalPages}
+              {schedule.payments.length} payments • Virtualized for performance
             </span>
-            <button
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
           </div>
           
           <div className="relative" ref={downloadMenuRef}>
@@ -193,49 +234,77 @@ export default function AmortizationSchedule({ mortgage, propertyName, onClose }
           </div>
         </div>
 
-        {/* Table */}
+        {/* Virtualized Table */}
         <div className="overflow-x-auto max-h-96">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">Payment #</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">Date</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">Payment</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">Principal</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">Interest</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">Balance</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {currentPayments.map((payment) => (
-                <tr key={payment.paymentNumber} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-4 py-3 text-gray-900 dark:text-white">{payment.paymentNumber}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                    {new Date(payment.paymentDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
-                    {formatCurrency(payment.monthlyPayment)}
-                  </td>
-                  <td className="px-4 py-3 text-right text-green-600 dark:text-green-400">
-                    {formatCurrency(payment.principal)}
-                  </td>
-                  <td className="px-4 py-3 text-right text-red-600 dark:text-red-400">
-                    {formatCurrency(payment.interest)}
-                  </td>
-                  <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-300">
-                    {formatCurrency(payment.remainingBalance)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="w-full text-sm">
+            {/* Table Header */}
+            <div className="bg-gray-50 dark:bg-gray-700 sticky top-0 grid grid-cols-6 gap-4 px-4 py-3 font-medium text-gray-900 dark:text-white">
+              <div className="text-left">Payment #</div>
+              <div className="text-left">Date</div>
+              <div className="text-right">Payment</div>
+              <div className="text-right">Principal</div>
+              <div className="text-right">Interest</div>
+              <div className="text-right">Balance</div>
+            </div>
+            
+            {/* Virtualized Table Body */}
+            <div 
+              ref={parentRef}
+              className="overflow-auto"
+              style={{ height: '400px' }}
+            >
+              <div
+                style={{
+                  height: `${virtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {virtualizer.getVirtualItems().map((virtualItem) => {
+                  const payment = schedule.payments[virtualItem.index];
+                  return (
+                    <div
+                      key={virtualItem.key}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: `${virtualItem.size}px`,
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
+                    >
+                      <div className="grid grid-cols-6 gap-4 px-4 py-3 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <div className="text-gray-900 dark:text-white">{payment.paymentNumber}</div>
+                        <div className="text-gray-600 dark:text-gray-300">
+                          {new Date(payment.paymentDate).toLocaleDateString()}
+                        </div>
+                        <div className="text-right font-medium text-gray-900 dark:text-white">
+                          {formatCurrency(payment.monthlyPayment)}
+                        </div>
+                        <div className="text-right text-green-600 dark:text-green-400">
+                          {formatCurrency(payment.principal)}
+                        </div>
+                        <div className="text-right text-red-600 dark:text-red-400">
+                          {formatCurrency(payment.interest)}
+                        </div>
+                        <div className="text-right text-gray-600 dark:text-gray-300">
+                          {formatCurrency(payment.remainingBalance)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center">
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              Showing payments {startIndex + 1} to {Math.min(endIndex, schedule.payments.length)} of {schedule.payments.length}
+              Total payments: {schedule.payments.length} • Scroll to view all payments
             </p>
             <button
               onClick={onClose}
