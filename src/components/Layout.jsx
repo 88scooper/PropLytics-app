@@ -83,7 +83,9 @@ export default function Layout({ children }) {
                   </svg>
                 </button>
                 
-                <Logo width={120} height={48} />
+                <Link href="/portfolio-summary" className="font-semibold tracking-tight">
+                  Proplytics
+                </Link>
               </div>
               
               <div className="flex items-center gap-3">
