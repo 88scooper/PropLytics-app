@@ -95,20 +95,20 @@ export default function PortfolioSummaryPage() {
   const [isExpenseSettingsOpen, setIsExpenseSettingsOpen] = useState(false);
   const expenseSettingsRef = useRef(null);
 
-  // Default metrics configuration
+  // Default metrics configuration - Reordered according to new layout
   const defaultMetrics = [
     { id: 'portfolioValue', name: 'Total Estimated Portfolio Value', isVisible: true },
     { id: 'equity', name: 'Total Estimated Equity', isVisible: true },
     { id: 'mortgageDebt', name: 'Total Mortgage Debt', isVisible: true },
-    { id: 'cashOnCash', name: 'Cash on Cash', isVisible: true },
-    { id: 'monthlyCashFlow', name: 'Monthly Net Cash Flow', isVisible: true },
+    { id: 'monthlyRevenue', name: 'Total Monthly Revenue', isVisible: true },
     { id: 'monthlyExpenses', name: 'Total Monthly Expenses', isVisible: true },
-    { id: 'netOperatingIncome', name: 'Net Operating Income (NOI)', isVisible: true },
-    { id: 'capRate', name: 'Average Cap Rate', isVisible: true },
-    { id: 'returnOnCost', name: 'Total Estimated Return on Investment (ROI)', isVisible: true },
-    { id: 'totalProperties', name: 'Total Properties', isVisible: false },
-    { id: 'occupancyRate', name: 'Average Occupancy Rate', isVisible: false },
-    { id: 'financialGoals', name: 'Financial Goals 2025', isVisible: false },
+    { id: 'monthlyCashFlow', name: 'Monthly Net Cash Flow', isVisible: true },
+    { id: 'cashOnCash', name: 'Annual Cash on Cash', isVisible: true },
+    { id: 'netOperatingIncome', name: 'Annual Net Operating Income', isVisible: true },
+    { id: 'returnOnCost', name: 'Total Estimated Return On Investment', isVisible: true },
+    { id: 'capRate', name: 'Average Annual Cap Rate', isVisible: true },
+    { id: 'totalProperties', name: 'Total Properties', isVisible: true },
+    { id: 'financialGoals', name: 'Financial Goals', isVisible: true },
   ];
 
   // State for metrics (array of objects to preserve order and visibility)
@@ -365,6 +365,16 @@ export default function PortfolioSummaryPage() {
                         value={formatCurrency(totalEquity)}
                         showInfoIcon={true}
                         tooltipText="The estimated market value of your properties minus the remaining mortgage balances."
+                      />
+                    );
+                  case 'monthlyRevenue':
+                    return (
+                      <MetricCard
+                        key={metric.id}
+                        title="Total Monthly Revenue"
+                        value={formatCurrency(portfolioMetrics.totalMonthlyRent || 0)}
+                        showInfoIcon={true}
+                        tooltipText="The total monthly rental income from all properties in your portfolio."
                       />
                     );
                   case 'monthlyCashFlow':
