@@ -74,6 +74,111 @@ export default function PropertyMortgages({ propertyId }) {
     }
   };
 
+  // Calculate renewal date
+  const calculateRenewalDate = (mortgage) => {
+    try {
+      const startDate = new Date(mortgage.startDate);
+      const renewalDate = new Date(startDate);
+      renewalDate.setFullYear(renewalDate.getFullYear() + mortgage.termYears);
+      return renewalDate;
+    } catch (error) {
+      console.error("Error calculating renewal date:", error);
+      return null;
+    }
+  };
+
+  // Calculate remaining loan balance
+  const calculateRemainingBalance = (mortgage) => {
+    try {
+      const { originalAmount, interestRate, amortizationPeriodYears, startDate } = mortgage;
+      
+      // Ensure all values are numbers
+      const principal = parseFloat(originalAmount);
+      const rate = parseFloat(interestRate);
+      const years = parseFloat(amortizationPeriodYears);
+      
+      if (principal <= 0 || years <= 0) return principal;
+      if (rate === 0) return principal;
+      
+      // Calculate months since start
+      const startDateObj = new Date(startDate);
+      const now = new Date();
+      const monthsSinceStart = Math.max(0, (now.getFullYear() - startDateObj.getFullYear()) * 12 + (now.getMonth() - startDateObj.getMonth()));
+      
+      // Rate is stored as percentage, so convert to decimal
+      const monthlyRate = (rate / 100) / 12;
+      const totalPayments = years * 12;
+      
+      // Calculate monthly payment
+      const monthlyPayment = principal * 
+        (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / 
+        (Math.pow(1 + monthlyRate, totalPayments) - 1);
+      
+      // Calculate remaining balance
+      const remainingBalance = principal * 
+        (Math.pow(1 + monthlyRate, totalPayments) - Math.pow(1 + monthlyRate, monthsSinceStart)) / 
+        (Math.pow(1 + monthlyRate, totalPayments) - 1);
+      
+      return Math.round(Math.max(0, remainingBalance) * 100) / 100;
+    } catch (error) {
+      console.error("Error calculating remaining balance:", error);
+      return mortgage.originalAmount;
+    }
+  };
+
+  // Calculate total principal paid to date
+  const calculateTotalPrincipalPaid = (mortgage) => {
+    try {
+      const originalAmount = parseFloat(mortgage.originalAmount);
+      const remainingBalance = calculateRemainingBalance(mortgage);
+      return Math.round((originalAmount - remainingBalance) * 100) / 100;
+    } catch (error) {
+      console.error("Error calculating total principal paid:", error);
+      return 0;
+    }
+  };
+
+  // Calculate total interest paid to date
+  const calculateTotalInterestPaid = (mortgage) => {
+    try {
+      const { originalAmount, interestRate, amortizationPeriodYears, startDate } = mortgage;
+      
+      // Ensure all values are numbers
+      const principal = parseFloat(originalAmount);
+      const rate = parseFloat(interestRate);
+      const years = parseFloat(amortizationPeriodYears);
+      
+      if (principal <= 0 || years <= 0) return 0;
+      if (rate === 0) return 0;
+      
+      // Calculate months since start
+      const startDateObj = new Date(startDate);
+      const now = new Date();
+      const monthsSinceStart = Math.max(0, (now.getFullYear() - startDateObj.getFullYear()) * 12 + (now.getMonth() - startDateObj.getMonth()));
+      
+      // Rate is stored as percentage, so convert to decimal
+      const monthlyRate = (rate / 100) / 12;
+      const totalPayments = years * 12;
+      
+      // Calculate monthly payment
+      const monthlyPayment = principal * 
+        (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / 
+        (Math.pow(1 + monthlyRate, totalPayments) - 1);
+      
+      // Calculate total payments made
+      const totalPaymentsMade = monthlyPayment * monthsSinceStart;
+      
+      // Calculate total principal paid
+      const totalPrincipalPaid = calculateTotalPrincipalPaid(mortgage);
+      
+      // Total interest paid = total payments made - total principal paid
+      return Math.round((totalPaymentsMade - totalPrincipalPaid) * 100) / 100;
+    } catch (error) {
+      console.error("Error calculating total interest paid:", error);
+      return 0;
+    }
+  };
+
   if (loading) {
     return (
       <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
@@ -154,10 +259,41 @@ export default function PropertyMortgages({ propertyId }) {
             </div>
 
             {/* Secondary Details Section */}
-            <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-3">
-              <span>Amortization: {mortgage.amortizationPeriodYears}y</span>
-              <span>Term: {mortgage.termYears}y</span>
-              <span>Start: {formatDate(mortgage.startDate)}</span>
+            <div className="space-y-2 border-t border-gray-200 dark:border-gray-700 pt-3">
+              {/* First row - Original details */}
+              <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-400">
+                <span>Amortization: {mortgage.amortizationPeriodYears}y</span>
+                <span>Term: {mortgage.termYears}y</span>
+                <span>Start: {formatDate(mortgage.startDate)}</span>
+              </div>
+              
+              {/* Second row - New details */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 dark:text-gray-400">Renewal:</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                    {calculateRenewalDate(mortgage) ? calculateRenewalDate(mortgage).toLocaleDateString('en-CA') : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 dark:text-gray-400">Remaining:</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                    {formatCurrency(calculateRemainingBalance(mortgage))}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 dark:text-gray-400">Principal:</span>
+                  <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(calculateTotalPrincipalPaid(mortgage))}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 dark:text-gray-400">Interest:</span>
+                  <span className="font-medium text-red-600 dark:text-red-400">
+                    {formatCurrency(calculateTotalInterestPaid(mortgage))}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         ))}

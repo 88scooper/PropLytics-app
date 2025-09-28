@@ -371,13 +371,15 @@ export default function PortfolioSummaryPage() {
                       />
                     );
                   case 'monthlyCashFlow':
+                    const monthlyCashFlowValue = portfolioMetrics.totalMonthlyCashFlow || 0;
                     return (
                       <MetricCard
                         key={metric.id}
                         title="Monthly Net Cash Flow"
-                        value={formatCurrency(portfolioMetrics.totalMonthlyCashFlow || 0)}
+                        value={formatCurrency(monthlyCashFlowValue)}
                         showInfoIcon={true}
                         tooltipText="The monthly rental income remaining after all operating expenses and mortgage payments."
+                        customColor={monthlyCashFlowValue < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}
                       />
                     );
                   case 'monthlyExpenses':
@@ -386,7 +388,6 @@ export default function PortfolioSummaryPage() {
                         key={metric.id}
                         title="Total Monthly Expenses"
                         value={formatCurrency(totalMonthlyExpenses)}
-                        isExpense={true}
                         showInfoIcon={true}
                         tooltipText="The sum of all recurring monthly costs, including mortgage, taxes, fees, and insurance."
                       />
@@ -748,8 +749,11 @@ export default function PortfolioSummaryPage() {
   );
 }
 
-function MetricCard({ title, value, description, trend, trendPositive, isExpense, showInfoIcon, tooltipText, isMultiMetric, multiMetrics }) {
+function MetricCard({ title, value, description, trend, trendPositive, isExpense, showInfoIcon, tooltipText, isMultiMetric, multiMetrics, customColor }) {
   const getValueColor = () => {
+    if (customColor) {
+      return customColor;
+    }
     if (isExpense) {
       return 'text-red-600 dark:text-red-400';
     }
