@@ -91,11 +91,40 @@ export default function MortgagesPage() {
     }
   };
 
-  // Add current balance to mortgages
+  // Calculate monthly payment for each mortgage
+  const calculateMonthlyPayment = (mortgage) => {
+    try {
+      const { originalAmount, interestRate, amortizationPeriodYears, paymentFrequency } = mortgage;
+      
+      // Ensure all values are numbers
+      const principal = parseFloat(originalAmount);
+      const rate = parseFloat(interestRate);
+      const years = parseFloat(amortizationPeriodYears);
+      
+      if (principal <= 0 || years <= 0) return 0;
+      if (rate === 0) return principal / (years * 12);
+      
+      // Rate is stored as percentage (2.69 for 2.69%), so convert to decimal
+      const monthlyRate = (rate / 100) / 12;
+      const totalPayments = years * 12;
+      
+      // Calculate monthly payment using standard mortgage formula
+      const monthlyPayment = principal * 
+        (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / 
+        (Math.pow(1 + monthlyRate, totalPayments) - 1);
+      
+      return Math.round(monthlyPayment * 100) / 100;
+    } catch (error) {
+      console.error("Error calculating monthly payment:", error);
+      return 0;
+    }
+  };
+
+  // Add current balance and calculated payment to mortgages
   const mortgagesWithBalance = mortgages.map(mortgage => ({
     ...mortgage,
     currentBalance: getCurrentMortgageBalance(mortgage),
-    monthlyPayment: mortgage.mortgage.monthlyPayment
+    monthlyPayment: calculateMonthlyPayment(mortgage)
   }));
 
   // Portfolio analytics
@@ -599,7 +628,7 @@ export default function MortgagesPage() {
                                   </div>
                                   <div className="text-right">
                                     <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                                      {mortgage.rateType === 'FIXED' ? 'Fixed-Rate Mortgage' : 'Variable-Rate Mortgage'}
+                                      {mortgage.rateType === 'Fixed' ? 'Fixed-Rate Mortgage' : 'Variable-Rate Mortgage'}
                                     </p>
                                   </div>
                                 </div>
@@ -614,7 +643,7 @@ export default function MortgagesPage() {
                                   </div>
                                   <div className="text-right">
                                     <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                                      {mortgage.interestRate}%
+                                      {mortgage.rateType === 'Variable' ? 'Prime ' : ''}{mortgage.interestRate}%
                                     </p>
                                   </div>
                                 </div>
