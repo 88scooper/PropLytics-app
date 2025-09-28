@@ -87,46 +87,48 @@ export default function PropertyMortgages({ propertyId }) {
       
       <div className="space-y-3">
         {propertyMortgages.map((mortgage) => (
-          <div key={mortgage.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-            <div className="flex items-start justify-between mb-2">
-              <div>
-                <h4 className="font-medium text-sm text-gray-900 dark:text-white">
-                  {mortgage.lenderName}
-                </h4>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {mortgage.rateType} • {mortgage.interestRate}%
-                </p>
-              </div>
-              <button className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                <Eye className="w-3 h-3" />
-              </button>
+          <div key={mortgage.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+            {/* Header Section */}
+            <div className="mb-3">
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                {mortgage.lenderName}
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {mortgage.rateType === 'FIXED' ? 'Fixed-Rate Mortgage' : 'Variable-Rate Mortgage'}
+              </p>
             </div>
-            
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <span className="text-gray-600 dark:text-gray-400">Original:</span>
-                <span className="font-medium text-gray-900 dark:text-white ml-1">
-                  {formatCurrency(mortgage.originalAmount)}
-                </span>
+
+            {/* Primary Details Section */}
+            <div className="space-y-3 mb-3">
+              {/* Original Loan Amount and Interest Rate */}
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(mortgage.originalAmount)}
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Original Loan</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {mortgage.interestRate}%
+                  </p>
+                </div>
               </div>
+
+              {/* Payment Amount */}
               <div>
-                <span className="text-gray-600 dark:text-gray-400">Term:</span>
-                <span className="font-medium text-gray-900 dark:text-white ml-1">
-                  {mortgage.termYears}y
-                </span>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">
+                  {formatCurrency(mortgage.monthlyPayment)} / month
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Payment</p>
               </div>
-              <div>
-                <span className="text-gray-600 dark:text-gray-400">Start:</span>
-                <span className="font-medium text-gray-900 dark:text-white ml-1">
-                  {formatDate(mortgage.startDate)}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-600 dark:text-gray-400">Freq:</span>
-                <span className="font-medium text-gray-900 dark:text-white ml-1">
-                  {mortgage.paymentFrequency}
-                </span>
-              </div>
+            </div>
+
+            {/* Secondary Details Section */}
+            <div className="flex justify-between items-center text-xs text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-3">
+              <span>Amortization: {mortgage.amortizationPeriodYears}y</span>
+              <span>Term: {mortgage.termYears}y</span>
+              <span>Start: {formatDate(mortgage.startDate)}</span>
             </div>
           </div>
         ))}
