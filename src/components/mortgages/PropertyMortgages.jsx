@@ -249,6 +249,14 @@ export default function PropertyMortgages({ propertyId }) {
                 </div>
               </div>
 
+              {/* Remaining Loan */}
+              <div>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">
+                  {formatCurrency(calculateRemainingBalance(mortgage))}
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Remaining Loan</p>
+              </div>
+
               {/* Payment Amount */}
               <div>
                 <p className="text-lg font-bold text-gray-900 dark:text-white">
@@ -268,17 +276,11 @@ export default function PropertyMortgages({ propertyId }) {
               </div>
               
               {/* Second row - New details */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-3 gap-2 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600 dark:text-gray-400">Renewal:</span>
                   <span className="font-medium text-gray-900 dark:text-gray-100">
                     {calculateRenewalDate(mortgage) ? calculateRenewalDate(mortgage).toLocaleDateString('en-CA') : 'N/A'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400">Remaining:</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {formatCurrency(calculateRemainingBalance(mortgage))}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">

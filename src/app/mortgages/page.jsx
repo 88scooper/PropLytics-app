@@ -3,12 +3,15 @@
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import { useMortgages } from "@/hooks/useMortgages";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Plus, Filter, MoreVertical, Edit, Trash2, Eye, Upload, Calculator, TrendingDown, DollarSign, Percent, Calendar, Building2, Clock, Banknote, Download, BarChart3, PieChart, TrendingUp, AlertTriangle, CheckCircle, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 import MortgageFormUpgraded from "@/components/mortgages/MortgageFormUpgraded";
 import MortgageDetails from "@/components/mortgages/MortgageDetails";
 import BulkUploadModal from "@/components/mortgages/BulkUploadModal";
 import AmortizationSchedule from "@/components/mortgages/AmortizationSchedule";
+import MortgageSummaryBanner from "@/components/mortgages/MortgageSummaryBanner";
+import MortgageDetailsPanel from "@/components/mortgages/MortgageDetailsPanel";
+import PaymentBreakdown from "@/components/mortgages/PaymentBreakdown";
 import { useProperties } from "@/context/PropertyContext";
 import { formatCurrency, formatPercentage } from "@/utils/formatting";
 import { calculateAmortizationSchedule } from "@/utils/mortgageCalculator";
@@ -46,6 +49,13 @@ export default function MortgagesPage() {
     mortgage: property.mortgage, // Include the full mortgage object
     propertyName: property.nickname
   }));
+
+  // Set default mortgage selection when mortgages are loaded
+  useEffect(() => {
+    if (mortgages.length > 0 && !selectedMortgageForDashboard) {
+      setSelectedMortgageForDashboard(mortgages[0]);
+    }
+  }, [mortgages]);
 
   // Get unique property IDs for filter
   const propertyIds = [...new Set(mortgages.map(m => m.propertyId).filter(Boolean))];
@@ -317,6 +327,7 @@ export default function MortgagesPage() {
       return null;
     }
   }, [selectedMortgageForDashboard, mortgagesWithBalance]);
+
 
   const handleSelectForDashboard = (mortgage) => {
     setSelectedMortgageForDashboard(mortgage);
@@ -636,9 +647,11 @@ export default function MortgagesPage() {
           </div>
         )}
 
-        {/* Dashboard View */}
+        {/* Dashboard View - Enhanced Details */}
         {viewMode === 'dashboard' && (
           <>
+
+          {/* Mortgage Selection - Below Enhanced Details */}
           {/* Filter */}
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex flex-col sm:flex-row gap-4">
@@ -703,90 +716,107 @@ export default function MortgagesPage() {
                         return (
                             <div
                               key={mortgage.id}
-                            className={`bg-white dark:bg-gray-800 rounded-lg border-2 transition-all ${
-                                selectedMortgageForDashboard?.id === mortgage.id 
-                                  ? 'border-[#205A3E] shadow-lg' 
-                                  : 'border-gray-200 dark:border-gray-700 hover:border-[#205A3E]/50'
-                              }`}
+                            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-[#205A3E]/50 transition-all"
                           >
-                            {/* Header Section */}
-                            <div className="p-4 md:p-6 cursor-pointer" onClick={() => handleSelectForDashboard(mortgage)}>
-                              {/* Property Address and Lender */}
+                            {/* Enhanced Details Section for Each Mortgage */}
+                            <div className="p-4 md:p-6 space-y-6">
+                              {/* Top Summary Banner */}
+                              <MortgageSummaryBanner 
+                                mortgageData={{ 
+                                  propertyId: mortgage.propertyId,
+                                  property: property,
+                                  mortgage: mortgage.mortgage 
+                                }} 
+                              />
+                              
+                              {/* Two-Column Layout: Details Panel and Payment Breakdown */}
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Left-Side Details Panel */}
+                                <MortgageDetailsPanel 
+                                  mortgageData={{ 
+                                    propertyId: mortgage.propertyId,
+                                    property: property,
+                                    mortgage: mortgage.mortgage 
+                                  }} 
+                                />
+                                
+                                {/* Right-Side Payment Breakdown */}
+                                <PaymentBreakdown 
+                                  mortgageData={{ 
+                                    propertyId: mortgage.propertyId,
+                                    property: property,
+                                    mortgage: mortgage.mortgage 
+                                  }} 
+                                />
+                              </div>
+                            </div>
+
+                            {/* Separator */}
+                            <div className="border-t border-gray-200 dark:border-gray-700"></div>
+
+                            {/* Consolidated Mortgage Information */}
+                            <div className="p-4 md:p-6">
+                              {/* Lender Information */}
                               <div className="mb-4">
                                 <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                                  {property?.address || 'Property Address'}
+                                  Lender: {mortgage.lenderName || 'Unknown Lender'}
                                 </h4>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  Lender: {mortgage.lenderName || 'Unknown Lender'}
+                                  {mortgage.rateType === 'Fixed' ? 'Fixed-Rate Mortgage' : 'Variable-Rate Mortgage'}
                                 </p>
                               </div>
 
-                              {/* Primary Details Section */}
-                              <div className="space-y-4 mb-4">
-                                {/* Original Loan Amount and Type */}
-                                <div className="flex justify-between items-end">
+                              {/* Key Financial Metrics */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div className="space-y-4">
                                   <div>
                                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
                                       {formatCurrency(mortgage.originalAmount)}
                                     </p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">Original Loan</p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">Original Loan Amount</p>
                                   </div>
-                                  <div className="text-right">
-                                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                                      {mortgage.rateType === 'Fixed' ? 'Fixed-Rate Mortgage' : 'Variable-Rate Mortgage'}
+                                  <div>
+                                    <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                                      {formatCurrency(calculateTotalPrincipalPaid(mortgage))}
                                     </p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">Principal Paid</p>
                                   </div>
                                 </div>
-
-                                {/* Payment Amount and Interest Rate */}
-                                <div className="flex justify-between items-end">
+                                <div className="space-y-4">
                                   <div>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                      {formatCurrency(calculateMonthlyPayment(mortgage))} / month
+                                    <p className="text-xl font-bold text-red-600 dark:text-red-400">
+                                      {formatCurrency(calculateTotalInterestPaid(mortgage))}
                                     </p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">Payment</p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">Interest Paid</p>
                                   </div>
-                                  <div className="text-right">
+                                  <div>
                                     <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                                      {mortgage.rateType === 'Variable' ? 'Prime ' : ''}{mortgage.interestRate}%
+                                      Started: {new Date(mortgage.startDate).toLocaleDateString()}
                                     </p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">Mortgage Start Date</p>
                                   </div>
                                 </div>
                               </div>
 
-                              {/* Secondary Details Section */}
-                              <div className="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-4">
-                                {/* First row - Original details */}
-                                <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
-                                  <span>Amortization: {mortgage.amortizationPeriodYears} Years</span>
-                                  <span>Term: {mortgage.termYears} Years</span>
-                                  <span>Starts: {new Date(mortgage.startDate).toLocaleDateString()}</span>
-                                </div>
-                                
-                                {/* Second row - New details */}
-                                <div className="grid grid-cols-2 gap-4 text-sm">
+                              {/* Timeline Information */}
+                              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                                   <div className="flex justify-between items-center">
-                                    <span className="text-gray-600 dark:text-gray-400">Renewal Date:</span>
+                                    <span className="text-gray-600 dark:text-gray-400">Amortization:</span>
                                     <span className="font-medium text-gray-900 dark:text-gray-100">
-                                      {calculateRenewalDate(mortgage) ? calculateRenewalDate(mortgage).toLocaleDateString() : 'N/A'}
+                                      {mortgage.amortizationPeriodYears} Years
                                     </span>
                                   </div>
                                   <div className="flex justify-between items-center">
-                                    <span className="text-gray-600 dark:text-gray-400">Remaining Loan:</span>
+                                    <span className="text-gray-600 dark:text-gray-400">Current Term:</span>
                                     <span className="font-medium text-gray-900 dark:text-gray-100">
-                                      {formatCurrency(calculateRemainingBalance(mortgage))}
+                                      {mortgage.termYears} Years
                                     </span>
                                   </div>
                                   <div className="flex justify-between items-center">
-                                    <span className="text-gray-600 dark:text-gray-400">Principal Paid:</span>
-                                    <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                                      {formatCurrency(calculateTotalPrincipalPaid(mortgage))}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-gray-600 dark:text-gray-400">Interest Paid:</span>
-                                    <span className="font-medium text-red-600 dark:text-red-400">
-                                      {formatCurrency(calculateTotalInterestPaid(mortgage))}
+                                    <span className="text-gray-600 dark:text-gray-400">Remaining Term:</span>
+                                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                                      {mortgage.termYears - Math.floor((new Date() - new Date(mortgage.startDate)) / (365.25 * 24 * 60 * 60 * 1000))} Years
                                     </span>
                                   </div>
                                 </div>
@@ -921,115 +951,18 @@ export default function MortgagesPage() {
                                     </button>
                                   </div>
                                 )}
-                              </div>
-                            )}
-                          </div>
+                  </div>
+            )}
+
+                      </div>
                         );
                       })}
                       </div>
                     </div>
                   ))}
-                  </div>
-            )}
-
-                  {/* Dashboard for Selected Mortgage */}
-                  {selectedMortgageForDashboard && dashboardData && (
-                    <div className="space-y-6">
-                      {/* Top-Level Summary Bar */}
-                      <div className="bg-gradient-to-r from-[#205A3E] to-[#2d7a5a] rounded-xl p-6 text-white">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                          <div className="text-center">
-                            <div className="flex items-center justify-center mb-2">
-                              <TrendingDown className="w-5 h-5 mr-2" />
-                              <span className="text-sm font-medium opacity-90">Current Balance</span>
-                            </div>
-                      <p className="text-2xl font-bold">{formatCurrency(dashboardData.mortgage.currentBalance)}</p>
-                          </div>
-                          <div className="text-center">
-                            <div className="flex items-center justify-center mb-2">
-                        <DollarSign className="w-5 h-5 mr-2" />
-                              <span className="text-sm font-medium opacity-90">Monthly Payment</span>
-                            </div>
-                      <p className="text-2xl font-bold">{formatCurrency(dashboardData.mortgage.monthlyPayment)}</p>
-                          </div>
-                          <div className="text-center">
-                            <div className="flex items-center justify-center mb-2">
-                              <Percent className="w-5 h-5 mr-2" />
-                              <span className="text-sm font-medium opacity-90">Interest Rate</span>
-                            </div>
-                      <p className="text-2xl font-bold">{dashboardData.mortgage.interestRate}%</p>
-                          </div>
-                          <div className="text-center">
-                            <div className="flex items-center justify-center mb-2">
-                              <Calendar className="w-5 h-5 mr-2" />
-                        <span className="text-sm font-medium opacity-90">Remaining Payments</span>
-                            </div>
-                      <p className="text-2xl font-bold">{dashboardData.remainingPayments}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                {/* Charts and Analytics */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Payment Breakdown */}
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Payment Breakdown</h3>
-                          <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600 dark:text-gray-400">Total Interest</span>
-                        <span className="text-red-600 font-semibold">{formatCurrency(dashboardData.totalInterest)}</span>
-                            </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600 dark:text-gray-400">Total Cost</span>
-                        <span className="text-gray-900 dark:text-white font-semibold">{formatCurrency(dashboardData.totalCost)}</span>
-                            </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600 dark:text-gray-400">Payoff Date</span>
-                        <span className="text-green-600 font-semibold">
-                          {new Date(dashboardData.payoffDate).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                  {/* Amortization Chart */}
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Amortization Schedule</h3>
-                    <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={dashboardData.schedule.slice(0, 24)}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="paymentNumber" />
-                          <YAxis />
-                                <Tooltip 
-                                  formatter={(value, name) => [
-                                    formatCurrency(value), 
-                              name === 'principalPayment' ? 'Principal' : 'Interest'
-                            ]}
-                                />
-                                <Area
-                                  type="monotone"
-                            dataKey="principalPayment" 
-                                  stackId="1"
-                                  stroke="#205A3E"
-                            fill="#205A3E" 
-                            fillOpacity={0.6}
-                                />
-                                <Area
-                                  type="monotone"
-                            dataKey="interestPayment" 
-                                  stackId="1"
-                            stroke="#ef4444" 
-                            fill="#ef4444" 
-                            fillOpacity={0.6}
-                                />
-                              </AreaChart>
-                            </ResponsiveContainer>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   )}
+
                 </>
               )}
 
