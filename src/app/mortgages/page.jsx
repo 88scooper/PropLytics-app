@@ -12,6 +12,7 @@ import AmortizationSchedule from "@/components/mortgages/AmortizationSchedule";
 import MortgageSummaryBanner from "@/components/mortgages/MortgageSummaryBanner";
 import MortgageDetailsPanel from "@/components/mortgages/MortgageDetailsPanel";
 import PaymentBreakdown from "@/components/mortgages/PaymentBreakdown";
+import MortgageCardView from "@/components/mortgages/MortgageCardView";
 import { useProperties } from "@/context/PropertyContext";
 import { formatCurrency, formatPercentage } from "@/utils/formatting";
 import { calculateAmortizationSchedule } from "@/utils/mortgageCalculator";
@@ -30,7 +31,7 @@ export default function MortgagesPage() {
   const [showAmortization, setShowAmortization] = useState(false);
   const [selectedMortgage, setSelectedMortgage] = useState(null);
   const [selectedMortgageForDashboard, setSelectedMortgageForDashboard] = useState(null);
-  const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard', 'analytics', 'comparison'
+  const [viewMode, setViewMode] = useState('card'); // 'dashboard', 'analytics', 'comparison', 'card'
   const [selectedMortgagesForComparison, setSelectedMortgagesForComparison] = useState([]);
   const [expandedMortgages, setExpandedMortgages] = useState(new Set());
   
@@ -446,14 +447,14 @@ export default function MortgagesPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => setViewMode('dashboard')}
+              onClick={() => setViewMode('card')}
               className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                viewMode === 'dashboard'
+                viewMode === 'card'
                   ? 'bg-[#205A3E] text-white'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
             >
-              <BarChart3 className="w-4 h-4" />
+              <Building2 className="w-4 h-4" />
               Dashboard
             </button>
             <button
@@ -480,6 +481,40 @@ export default function MortgagesPage() {
             </button>
           </div>
         </div>
+
+        {/* Dashboard */}
+        {viewMode === 'card' && (
+          <div className="space-y-6">
+            {mortgagesWithBalance.length === 0 ? (
+              <div className="text-center py-12">
+                <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Mortgages Found</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Get started by adding your first mortgage.
+                </p>
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="px-4 py-2 bg-[#205A3E] text-white rounded-lg hover:bg-[#1a4a32] transition-colors flex items-center gap-2 mx-auto"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Mortgage
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {Object.entries(mortgagesByProperty).map(([propertyId, { property, mortgages: propertyMortgages }]) => (
+                  <div key={propertyId} className="space-y-4">
+                    {propertyMortgages.map((mortgage) => (
+                      <div key={mortgage.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <MortgageCardView mortgage={mortgage} />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Analytics View */}
         {viewMode === 'analytics' && (
@@ -646,325 +681,6 @@ export default function MortgagesPage() {
             )}
           </div>
         )}
-
-        {/* Dashboard View - Enhanced Details */}
-        {viewMode === 'dashboard' && (
-          <>
-
-          {/* Mortgage Selection - Below Enhanced Details */}
-          {/* Filter */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Filter by Property
-                  </label>
-              <select
-                value={filterProperty}
-                onChange={(e) => setFilterProperty(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">All Properties</option>
-                    {propertyIds.map(propertyId => {
-                      const property = properties.find(p => p.id === propertyId);
-                      return (
-                        <option key={propertyId} value={propertyId}>
-                          {property?.nickname || `Property ${propertyId}`}
-                  </option>
-                      );
-                    })}
-              </select>
-            </div>
-          </div>
-            </div>
-
-            {/* Mortgages List */}
-            {Object.keys(mortgagesByProperty).length === 0 ? (
-                <div className="text-center py-12">
-                <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Mortgages Found</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  Get started by adding your first mortgage.
-                </p>
-                    <button
-                      onClick={() => setShowForm(true)}
-                  className="px-4 py-2 bg-[#205A3E] text-white rounded-lg hover:bg-[#1a4a32] transition-colors flex items-center gap-2 mx-auto"
-                    >
-                      <Plus className="w-4 h-4" />
-                  Add Mortgage
-                    </button>
-                </div>
-              ) : (
-                  <div className="space-y-6">
-                    {Object.entries(mortgagesByProperty).map(([propertyId, { property, mortgages: propertyMortgages }]) => (
-                      <div key={propertyId} className="space-y-4">
-
-                        {/* Mortgages for this Property */}
-                        <div className="grid gap-4">
-                      {propertyMortgages.map((mortgage) => {
-                        const isExpanded = expandedMortgages.has(mortgage.id);
-                        // Calculate schedule directly instead of using useMemo inside map
-                        let mortgageSchedule = null;
-                        try {
-                          const scheduleResult = calculateAmortizationSchedule(mortgage.mortgage);
-                          mortgageSchedule = scheduleResult.payments;
-                        } catch (error) {
-                          console.error("Error calculating schedule:", error);
-                          mortgageSchedule = null;
-                        }
-
-                        return (
-                            <div
-                              key={mortgage.id}
-                            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-[#205A3E]/50 transition-all"
-                          >
-                            {/* Enhanced Details Section for Each Mortgage */}
-                            <div className="p-4 md:p-6 space-y-6">
-                              {/* Top Summary Banner */}
-                              <MortgageSummaryBanner 
-                                mortgageData={{ 
-                                  propertyId: mortgage.propertyId,
-                                  property: property,
-                                  mortgage: mortgage.mortgage 
-                                }} 
-                              />
-                              
-                              {/* Two-Column Layout: Details Panel and Payment Breakdown */}
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {/* Left-Side Details Panel */}
-                                <MortgageDetailsPanel 
-                                  mortgageData={{ 
-                                    propertyId: mortgage.propertyId,
-                                    property: property,
-                                    mortgage: mortgage.mortgage 
-                                  }} 
-                                />
-                                
-                                {/* Right-Side Payment Breakdown */}
-                                <PaymentBreakdown 
-                                  mortgageData={{ 
-                                    propertyId: mortgage.propertyId,
-                                    property: property,
-                                    mortgage: mortgage.mortgage 
-                                  }} 
-                                />
-                              </div>
-                            </div>
-
-                            {/* Separator */}
-                            <div className="border-t border-gray-200 dark:border-gray-700"></div>
-
-                            {/* Consolidated Mortgage Information */}
-                            <div className="p-4 md:p-6">
-                              {/* Lender Information */}
-                              <div className="mb-4">
-                                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                                  Lender: {mortgage.lenderName || 'Unknown Lender'}
-                                </h4>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  {mortgage.rateType === 'Fixed' ? 'Fixed-Rate Mortgage' : 'Variable-Rate Mortgage'}
-                                </p>
-                              </div>
-
-                              {/* Key Financial Metrics */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                <div className="space-y-4">
-                                  <div>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                      {formatCurrency(mortgage.originalAmount)}
-                                    </p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">Original Loan Amount</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                                      {formatCurrency(calculateTotalPrincipalPaid(mortgage))}
-                                    </p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">Principal Paid</p>
-                                  </div>
-                                </div>
-                                <div className="space-y-4">
-                                  <div>
-                                    <p className="text-xl font-bold text-red-600 dark:text-red-400">
-                                      {formatCurrency(calculateTotalInterestPaid(mortgage))}
-                                    </p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">Interest Paid</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                                      Started: {new Date(mortgage.startDate).toLocaleDateString()}
-                                    </p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">Mortgage Start Date</p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Timeline Information */}
-                              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-gray-600 dark:text-gray-400">Amortization:</span>
-                                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                                      {mortgage.amortizationPeriodYears} Years
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-gray-600 dark:text-gray-400">Current Term:</span>
-                                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                                      {mortgage.termYears} Years
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-gray-600 dark:text-gray-400">Remaining Term:</span>
-                                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                                      {mortgage.termYears - Math.floor((new Date() - new Date(mortgage.startDate)) / (365.25 * 24 * 60 * 60 * 1000))} Years
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Action Buttons */}
-                              <div className="flex items-center justify-end gap-2 mt-4">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedMortgageForDashboard(mortgage);
-                                    setShowForm(true);
-                                  }}
-                                  className="px-3 py-1 text-sm bg-[#205A3E] text-white rounded hover:bg-[#1a4a32] transition-colors"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleMortgageExpansion(mortgage.id);
-                                  }}
-                                  className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-1"
-                                >
-                                  {isExpanded ? (
-                                    <>
-                                      <ChevronUp className="w-4 h-4" />
-                                      Hide Schedule
-                                    </>
-                                  ) : (
-                                    <>
-                                      <ChevronDown className="w-4 h-4" />
-                                      Show Schedule
-                                    </>
-                                  )}
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownloadSchedule(mortgage.id);
-                                  }}
-                                  className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-1"
-                                >
-                                  <Download className="w-4 h-4" />
-                                  Download
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Expanded Amortization Schedule */}
-                            {isExpanded && mortgageSchedule && (
-                              <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-900">
-                                <div className="mb-4">
-                                  <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                                    Amortization Schedule Preview
-                                  </h5>
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                                    <div className="text-center">
-                                      <p className="text-sm text-gray-600 dark:text-gray-400">Total Interest</p>
-                                      <p className="text-lg font-semibold text-red-600">
-                                        {formatCurrency(mortgageSchedule ? mortgageSchedule.reduce((sum, payment) => sum + payment.interest, 0) : 0)}
-                                      </p>
-                                    </div>
-                                    <div className="text-center">
-                                      <p className="text-sm text-gray-600 dark:text-gray-400">Total Cost</p>
-                                      <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                                        {formatCurrency(mortgageSchedule ? mortgageSchedule.reduce((sum, payment) => sum + payment.monthlyPayment, 0) : 0)}
-                                      </p>
-                                    </div>
-                                    <div className="text-center">
-                                      <p className="text-sm text-gray-600 dark:text-gray-400">Payments Remaining</p>
-                                      <p className="text-lg font-semibold text-blue-600">
-                                        {mortgageSchedule ? mortgageSchedule.length : 0}
-                                      </p>
-                                    </div>
-                                    <div className="text-center">
-                                      <p className="text-sm text-gray-600 dark:text-gray-400">Payoff Date</p>
-                                      <p className="text-lg font-semibold text-green-600">
-                                        {mortgageSchedule && mortgageSchedule.length > 0 ? new Date(mortgageSchedule[mortgageSchedule.length - 1]?.paymentDate).toLocaleDateString() : 'N/A'}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-sm">
-                                    <thead>
-                                      <tr className="border-b border-gray-200 dark:border-gray-700">
-                                        <th className="text-left py-2 text-gray-600 dark:text-gray-400">Payment #</th>
-                                        <th className="text-left py-2 text-gray-600 dark:text-gray-400">Date</th>
-                                        <th className="text-right py-2 text-gray-600 dark:text-gray-400">Principal</th>
-                                        <th className="text-right py-2 text-gray-600 dark:text-gray-400">Interest</th>
-                                        <th className="text-right py-2 text-gray-600 dark:text-gray-400">Total</th>
-                                        <th className="text-right py-2 text-gray-600 dark:text-gray-400">Balance</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {mortgageSchedule ? mortgageSchedule.slice(0, 12).map((payment, index) => (
-                                        <tr key={index} className="border-b border-gray-100 dark:border-gray-800">
-                                          <td className="py-2 text-gray-900 dark:text-white">{payment.paymentNumber}</td>
-                                          <td className="py-2 text-gray-600 dark:text-gray-400">
-                                            {new Date(payment.paymentDate).toLocaleDateString()}
-                                          </td>
-                                          <td className="py-2 text-right text-gray-900 dark:text-white">
-                                            {formatCurrency(payment.principal)}
-                                          </td>
-                                          <td className="py-2 text-right text-red-600">
-                                            {formatCurrency(payment.interest)}
-                                          </td>
-                                          <td className="py-2 text-right font-semibold text-gray-900 dark:text-white">
-                                            {formatCurrency(payment.monthlyPayment)}
-                                          </td>
-                                          <td className="py-2 text-right text-gray-600 dark:text-gray-400">
-                                            {formatCurrency(payment.remainingBalance)}
-                                          </td>
-                                        </tr>
-                                      )) : null}
-                                    </tbody>
-                                  </table>
-                                </div>
-
-                                {mortgageSchedule && mortgageSchedule.length > 12 && (
-                                  <div className="mt-4 text-center">
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                      Showing first 12 of {mortgageSchedule.length} payments
-                                    </p>
-                                    <button
-                                      onClick={() => handleDownloadSchedule(mortgage.id)}
-                                      className="text-[#205A3E] hover:text-[#1a4a32] text-sm font-medium"
-                                    >
-                                      View Complete Schedule →
-                                    </button>
-                                  </div>
-                                )}
-                  </div>
-            )}
-
-                      </div>
-                        );
-                      })}
-                      </div>
-                    </div>
-                  ))}
-                    </div>
-                  )}
-
-                </>
-              )}
 
         {/* Modals */}
         {showForm && (

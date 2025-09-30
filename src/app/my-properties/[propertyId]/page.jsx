@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, use, useMemo } from "react";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
 import { useProperty } from "@/context/PropertyContext";
 import { formatCurrency, formatPercentage, formatNumber } from "@/utils/formatting";
+import { calculateAmortizationSchedule } from "@/utils/mortgageCalculator";
 
 export default function PropertyDetailPage({ params }) {
   const { propertyId } = use(params) || {};
@@ -18,6 +19,38 @@ export default function PropertyDetailPage({ params }) {
     console.log('DEBUG - Cap Rate:', property.capRate, 'Type:', typeof property.capRate);
     console.log('DEBUG - Cash on Cash:', property.cashOnCashReturn, 'Type:', typeof property.cashOnCashReturn);
   }
+
+  // Calculate mortgage schedule and current balance
+  const mortgageData = useMemo(() => {
+    if (!property?.mortgage) return null;
+    
+    try {
+      const schedule = calculateAmortizationSchedule(property.mortgage);
+      const now = new Date();
+      const startDate = new Date(property.mortgage.startDate || property.purchaseDate);
+      const monthsElapsed = Math.max(0, (now.getFullYear() - startDate.getFullYear()) * 12 + (now.getMonth() - startDate.getMonth()));
+      
+      const currentPayment = schedule.payments[monthsElapsed] || schedule.payments[0];
+      const currentBalance = currentPayment?.remainingBalance || property.mortgage.originalAmount;
+      const principalPaid = property.mortgage.originalAmount - currentBalance;
+      const totalInterestPaid = schedule.payments.slice(0, monthsElapsed).reduce((sum, payment) => sum + payment.interest, 0);
+      
+      return {
+        schedule: schedule.payments,
+        currentBalance,
+        principalPaid,
+        totalInterestPaid,
+        monthsElapsed,
+        totalPayments: schedule.payments.length,
+        monthlyPayment: schedule.payments[0]?.monthlyPayment || 0
+      };
+    } catch (error) {
+      console.error('Error calculating mortgage data:', error);
+      return null;
+    }
+  }, [property]);
+
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
 
   if (!property) {
     return (
@@ -195,59 +228,174 @@ export default function PropertyDetailPage({ params }) {
                 </div>
               </div>
 
-              {/* Mortgage Details */}
+              {/* Enhanced Mortgage Details */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <h2 className="text-xl font-semibold mb-4">Mortgage Details</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Lender</span>
-                      <span className="font-medium">{property.mortgage.lender}</span>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold">Mortgage Details</h2>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="secondary" 
+                      size="sm"
+                      onClick={() => setShowPaymentHistory(!showPaymentHistory)}
+                    >
+                      {showPaymentHistory ? 'Hide' : 'View'} Schedule
+                    </Button>
+                    <Button variant="secondary" size="sm">
+                      Edit Mortgage
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Mortgage Summary Cards */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+                  <div className="bg-gradient-to-br from-[#205A3E]/10 to-[#205A3E]/5 rounded-lg p-4">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Monthly Payment</div>
+                    <div className="text-xl font-bold text-[#205A3E]">
+                      {formatCurrency(mortgageData?.monthlyPayment || property.mortgage.monthlyPayment || 0)}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Original Loan</span>
-                      <span className="font-medium">{formatCurrency(property.mortgage.originalAmount)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Interest Rate</span>
-                      <span className="font-medium">{formatPercentage(property.mortgage.interestRate * 100)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Term</span>
-                      <span className="font-medium">{property.mortgage.termMonths / 12} years</span>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {property.mortgage.paymentFrequency || 'Monthly'}
                     </div>
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Monthly Payment</span>
-                      <span className="font-medium">Calculated</span>
+                  
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10 rounded-lg p-4">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Current Balance</div>
+                    <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                      {formatCurrency(mortgageData?.currentBalance || property.mortgage.currentBalance || property.mortgage.originalAmount)}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Remaining Balance</span>
-                      <span className="font-medium">{formatCurrency(property.mortgage.originalAmount)}</span>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {mortgageData ? `${mortgageData.monthsElapsed}/${mortgageData.totalPayments} payments made` : 'Payment progress'}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Next Payment</span>
-                      <span className="font-medium">Monthly</span>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/10 rounded-lg p-4">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Principal Paid</div>
+                    <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                      {formatCurrency(mortgageData?.principalPaid || 0)}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Principal Paid</span>
-                      <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                        $0
-                      </span>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {mortgageData && property.mortgage.originalAmount ? 
+                        `${((mortgageData.principalPaid / property.mortgage.originalAmount) * 100).toFixed(1)}% paid off` : 
+                        'Progress'
+                      }
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/10 rounded-lg p-4">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Interest Paid</div>
+                    <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                      {formatCurrency(mortgageData?.totalInterestPaid || 0)}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {formatPercentage(property.mortgage.interestRate * 100)} rate
                     </div>
                   </div>
                 </div>
+
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-gray-900 dark:text-white">Loan Information</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Lender</span>
+                        <span className="font-medium">{property.mortgage.lender}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Original Loan Amount</span>
+                        <span className="font-medium">{formatCurrency(property.mortgage.originalAmount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Start Date</span>
+                        <span className="font-medium">
+                          {property.mortgage.startDate ? new Date(property.mortgage.startDate).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Term Length</span>
+                        <span className="font-medium">{property.mortgage.termMonths / 12} years</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Amortization</span>
+                        <span className="font-medium">{property.mortgage.amortizationYears || 'N/A'} years</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-gray-900 dark:text-white">Payment Details</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Payment Frequency</span>
+                        <span className="font-medium">{property.mortgage.paymentFrequency || 'Monthly'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Next Payment Due</span>
+                        <span className="font-medium">
+                          {property.mortgage.nextPaymentDate ? new Date(property.mortgage.nextPaymentDate).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Rate Type</span>
+                        <span className="font-medium">{property.mortgage.rateType || 'Fixed'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Renewal Date</span>
+                        <span className="font-medium">
+                          {property.mortgage.renewalDate ? new Date(property.mortgage.renewalDate).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Mortgage Number</span>
+                        <span className="font-medium text-sm">{property.mortgage.mortgageNumber || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Progress Bar */}
+                {mortgageData && property.mortgage.originalAmount && (
+                  <div className="mt-6 pt-4 border-t border-black/10 dark:border-white/10">
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-gray-600 dark:text-gray-400">Payment Progress</span>
+                      <span className="font-medium">
+                        {`${((mortgageData.principalPaid / property.mortgage.originalAmount) * 100).toFixed(1)}%`}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-[#205A3E] to-[#2d7a5a] h-2 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${(mortgageData.principalPaid / property.mortgage.originalAmount) * 100}%` 
+                        }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      <span>{formatCurrency(mortgageData.principalPaid)} principal paid</span>
+                      <span>{formatCurrency(mortgageData.currentBalance)} remaining</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Payment History - Coming Soon */}
-              {false && (
+              {/* Payment History */}
+              {mortgageData && (
                 <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                  <h2 className="text-xl font-semibold mb-4">Payment History</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold">Payment History</h2>
+                    <Button 
+                      variant="secondary" 
+                      size="sm"
+                      onClick={() => setShowPaymentHistory(!showPaymentHistory)}
+                    >
+                      {showPaymentHistory ? 'Hide' : 'Show'} Full Schedule
+                    </Button>
+                  </div>
+                  
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-black/10 dark:border-white/10">
+                          <th className="text-left py-2 font-medium">Payment #</th>
                           <th className="text-left py-2 font-medium">Date</th>
                           <th className="text-right py-2 font-medium">Principal</th>
                           <th className="text-right py-2 font-medium">Interest</th>
@@ -256,24 +404,56 @@ export default function PropertyDetailPage({ params }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {mortgageData.paymentHistory.slice(0, 10).map((payment, index) => (
+                        {(showPaymentHistory ? mortgageData.schedule : mortgageData.schedule.slice(0, 12)).map((payment, index) => (
                           <tr key={index} className="border-b border-black/5 dark:border-white/5">
-                            <td className="py-2">{new Date(payment.date).toLocaleDateString()}</td>
-                            <td className="text-right py-2">{formatCurrency(Math.abs(payment.principal))}</td>
-                            <td className="text-right py-2">{formatCurrency(Math.abs(payment.interest))}</td>
-                            <td className="text-right py-2 font-medium">{formatCurrency(Math.abs(payment.total))}</td>
+                            <td className="py-2">{payment.paymentNumber}</td>
+                            <td className="py-2">{new Date(payment.paymentDate).toLocaleDateString()}</td>
+                            <td className="text-right py-2 text-emerald-600 dark:text-emerald-400">
+                              {formatCurrency(payment.principal)}
+                            </td>
+                            <td className="text-right py-2 text-red-600 dark:text-red-400">
+                              {formatCurrency(payment.interest)}
+                            </td>
+                            <td className="text-right py-2 font-medium">
+                              {formatCurrency(payment.monthlyPayment)}
+                            </td>
                             <td className="text-right py-2 text-gray-600 dark:text-gray-400">
-                              {payment.remaining > 0 ? formatCurrency(payment.remaining) : 'Paid Off'}
+                              {formatCurrency(payment.remainingBalance)}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                    <div className="mt-4 text-center">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Showing last 10 payments of {mortgageData.paymentHistory.length} total payments
-                      </p>
-                    </div>
+                    
+                    {!showPaymentHistory && mortgageData.schedule.length > 12 && (
+                      <div className="mt-4 text-center">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          Showing first 12 of {mortgageData.schedule.length} payments
+                        </p>
+                        <Button 
+                          variant="secondary" 
+                          size="sm"
+                          onClick={() => setShowPaymentHistory(true)}
+                        >
+                          View Complete Schedule
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {showPaymentHistory && (
+                      <div className="mt-4 text-center">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          Showing all {mortgageData.schedule.length} payments
+                        </p>
+                        <Button 
+                          variant="secondary" 
+                          size="sm"
+                          onClick={() => setShowPaymentHistory(false)}
+                        >
+                          Show Less
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
