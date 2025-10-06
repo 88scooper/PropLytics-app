@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import { formatCurrency, formatPercentage } from '@/utils/formatting';
 import { calculateAmortizationSchedule } from '@/utils/mortgageCalculator';
 
 const MortgageCardView = ({ mortgage }) => {
+  const [showAmortizationSchedule, setShowAmortizationSchedule] = useState(false);
+  const [showMortgageDetails, setShowMortgageDetails] = useState(false);
   // Calculate mortgage data
   const mortgageData = useMemo(() => {
     if (!mortgage) return null;
@@ -109,6 +112,13 @@ const MortgageCardView = ({ mortgage }) => {
 
   return (
     <div className="space-y-6">
+      {/* Property Address */}
+      <div className="text-left">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {mortgage.property?.address || mortgage.propertyName || 'Property Address'}
+        </h2>
+      </div>
+
       {/* Top Summary Banner - Green Background */}
       <div className="bg-gradient-to-r from-[#205A3E] to-[#2d7a5a] text-white p-6 rounded-xl">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
@@ -179,189 +189,235 @@ const MortgageCardView = ({ mortgage }) => {
               </div>
               <div className="text-sm font-medium text-white/90">{mortgageData.daysUntilPayment} days remaining</div>
             </div>
-            <div className="px-2">
-              <div className="w-full bg-white/20 rounded-full h-3 shadow-inner">
-                <div 
-                  className="bg-gradient-to-r from-white to-white/90 h-3 rounded-full transition-all duration-500 shadow-sm" 
-                  style={{ width: `${Math.max(0, Math.min(100, mortgageData.paymentProgress))}%` }}
-                ></div>
-              </div>
-              <div className="text-xs text-white/70 mt-2">
-                {Math.round(mortgageData.paymentProgress)}% of payment cycle complete
-              </div>
-            </div>
           </div>
 
           {/* Right Section - Total Payment Breakdown */}
           <div className="space-y-4">
-            <div className="text-center">
+            <div className="text-left">
               <div className="text-xs font-medium text-white/80 uppercase tracking-wide mb-2">Total Payment</div>
               <div className="text-xl font-bold text-white">{formatCurrency(monthlyPayment)}</div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="space-y-3 flex-1">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-[#205A3E] flex-shrink-0"></div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-medium text-white/80 uppercase tracking-wide">Principal</div>
-                    <div className="font-bold text-white text-sm">{formatCurrency(principalAmount)}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-white/20 flex-shrink-0"></div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-medium text-white/80 uppercase tracking-wide">Interest</div>
-                    <div className="font-bold text-white text-sm">{formatCurrency(interestAmount)}</div>
-                  </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-[#205A3E] flex-shrink-0"></div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-medium text-white/80 uppercase tracking-wide">Principal</div>
+                  <div className="font-bold text-white text-sm">{formatCurrency(principalAmount)}</div>
                 </div>
               </div>
-              <div className="w-20 h-20 relative flex-shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={paymentChartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={18}
-                      outerRadius={28}
-                      dataKey="value"
-                      startAngle={90}
-                      endAngle={450}
-                      stroke="none"
-                      strokeWidth={0}
-                    >
-                      {paymentChartData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={entry.color}
-                          stroke="none"
-                        />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-white/20 flex-shrink-0"></div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-medium text-white/80 uppercase tracking-wide">Interest</div>
+                  <div className="font-bold text-white text-sm">{formatCurrency(interestAmount)}</div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content Area - Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {/* Left Column - Mortgage Specifics */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-black/10 dark:border-white/10 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
-            Mortgage Details
+      {/* Mortgage & Payment Details - Single Dropdown */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-black/10 dark:border-white/10">
+        <button
+          onClick={() => setShowMortgageDetails(!showMortgageDetails)}
+          className="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        >
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Mortgage & Payment Details
           </h3>
-          <div className="space-y-5">
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Property Address</span>
-              <span className="font-semibold text-gray-900 dark:text-white text-right max-w-[60%]">{mortgage.property?.address || mortgage.propertyName || 'N/A'}</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Lender</span>
-              <span className="font-semibold text-gray-900 dark:text-white">{mortgage.lenderName || mortgageObj.lender}</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Amortization Period</span>
-              <span className="font-semibold text-gray-900 dark:text-white">{mortgage.amortizationPeriodYears || mortgageObj.amortizationYears} Years {mortgage.amortizationPeriodYears ? '0' : ''} Months</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Rate</span>
-              <span className="font-semibold text-gray-900 dark:text-white">{mortgage.interestRate || (mortgageObj.interestRate * 100)}%</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Term</span>
-                <InfoIcon />
-              </div>
-              <span className="font-semibold text-gray-900 dark:text-white">{mortgage.termYears || (mortgageObj.termMonths / 12)} Years</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</span>
-              <span className="font-semibold text-gray-900 dark:text-white">
-                {new Date(mortgage.startDate || mortgageObj.startDate).toLocaleDateString('en-US', { 
-                  weekday: 'short', 
-                  month: 'short', 
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
-              </span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Renewal Date</span>
-              <span className="font-semibold text-gray-900 dark:text-white">
-                {mortgageData.renewalDate.toLocaleDateString('en-US', { 
-                  weekday: 'short', 
-                  month: 'short', 
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
-              </span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Product</span>
-              <span className="font-semibold text-gray-900 dark:text-white">{mortgage.rateType || mortgageObj.rateType}</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Payment Type</span>
-              <span className="font-semibold text-gray-900 dark:text-white">{mortgage.paymentFrequency || mortgageObj.paymentFrequency}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column - Loan & Payment Details */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-black/10 dark:border-white/10 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
-            Payment Details
-          </h3>
-          <div className="space-y-6">
-            
-            {/* Original Loan Amount */}
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Original Loan Amount</span>
-              <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(mortgage.originalAmount || mortgageObj.originalAmount)}</span>
-            </div>
-
-            {/* Payment Components */}
-            <div className="space-y-4">
-              <h4 className="text-base font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Payment Components</h4>
-              <div className="space-y-3">
+          {showMortgageDetails ? (
+            <ChevronUp className="w-5 h-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-gray-500" />
+          )}
+        </button>
+        {showMortgageDetails && (
+          <div className="px-6 pb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              {/* Left Column - Mortgage Details */}
+              <div className="space-y-5">
+                <h4 className="text-base font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Mortgage Information</h4>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Principal and Interest</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(monthlyPayment)}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Property Address</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-right max-w-[60%]">{mortgage.property?.address || mortgage.propertyName || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Property Tax</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">-</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Lender</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{mortgage.lenderName || mortgageObj.lender}</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Additional Details */}
-            <div className="space-y-4">
-              <h4 className="text-base font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Additional Details</h4>
-              <div className="space-y-3">
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Payment Frequency</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{mortgage.paymentFrequency || mortgageObj.paymentFrequency}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Amortization Period</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{Math.floor(mortgage.amortizationPeriodYears || mortgageObj.amortizationYears)} Years 0 Months</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Rate</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{mortgage.interestRate || (mortgageObj.interestRate * 100)}%</span>
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Remaining Amortization</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Term</span>
                     <InfoIcon />
                   </div>
-                  <span className="font-semibold text-gray-900 dark:text-white">{(mortgage.amortizationPeriodYears || mortgageObj.amortizationYears) - Math.floor(mortgageData.monthsElapsed / 12)} Years {mortgageData.monthsElapsed % 12} Months</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{mortgage.termYears || (mortgageObj.termMonths / 12)} Years</span>
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Term Remaining</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{mortgageData.renewalRemaining}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {new Date(mortgage.startDate || mortgageObj.startDate).toLocaleDateString('en-US', { 
+                      weekday: 'short', 
+                      month: 'short', 
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Renewal Date</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {mortgageData.renewalDate.toLocaleDateString('en-US', { 
+                      weekday: 'short', 
+                      month: 'short', 
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Product</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{mortgage.rateType || mortgageObj.rateType}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Payment Type</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{mortgage.paymentFrequency || mortgageObj.paymentFrequency}</span>
+                </div>
+              </div>
+
+              {/* Right Column - Payment Details */}
+              <div className="space-y-6">
+                <h4 className="text-base font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Payment Information</h4>
+                
+                {/* Original Loan Amount */}
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Original Loan Amount</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(mortgage.originalAmount || mortgageObj.originalAmount)}</span>
+                </div>
+
+                {/* Payment Components */}
+                <div className="space-y-4">
+                  <h5 className="text-sm font-semibold text-gray-900 dark:text-white">Payment Components</h5>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Principal and Interest</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(monthlyPayment)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Property Tax</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">-</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Details */}
+                <div className="space-y-4">
+                  <h5 className="text-sm font-semibold text-gray-900 dark:text-white">Additional Details</h5>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Payment Frequency</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{mortgage.paymentFrequency || mortgageObj.paymentFrequency}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Remaining Amortization</span>
+                        <InfoIcon />
+                      </div>
+                      <span className="font-semibold text-gray-900 dark:text-white">{Math.floor((mortgage.amortizationPeriodYears || mortgageObj.amortizationYears) - Math.floor(mortgageData.monthsElapsed / 12))} Years {Math.floor(mortgageData.monthsElapsed % 12)} Months</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Term Remaining</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{mortgageData.renewalRemaining}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
+      </div>
+
+      {/* Amortization Schedule Dropdown */}
+      <div className="mt-6">
+        <button
+          onClick={() => setShowAmortizationSchedule(!showAmortizationSchedule)}
+          className="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors bg-white dark:bg-gray-800 rounded-xl border border-black/10 dark:border-white/10"
+        >
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Amortization Schedule
+          </h3>
+          {showAmortizationSchedule ? (
+            <ChevronUp className="w-5 h-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-gray-500" />
+          )}
+        </button>
+        
+        {showAmortizationSchedule && (
+          <div className="mt-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="p-4">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Payment Schedule</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-600">
+                      <th className="text-left py-2 font-medium text-gray-700 dark:text-gray-300">Payment #</th>
+                      <th className="text-left py-2 font-medium text-gray-700 dark:text-gray-300">Date</th>
+                      <th className="text-right py-2 font-medium text-gray-700 dark:text-gray-300">Principal</th>
+                      <th className="text-right py-2 font-medium text-gray-700 dark:text-gray-300">Interest</th>
+                      <th className="text-right py-2 font-medium text-gray-700 dark:text-gray-300">Total</th>
+                      <th className="text-right py-2 font-medium text-gray-700 dark:text-gray-300">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mortgageData.schedule.slice(0, 12).map((payment, index) => (
+                      <tr key={index} className="border-b border-gray-100 dark:border-gray-700">
+                        <td className="py-2 text-gray-900 dark:text-white">{payment.paymentNumber}</td>
+                        <td className="py-2 text-gray-600 dark:text-gray-400">
+                          {new Date(payment.paymentDate).toLocaleDateString()}
+                        </td>
+                        <td className="text-right py-2 text-emerald-600 dark:text-emerald-400">
+                          {formatCurrency(payment.principal)}
+                        </td>
+                        <td className="text-right py-2 text-red-600 dark:text-red-400">
+                          {formatCurrency(payment.interest)}
+                        </td>
+                        <td className="text-right py-2 font-medium text-gray-900 dark:text-white">
+                          {formatCurrency(payment.monthlyPayment)}
+                        </td>
+                        <td className="text-right py-2 text-gray-600 dark:text-gray-400">
+                          {formatCurrency(payment.remainingBalance)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {mortgageData.schedule.length > 12 && (
+                  <div className="mt-4 text-center">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      Showing first 12 of {mortgageData.schedule.length} payments
+                    </p>
+                    <button
+                      onClick={() => setShowAmortizationSchedule(false)}
+                      className="px-4 py-2 bg-[#205A3E] text-white rounded-lg hover:bg-[#2d7a5a] transition-colors text-sm"
+                    >
+                      View Complete Schedule
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
