@@ -19,7 +19,7 @@ import { calculateAmortizationSchedule } from "@/utils/mortgageCalculator";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line, LineChart } from "recharts";
 
 export default function MortgagesPage() {
-  const { data: apiMortgages = [], isLoading: loading, error } = useMortgages();
+  const { data: apiMortgages = [], isLoading: apiLoading, error } = useMortgages();
   const properties = useProperties();
   
   // All state hooks must be called before any conditional logic
@@ -385,7 +385,7 @@ export default function MortgagesPage() {
   };
 
   // Handle loading and error states after all hooks are called
-  if (loading) {
+  if (!properties || properties.length === 0) {
     return (
         <Layout>
         <div className="flex items-center justify-center min-h-screen">
