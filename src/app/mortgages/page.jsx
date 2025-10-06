@@ -418,66 +418,71 @@ export default function MortgagesPage() {
       <Layout>
         <div className="space-y-6">
         {/* Header */}
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Mortgages</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Mortgages</h1>
               <p className="mt-2 text-gray-600 dark:text-gray-300">
               Manage and analyze your mortgage portfolio
               </p>
             </div>
-          <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <button
                 onClick={() => setShowBulkUpload(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base"
               >
                 <Upload className="w-4 h-4" />
-              Bulk Upload
+                <span className="hidden sm:inline">Bulk Upload</span>
+                <span className="sm:hidden">Upload</span>
               </button>
               <button
                 onClick={() => setShowForm(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#205A3E] text-white rounded-lg hover:bg-[#1a4a32] transition-colors"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-[#205A3E] text-white rounded-lg hover:bg-[#1a4a32] transition-colors text-sm sm:text-base"
               >
                 <Plus className="w-4 h-4" />
-                Add Mortgage
+                <span className="hidden sm:inline">Add Mortgage</span>
+                <span className="sm:hidden">Add</span>
               </button>
             </div>
           </div>
 
         {/* View Mode Selector */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setViewMode('card')}
-              className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+              className={`px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base ${
                 viewMode === 'card'
                   ? 'bg-[#205A3E] text-white'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               <Building2 className="w-4 h-4" />
-              Dashboard
+              <span className="hidden sm:inline">Dashboard</span>
+              <span className="sm:hidden">Cards</span>
             </button>
             <button
               onClick={() => setViewMode('analytics')}
-              className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+              className={`px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base ${
                 viewMode === 'analytics'
                   ? 'bg-[#205A3E] text-white'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               <PieChart className="w-4 h-4" />
-              Analytics
+              <span className="hidden sm:inline">Analytics</span>
+              <span className="sm:hidden">Charts</span>
             </button>
             <button
               onClick={() => setViewMode('comparison')}
-              className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+              className={`px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm sm:text-base ${
                 viewMode === 'comparison'
                   ? 'bg-[#205A3E] text-white'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               <TrendingUp className="w-4 h-4" />
-              Comparison
+              <span className="hidden sm:inline">Comparison</span>
+              <span className="sm:hidden">Compare</span>
             </button>
           </div>
         </div>
@@ -520,8 +525,8 @@ export default function MortgagesPage() {
         {viewMode === 'analytics' && (
           <div className="space-y-6">
             {/* Portfolio Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Total Original Amount</p>
@@ -533,7 +538,7 @@ export default function MortgagesPage() {
                 </div>
               </div>
               
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Current Balance</p>
@@ -545,7 +550,7 @@ export default function MortgagesPage() {
                 </div>
               </div>
               
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Monthly Payments</p>
@@ -557,7 +562,7 @@ export default function MortgagesPage() {
                 </div>
               </div>
               
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Average Rate</p>
@@ -572,7 +577,7 @@ export default function MortgagesPage() {
 
             {/* Distribution Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Rate Type Distribution</h3>
                 <div className="space-y-2">
                   {Object.entries(portfolioAnalytics.rateTypeDistribution).map(([type, count]) => (
@@ -584,7 +589,7 @@ export default function MortgagesPage() {
                 </div>
               </div>
               
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Term Distribution</h3>
                 <div className="space-y-2">
                   {Object.entries(portfolioAnalytics.termDistribution).map(([term, count]) => (
@@ -596,7 +601,7 @@ export default function MortgagesPage() {
                 </div>
               </div>
               
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Amortization Distribution</h3>
                 <div className="space-y-2">
                   {Object.entries(portfolioAnalytics.amortizationDistribution).map(([amort, count]) => (
@@ -614,7 +619,7 @@ export default function MortgagesPage() {
         {/* Comparison View */}
         {viewMode === 'comparison' && (
           <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Select Mortgages to Compare</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {mortgagesWithBalance.map(mortgage => (

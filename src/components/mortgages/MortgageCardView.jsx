@@ -120,12 +120,12 @@ const MortgageCardView = ({ mortgage }) => {
       </div>
 
       {/* Top Summary Banner - Green Background */}
-      <div className="bg-gradient-to-r from-[#205A3E] to-[#2d7a5a] text-white p-6 rounded-xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+      <div className="bg-gradient-to-r from-[#205A3E] to-[#2d7a5a] text-white p-4 sm:p-6 rounded-xl">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 items-center">
           
           {/* Left Section - Balance Overview with Donut Chart */}
-          <div className="flex items-center gap-6">
-            <div className="w-36 h-36 relative flex-shrink-0">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div className="w-24 h-24 sm:w-36 sm:h-36 relative flex-shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -157,19 +157,19 @@ const MortgageCardView = ({ mortgage }) => {
                 </div>
               </div>
             </div>
-              <div className="space-y-4 flex-1">
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full bg-gray-500 shadow-sm flex-shrink-0"></div>
+              <div className="space-y-3 sm:space-y-4 flex-1">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-gray-500 shadow-sm flex-shrink-0"></div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-medium text-white/80 uppercase tracking-wide">Current Balance</div>
-                  <div className="font-bold text-white text-sm mt-1">{formatCurrency(currentBalance)}</div>
+                  <div className="font-bold text-white text-xs sm:text-sm mt-1">{formatCurrency(currentBalance)}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full bg-white/20 shadow-sm flex-shrink-0"></div>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-white/20 shadow-sm flex-shrink-0"></div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-medium text-white/80 uppercase tracking-wide">Balance Paid</div>
-                  <div className="font-bold text-white text-sm mt-1">{formatCurrency(balancePaid)}</div>
+                  <div className="font-bold text-white text-xs sm:text-sm mt-1">{formatCurrency(balancePaid)}</div>
                 </div>
               </div>
             </div>
