@@ -310,22 +310,28 @@ if (typeof window !== 'undefined') {
       property.monthlyExpenses.mortgageInterest = mortgageInterest;
       property.monthlyExpenses.mortgagePrincipal = mortgagePrincipal;
       
-      // Recalculate total monthly expenses (handle different expense structures)
-      property.monthlyExpenses.total = 
+      // Calculate operating expenses (excluding mortgage payments)
+      const monthlyOperatingExpenses = 
         (property.monthlyExpenses.propertyTax || 0) +
         (property.monthlyExpenses.condoFees || 0) +
         (property.monthlyExpenses.insurance || 0) +
         (property.monthlyExpenses.maintenance || 0) +
         (property.monthlyExpenses.professionalFees || 0) +
-        (property.monthlyExpenses.utilities || 0) +
-        property.monthlyExpenses.mortgagePayment;
+        (property.monthlyExpenses.utilities || 0);
       
-      // Recalculate cash flow
+      // Calculate Net Operating Income (NOI) = Rent - Operating Expenses (excluding mortgage)
+      const monthlyNOI = property.rent.monthlyRent - monthlyOperatingExpenses;
+      const annualNOI = monthlyNOI * 12;
+      
+      // Recalculate total monthly expenses (including mortgage for cash flow calculation)
+      property.monthlyExpenses.total = monthlyOperatingExpenses + property.monthlyExpenses.mortgagePayment;
+      
+      // Recalculate cash flow (after debt service)
       property.monthlyCashFlow = property.rent.monthlyRent - property.monthlyExpenses.total;
       property.annualCashFlow = property.monthlyCashFlow * 12;
       
-      // Recalculate cap rate
-      property.capRate = (property.rent.annualRent / property.currentMarketValue) * 100;
+      // Recalculate cap rate using correct NOI
+      property.capRate = (annualNOI / property.currentMarketValue) * 100;
       
       // Recalculate cash-on-cash return
       property.cashOnCashReturn = (property.annualCashFlow / property.totalInvestment) * 100;
