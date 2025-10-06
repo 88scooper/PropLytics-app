@@ -101,7 +101,7 @@ function PropertyCard({ property }) {
       
       <div className="p-3 sm:p-4">
         <div className="mb-2">
-          <h3 className="font-semibold text-base sm:text-lg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+          <h3 className="font-semibold text-base sm:text-lg group-hover:text-[#205A3E] dark:group-hover:text-[#4ade80] transition-colors">
             {property.nickname || property.name}
           </h3>
         </div>

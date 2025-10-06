@@ -51,6 +51,7 @@ export default function PropertyDetailPage({ params }) {
   }, [property]);
 
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
+  const [expenseView, setExpenseView] = useState('monthly'); // 'monthly' or 'annual'
 
   if (!property) {
     return (
@@ -168,31 +169,59 @@ export default function PropertyDetailPage({ params }) {
 
               {/* Current Financials */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <h2 className="text-xl font-semibold mb-4">Current Financials</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">Current Financials</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">View:</span>
+                    <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                      <button
+                        onClick={() => setExpenseView('monthly')}
+                        className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                          expenseView === 'monthly'
+                            ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        Monthly
+                      </button>
+                      <button
+                        onClick={() => setExpenseView('annual')}
+                        className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                          expenseView === 'annual'
+                            ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        Annual
+                      </button>
+                    </div>
+                  </div>
+                </div>
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div>
-                    <h3 className="font-medium mb-3">Monthly Income</h3>
+                    <h3 className="font-medium mb-3">{expenseView === 'monthly' ? 'Monthly' : 'Annual'} Income</h3>
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">Rental Income</span>
                         <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                          {formatCurrency(property.rent.monthlyRent)}
+                          {formatCurrency(expenseView === 'monthly' ? property.rent.monthlyRent : property.rent.annualRent)}
                         </span>
                       </div>
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-medium mb-3">Monthly Expenses</h3>
+                    <h3 className="font-medium mb-3">{expenseView === 'monthly' ? 'Monthly' : 'Annual'} Expenses</h3>
                     <div className="space-y-2">
                       {Object.entries(property.monthlyExpenses).map(([key, value]) => {
                         if (key === 'total') return null;
+                        const displayValue = expenseView === 'annual' ? value * 12 : value;
                         return (
                           <div key={key} className="flex justify-between">
                             <span className="text-gray-600 dark:text-gray-400 capitalize">
                               {key.replace(/([A-Z])/g, ' $1').trim()}
                             </span>
                             <span className="font-medium text-red-600 dark:text-red-400">
-                              -{formatCurrency(value)}
+                              -{formatCurrency(displayValue)}
                             </span>
                           </div>
                         );
@@ -201,7 +230,7 @@ export default function PropertyDetailPage({ params }) {
                         <div className="flex justify-between font-semibold">
                           <span>Total Expenses</span>
                           <span className="text-red-600 dark:text-red-400">
-                            -{formatCurrency(property.monthlyExpenses.total)}
+                            -{formatCurrency(expenseView === 'annual' ? property.monthlyExpenses.total * 12 : property.monthlyExpenses.total)}
                           </span>
                         </div>
                       </div>
@@ -212,9 +241,9 @@ export default function PropertyDetailPage({ params }) {
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                        {formatCurrency(property.monthlyCashFlow)}
+                        {formatCurrency(expenseView === 'annual' ? property.annualCashFlow : property.monthlyCashFlow)}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Monthly Cash Flow</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">{expenseView === 'annual' ? 'Annual' : 'Monthly'} Cash Flow</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold">{formatPercentage(property.capRate)}</div>
