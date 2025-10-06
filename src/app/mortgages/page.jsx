@@ -13,14 +13,14 @@ import MortgageSummaryBanner from "@/components/mortgages/MortgageSummaryBanner"
 import MortgageDetailsPanel from "@/components/mortgages/MortgageDetailsPanel";
 import PaymentBreakdown from "@/components/mortgages/PaymentBreakdown";
 import MortgageCardView from "@/components/mortgages/MortgageCardView";
-import { useProperties } from "@/context/PropertyContext";
+import { useProperties, usePropertyContext } from "@/context/PropertyContext";
 import { formatCurrency, formatPercentage } from "@/utils/formatting";
 import { calculateAmortizationSchedule } from "@/utils/mortgageCalculator";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line, LineChart } from "recharts";
 
 export default function MortgagesPage() {
   const { data: apiMortgages = [], isLoading: apiLoading, error } = useMortgages();
-  const properties = useProperties();
+  const { properties, calculationsComplete } = usePropertyContext();
   
   // All state hooks must be called before any conditional logic
   const [showForm, setShowForm] = useState(false);
@@ -385,7 +385,7 @@ export default function MortgagesPage() {
   };
 
   // Handle loading and error states after all hooks are called
-  if (!properties || properties.length === 0) {
+  if (!calculationsComplete || !properties || properties.length === 0) {
     return (
         <Layout>
         <div className="flex items-center justify-center min-h-screen">
