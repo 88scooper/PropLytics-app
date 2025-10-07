@@ -13,6 +13,29 @@ try {
   getMonthlyMortgagePrincipal = () => 0;
 }
 
+// Import financial calculation utilities
+let calculateAnnualOperatingExpenses, calculateNOI, calculateCapRate, calculateMonthlyCashFlow, calculateAnnualCashFlow, calculateCashOnCashReturn, updatePropertyFinancialMetrics;
+
+try {
+  const financialUtils = require('@/utils/financialCalculations');
+  calculateAnnualOperatingExpenses = financialUtils.calculateAnnualOperatingExpenses;
+  calculateNOI = financialUtils.calculateNOI;
+  calculateCapRate = financialUtils.calculateCapRate;
+  calculateMonthlyCashFlow = financialUtils.calculateMonthlyCashFlow;
+  calculateAnnualCashFlow = financialUtils.calculateAnnualCashFlow;
+  calculateCashOnCashReturn = financialUtils.calculateCashOnCashReturn;
+  updatePropertyFinancialMetrics = financialUtils.updatePropertyFinancialMetrics;
+} catch (error) {
+  // Fallback functions for non-Next.js environments
+  calculateAnnualOperatingExpenses = () => 0;
+  calculateNOI = () => 0;
+  calculateCapRate = () => 0;
+  calculateMonthlyCashFlow = () => 0;
+  calculateAnnualCashFlow = () => 0;
+  calculateCashOnCashReturn = () => 0;
+  updatePropertyFinancialMetrics = (property) => property;
+}
+
 // Centralized property data source parsed from CSV files
 export const properties = [
   {
@@ -310,31 +333,25 @@ if (typeof window !== 'undefined') {
       property.monthlyExpenses.mortgageInterest = mortgageInterest;
       property.monthlyExpenses.mortgagePrincipal = mortgagePrincipal;
       
-      // Calculate operating expenses (excluding mortgage payments)
-      const monthlyOperatingExpenses = 
-        (property.monthlyExpenses.propertyTax || 0) +
-        (property.monthlyExpenses.condoFees || 0) +
-        (property.monthlyExpenses.insurance || 0) +
-        (property.monthlyExpenses.maintenance || 0) +
-        (property.monthlyExpenses.professionalFees || 0) +
-        (property.monthlyExpenses.utilities || 0);
+      // Use standardized financial calculations
+      const annualOperatingExpenses = calculateAnnualOperatingExpenses(property);
+      const noi = calculateNOI(property);
+      const capRate = calculateCapRate(property);
+      const monthlyCashFlow = calculateMonthlyCashFlow(property);
+      const annualCashFlow = calculateAnnualCashFlow(property);
+      const cashOnCashReturn = calculateCashOnCashReturn(property);
       
-      // Calculate Net Operating Income (NOI) = Rent - Operating Expenses (excluding mortgage)
-      const monthlyNOI = property.rent.monthlyRent - monthlyOperatingExpenses;
-      const annualNOI = monthlyNOI * 12;
+      // Update property with standardized calculations
+      property.annualOperatingExpenses = annualOperatingExpenses;
+      property.netOperatingIncome = noi;
+      property.capRate = capRate;
+      property.monthlyCashFlow = monthlyCashFlow;
+      property.annualCashFlow = annualCashFlow;
+      property.cashOnCashReturn = cashOnCashReturn;
       
       // Recalculate total monthly expenses (including mortgage for cash flow calculation)
+      const monthlyOperatingExpenses = annualOperatingExpenses / 12;
       property.monthlyExpenses.total = monthlyOperatingExpenses + property.monthlyExpenses.mortgagePayment;
-      
-      // Recalculate cash flow (after debt service)
-      property.monthlyCashFlow = property.rent.monthlyRent - property.monthlyExpenses.total;
-      property.annualCashFlow = property.monthlyCashFlow * 12;
-      
-      // Recalculate cap rate using correct NOI
-      property.capRate = (annualNOI / property.currentMarketValue) * 100;
-      
-      // Recalculate cash-on-cash return
-      property.cashOnCashReturn = (property.annualCashFlow / property.totalInvestment) * 100;
       
     } catch (error) {
       console.warn(`Error calculating mortgage payments for ${property.id}:`, error);
@@ -391,15 +408,9 @@ export const getPortfolioMetrics = () => {
   
   const totalEquity = totalValue - totalMortgageBalance;
   
-  // Calculate total annual operating expenses (excluding mortgage payments)
+  // Calculate total annual operating expenses (excluding mortgage payments) using standardized calculation
   const totalAnnualOperatingExpenses = properties.reduce((sum, property) => {
-    return sum + 
-      (property.monthlyExpenses.propertyTax || 0) * 12 +
-      (property.monthlyExpenses.condoFees || 0) * 12 +
-      (property.monthlyExpenses.insurance || 0) * 12 +
-      (property.monthlyExpenses.maintenance || 0) * 12 +
-      (property.monthlyExpenses.professionalFees || 0) * 12 +
-      (property.monthlyExpenses.utilities || 0) * 12;
+    return sum + calculateAnnualOperatingExpenses(property);
   }, 0);
   
   // Calculate Net Operating Income (NOI) = Total Annual Income - Total Annual Operating Expenses

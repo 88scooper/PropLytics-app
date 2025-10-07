@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useProperties } from '@/context/PropertyContext';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import { formatCurrency, formatPercentage } from '@/utils/formatting';
+import { calculateCapRate, calculateMonthlyCashFlow, calculateAnnualCashFlow, calculateCashOnCashReturn } from '@/utils/financialCalculations';
 
 export default function ExpenseChangeScenario({ propertyId, onClose }) {
   const properties = useProperties();
@@ -38,15 +40,24 @@ export default function ExpenseChangeScenario({ propertyId, onClose }) {
     const changeAmount = changeType === 'increase' ? expenseChange : -expenseChange;
     const newExpense = currentExpense + changeAmount;
     
+    // Create temporary property object with new expense for calculations
+    const tempProperty = {
+      ...selectedProperty,
+      monthlyExpenses: {
+        ...selectedProperty.monthlyExpenses,
+        [expenseType]: newExpense
+      }
+    };
+    
     const currentMonthlyCashFlow = selectedProperty.monthlyCashFlow;
-    const newMonthlyCashFlow = currentMonthlyCashFlow - changeAmount; // Expense increase reduces cash flow
-    const newAnnualCashFlow = newMonthlyCashFlow * 12;
+    const newMonthlyCashFlow = calculateMonthlyCashFlow(tempProperty);
+    const newAnnualCashFlow = calculateAnnualCashFlow(tempProperty);
     
     const currentCapRate = selectedProperty.capRate;
-    const newCapRate = (selectedProperty.monthlyRent * 12 / selectedProperty.marketValue) * 100;
+    const newCapRate = calculateCapRate(tempProperty);
     
     const currentCashOnCashReturn = selectedProperty.cashOnCashReturn;
-    const newCashOnCashReturn = (newAnnualCashFlow / selectedProperty.totalInvestment) * 100;
+    const newCashOnCashReturn = calculateCashOnCashReturn(tempProperty);
 
     setAnalysisResults({
       expenseType: expenseTypeData.label,
