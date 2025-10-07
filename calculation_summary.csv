@@ -1,0 +1,101 @@
+Page / Component,Metric,Calculation Logic,Data Dependencies
+Portfolio Summary,Total Estimated Portfolio Value,Sums the currentMarketValue for all properties in the portfolio,property.currentMarketValue
+Portfolio Summary,Total Estimated Equity,Calculates total portfolio value minus total mortgage debt (totalValue - totalMortgageBalance),property.currentMarketValue, property.mortgage.originalAmount
+Portfolio Summary,Total Mortgage Debt,Calculates current remaining balance for each property using amortization schedule (getCurrentMortgageBalance),property.mortgage.originalAmount, property.mortgage.startDate, property.mortgage.interestRate, property.mortgage.amortizationYears
+Portfolio Summary,Total Annual Income,Multiplies total monthly rent by 12 (totalMonthlyRent * 12),property.rent.monthlyRent
+Portfolio Summary,Total Monthly Expenses,Sums all monthly expenses for each property including mortgage payments,property.monthlyExpenses.total
+Portfolio Summary,Total Annual Deductible Expenses,Calculates annual operating expenses plus annual mortgage interest (excludes mortgage principal),property.monthlyExpenses.propertyTax, property.monthlyExpenses.condoFees, property.monthlyExpenses.insurance, property.monthlyExpenses.maintenance, property.monthlyExpenses.professionalFees, property.monthlyExpenses.utilities, property.mortgage.originalAmount, property.mortgage.interestRate
+Portfolio Summary,Monthly Net Cash Flow,Calculates total monthly rent minus total monthly expenses,property.rent.monthlyRent, property.monthlyExpenses.total
+Portfolio Summary,Total Annual Operating Expenses,Calculates annual operating expenses excluding mortgage payments (property tax, condo fees, insurance, maintenance, professional fees, utilities),property.monthlyExpenses.propertyTax, property.monthlyExpenses.condoFees, property.monthlyExpenses.insurance, property.monthlyExpenses.maintenance, property.monthlyExpenses.professionalFees, property.monthlyExpenses.utilities
+Portfolio Summary,Net Operating Income (NOI),Calculates total annual revenue minus total annual operating expenses (excludes debt service),property.rent.monthlyRent, property.monthlyExpenses.propertyTax, property.monthlyExpenses.condoFees, property.monthlyExpenses.insurance, property.monthlyExpenses.maintenance, property.monthlyExpenses.professionalFees, property.monthlyExpenses.utilities
+Portfolio Summary,Average Cap Rate,Calculates average of individual property cap rates (annualRent / currentMarketValue * 100),property.rent.annualRent, property.currentMarketValue
+Portfolio Summary,Cash on Cash Return,Calculates annual cash flow divided by total investment (totalAnnualCashFlow / totalInvestment * 100),property.annualCashFlow, property.totalInvestment
+Portfolio Summary,Total Properties,Counts the number of properties in the portfolio,properties.length
+Portfolio Summary,Average Occupancy Rate,Calculates average occupancy rate across all properties,property.occupancy
+Portfolio Summary,Total Investment,Sums purchase price plus closing costs plus renovation costs for all properties,property.purchasePrice, property.closingCosts, property.renovationCosts
+Property Level,Monthly Mortgage Payment,Calculates using standard amortization formula: principal * (rate * (1+rate)^n) / ((1+rate)^n - 1),property.mortgage.originalAmount, property.mortgage.interestRate, property.mortgage.amortizationYears
+Property Level,Monthly Mortgage Interest,Calculates interest portion of current payment (remainingBalance * monthlyRate),property.mortgage.originalAmount, property.mortgage.interestRate
+Property Level,Monthly Mortgage Principal,Calculates principal portion of current payment (totalPayment - interestPayment),property.mortgage.originalAmount, property.mortgage.interestRate
+Property Level,Current Mortgage Balance,Calculates remaining balance based on payments made to date using amortization schedule,property.mortgage.originalAmount, property.mortgage.startDate, property.mortgage.interestRate
+Property Level,Monthly Cash Flow,Calculates monthly rent minus total monthly expenses,property.rent.monthlyRent, property.monthlyExpenses.total
+Property Level,Annual Cash Flow,Multiplies monthly cash flow by 12,property.monthlyCashFlow
+Property Level,Cap Rate,Calculates annual rent divided by current market value (annualRent / currentMarketValue * 100),property.rent.annualRent, property.currentMarketValue
+Property Level,Cash on Cash Return,Calculates annual cash flow divided by total investment (annualCashFlow / totalInvestment * 100),property.annualCashFlow, property.totalInvestment
+Property Level,Total Investment,Calculates purchase price plus closing costs plus renovation costs,property.purchasePrice, property.closingCosts, property.renovationCosts
+Property Level,Appreciation,Calculates current market value minus purchase price,property.currentMarketValue, property.purchasePrice
+Mortgage Calculator,Monthly Payment,Standard amortization formula: principal * (monthlyRate * (1+monthlyRate)^n) / ((1+monthlyRate)^n - 1),purchasePrice, downPayment, interestRate, amortizationPeriod
+Mortgage Calculator,Total Interest,Calculates total payments minus principal amount,monthlyPayment, amortizationPeriod, principal
+Mortgage Calculator,Total Payment,Multiplies monthly payment by total number of payments,monthlyPayment, amortizationPeriod
+Mortgage Calculator,Principal Amount,Calculates purchase price minus down payment,purchasePrice, downPayment
+Mortgage Payment Calculator,Monthly Payment,Standard amortization formula with principal, rate, and years,price, downPayment, rate, years
+Mortgage Payment Calculator,Total Interest,Calculates total cost minus principal,totalCost, principal
+Mortgage Payment Calculator,Total Cost,Multiplies monthly payment by total number of payments,payment, years
+Mortgage Break Penalty Calculator,Three Months Interest,Calculates 3 months of interest on remaining balance (balance * rate * 3/12),balance, contractRate
+Mortgage Break Penalty Calculator,Interest Rate Differential (IRD),Calculates difference between contract rate and comparison rate over remaining term,balance, contractRate, comparisonRate, monthsRemaining
+Mortgage Break Penalty Calculator,Penalty Amount,Takes the higher of three months interest or IRD,threeMonthsInterest, ird
+Refinance Calculator,Current Payment,Calculates payment based on current balance and rate,currentBalance, currentRate, remainingYears
+Refinance Calculator,New Payment,Calculates payment based on new rate and remaining term,currentBalance, newRate, remainingYears
+Refinance Calculator,Monthly Savings,Calculates difference between current and new payment,currentPmt, newPmt
+Refinance Calculator,Break Even Months,Calculates months to recover refinancing costs (refiCost / monthlySavings),refiCost, monthlySavings
+Refinance Calculator,Interest Savings,Calculates total interest savings over remaining term,monthlySavings, remainingYears
+Sell Property Scenario,Gross Proceeds,Sale price of the property,salePrice
+Sell Property Scenario,Net Proceeds,Calculates gross proceeds minus selling costs and mortgage balance,salePrice, sellingCosts, currentMortgageBalance
+Sell Property Scenario,Capital Gain,Calculates sale price minus purchase price,salePrice, purchasePrice
+Sell Property Scenario,Total Gain,Calculates net proceeds minus initial investment,netProceeds, totalInvestment, currentMortgageBalance
+Sell Property Scenario,Total Return,Calculates return percentage (netProceeds / initialInvestment * 100),netProceeds, totalInvestment, currentMortgageBalance
+Sell Property Scenario,Annualized Return,Calculates compound annual growth rate based on years owned,netProceeds, totalInvestment, currentMortgageBalance, yearsOwned
+Sell Property Scenario,Keep Scenario Value,Calculates value of keeping property (equity + cash flow over time),totalInvestment, currentMortgageBalance, annualCashFlow, yearsToCompare
+Sell Property Scenario,Sell Scenario Value,Calculates value of selling and investing proceeds,netProceeds, yearsToCompare, assumedReturn
+Rent Change Scenario,New Monthly Cash Flow,Calculates current cash flow plus rent change amount,currentMonthlyCashFlow, changeAmount
+Rent Change Scenario,New Annual Cash Flow,Multiplies new monthly cash flow by 12,newMonthlyCashFlow
+Rent Change Scenario,New Cap Rate,Calculates new rent divided by market value (newRent * 12 / marketValue * 100),newRent, marketValue
+Rent Change Scenario,New Cash on Cash Return,Calculates new annual cash flow divided by total investment,newAnnualCashFlow, totalInvestment
+Rent Change Scenario,Monthly Impact,Shows the change in monthly cash flow,changeAmount
+Rent Change Scenario,Annual Impact,Shows the change in annual cash flow (changeAmount * 12),changeAmount
+Expense Change Scenario,New Monthly Cash Flow,Calculates current cash flow minus expense change (expense increase reduces cash flow),currentMonthlyCashFlow, changeAmount
+Expense Change Scenario,New Annual Cash Flow,Multiplies new monthly cash flow by 12,newMonthlyCashFlow
+Expense Change Scenario,New Cap Rate,Cap rate remains same as it's based on rent and market value,monthlyRent, marketValue
+Expense Change Scenario,New Cash on Cash Return,Calculates new annual cash flow divided by total investment,newAnnualCashFlow, totalInvestment
+Expense Change Scenario,Monthly Impact,Shows the negative impact on monthly cash flow,-changeAmount
+Expense Change Scenario,Annual Impact,Shows the negative impact on annual cash flow (-changeAmount * 12),changeAmount
+Unit Vacancy Scenario,Vacancy Monthly Cash Flow,Calculates negative cash flow during vacancy (0 rent - expenses),currentMonthlyExpenses
+Unit Vacancy Scenario,Total Vacancy Loss,Calculates lost rent during vacancy period,currentMonthlyRent, vacancyMonths
+Unit Vacancy Scenario,Total Expense During Vacancy,Calculates expenses that continue during vacancy,currentMonthlyExpenses, vacancyMonths
+Unit Vacancy Scenario,Net Vacancy Impact,Calculates total financial impact of vacancy period,totalVacancyLoss, totalExpenseDuringVacancy
+Unit Vacancy Scenario,Annual Cash Flow During Vacancy,Calculates cash flow for year with vacancy,currentMonthlyRent, vacancyMonths, currentMonthlyExpenses
+Unit Vacancy Scenario,New Cap Rate,Calculates cap rate based on reduced annual rent,annualRentDuringVacancy, marketValue
+Unit Vacancy Scenario,New Cash on Cash Return,Calculates return based on reduced annual cash flow,annualCashFlowDuringVacancy, totalInvestment
+Lump Sum Payment Scenario,New Mortgage Balance,Calculates current balance minus lump sum payment,currentBalance, lumpSumAmount
+Lump Sum Payment Scenario,New Monthly Payment,Calculates payment based on reduced balance and remaining term,newBalance, interestRate, remainingTerm
+Lump Sum Payment Scenario,Monthly Savings,Calculates difference between current and new payment,currentPayment, newPayment
+Lump Sum Payment Scenario,Interest Savings,Calculates total interest saved over remaining term,monthlySavings, remainingTerm
+Lump Sum Payment Scenario,Payoff Time Reduction,Calculates months saved by making lump sum payment,originalPayoffTime, newPayoffTime
+Mortgage Renewal Scenario,New Monthly Payment,Calculates payment based on new rate and remaining balance,currentBalance, newRate, remainingTerm
+Mortgage Renewal Scenario,Payment Change,Calculates difference between current and new payment,currentPayment, newPayment
+Mortgage Renewal Scenario,Interest Rate Impact,Shows the impact of rate change on monthly payment,currentRate, newRate, currentBalance
+Mortgage Renewal Scenario,Total Interest Over Term,Calculates total interest paid over renewal term,newPayment, renewalTerm
+Refinance Mortgage Scenario,New Monthly Payment,Calculates payment based on new loan terms,newLoanAmount, newRate, newTerm
+Refinance Mortgage Scenario,Monthly Savings,Calculates difference between current and new payment,currentPayment, newPayment
+Refinance Mortgage Scenario,Refinancing Costs,Includes closing costs and fees for new mortgage,refinancingCosts
+Refinance Mortgage Scenario,Break Even Period,Calculates time to recover refinancing costs,refinancingCosts, monthlySavings
+Refinance Mortgage Scenario,Total Interest Savings,Calculates interest saved over remaining term,monthlySavings, remainingTerm
+Mortgage Utility Functions,Payment Amount,Standard amortization formula based on frequency,principal, annualRate, amortizationYears, paymentFrequency
+Mortgage Utility Functions,Total Payments,Calculates total number of payments based on frequency,amortizationYears, paymentFrequency
+Mortgage Utility Functions,Periodic Rate,Calculates interest rate per payment period,annualRate, paymentFrequency
+Mortgage Utility Functions,Payment Interval Days,Returns days between payments based on frequency,paymentFrequency
+Mortgage Utility Functions,Amortization Schedule,Generates complete payment schedule with principal and interest breakdowns,principal, annualRate, amortizationYears, paymentFrequency, startDate
+Mortgage Utility Functions,Current Payment Breakdown,Returns principal and interest for current payment period,mortgage.originalAmount, mortgage.interestRate, mortgage.startDate
+Mortgage Utility Functions,Monthly Equivalent Payment,Converts bi-weekly or weekly payments to monthly equivalent,paymentAmount, paymentFrequency
+Mortgage Utility Functions,Monthly Interest Equivalent,Converts interest payment to monthly equivalent,currentPayment.interest, paymentFrequency
+Mortgage Utility Functions,Monthly Principal Equivalent,Converts principal payment to monthly equivalent,currentPayment.principal, paymentFrequency
+Mortgage Utility Functions,Current Balance,Calculates remaining balance based on payments made to date,mortgage.originalAmount, mortgage.startDate, mortgage.interestRate
+Mortgage Utility Functions,Annual Mortgage Interest,Calculates total interest paid over next 12 months using amortization schedule,mortgage.originalAmount, mortgage.interestRate, mortgage.startDate, mortgage.amortizationYears
+Property Context,Monthly Expenses Total,Calculates sum of all monthly expenses including mortgage,propertyTax, condoFees, insurance, maintenance, professionalFees, utilities, mortgagePayment
+Property Context,Annual Deductible Expenses,Calculates annual operating expenses plus annual mortgage interest (excludes principal),propertyTax, condoFees, insurance, maintenance, professionalFees, utilities, mortgage.originalAmount, mortgage.interestRate
+Property Context,Monthly Cash Flow,Calculates rent minus total monthly expenses,monthlyRent, monthlyExpenses.total
+Property Context,Annual Cash Flow,Multiplies monthly cash flow by 12,monthlyCashFlow
+Property Context,Cap Rate,Calculates annual rent divided by market value,annualRent, currentMarketValue
+Property Context,Cash on Cash Return,Calculates annual cash flow divided by total investment,annualCashFlow, totalInvestment
+Property Context,Estimated Mortgage Payment,Calculates estimated payment using simplified formula,originalAmount, interestRate, amortizationYears
+Property Context,Estimated Mortgage Interest,Calculates estimated monthly interest,originalAmount, interestRate
+Property Context,Estimated Mortgage Principal,Calculates estimated monthly principal,originalAmount, amortizationYears
