@@ -144,7 +144,7 @@ function MobileMortgageCalculator() {
     // Draw center circle for donut effect
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius * 0.5, 0, 2 * Math.PI);
-    ctx.fillStyle = '#1F2937';
+    ctx.fillStyle = '#F4D03F';
     ctx.fill();
   };
 

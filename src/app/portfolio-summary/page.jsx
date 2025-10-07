@@ -574,8 +574,12 @@ export default function PortfolioSummaryPage() {
                 {properties.map((property) => (
                   <div key={property.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-gray-100">{property.nickname}</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{property.address}</p>
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                        {property.id === 'richmond-st-e-403' ? '403-311 Richmond St E' :
+                         property.id === 'tretti-way-317' ? '317-30 Tretti Way' :
+                         property.id === 'wilson-ave-415' ? '415 500 Wilson Ave' :
+                         property.nickname}
+                      </h4>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-900 dark:text-gray-100">
@@ -703,8 +707,12 @@ export default function PortfolioSummaryPage() {
                     return (
                       <div key={property.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                         <div>
-                          <h4 className="font-medium text-gray-900 dark:text-gray-100">{property.nickname}</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{property.address}</p>
+                          <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                            {property.id === 'richmond-st-e-403' ? '403-311 Richmond St E' :
+                             property.id === 'tretti-way-317' ? '317-30 Tretti Way' :
+                             property.id === 'wilson-ave-415' ? '415 500 Wilson Ave' :
+                             property.nickname}
+                          </h4>
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-gray-900 dark:text-gray-100">

@@ -152,7 +152,7 @@ function MortgageCalculator() {
     const isDark = document.documentElement.classList.contains('dark');
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius * 0.5, 0, 2 * Math.PI);
-    ctx.fillStyle = isDark ? '#1f2937' : '#ffffff';
+    ctx.fillStyle = isDark ? '#1f2937' : '#F4D03F';
     ctx.fill();
   };
 
