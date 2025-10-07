@@ -1,0 +1,80 @@
+"use client";
+
+import { useProperty } from "@/context/PropertyContext";
+import { getCurrentMortgageBalance } from "@/utils/mortgageCalculator";
+import { CreditCard, TrendingUp, Calendar, DollarSign } from "lucide-react";
+import { formatCurrency, formatPercentage } from "@/utils/formatting";
+
+export default function PropertyMortgageSummary({ propertyId, className = "" }) {
+  const property = useProperty(propertyId);
+
+  if (!property || !property.mortgage) {
+    return (
+      <div className={`text-sm text-gray-500 ${className}`}>
+        No mortgage data available
+      </div>
+    );
+  }
+
+  // Calculate summary statistics using the property's mortgage data
+  let currentBalance;
+  try {
+    currentBalance = getCurrentMortgageBalance(property.mortgage);
+  } catch (error) {
+    console.warn(`Error calculating mortgage balance for ${propertyId}:`, error);
+    currentBalance = property.mortgage.originalAmount; // Fallback to original amount
+  }
+  
+  // Ensure currentBalance is a valid number
+  if (typeof currentBalance !== 'number' || isNaN(currentBalance)) {
+    currentBalance = property.mortgage.originalAmount || 0;
+  }
+  
+  const monthlyPayment = property.monthlyExpenses?.mortgagePayment || 0;
+  const interestRate = (property.mortgage.interestRate || 0) * 100; // Convert to percentage
+
+  return (
+    <div className={`space-y-2 ${className}`}>
+      {/* Mortgage Info */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CreditCard className="w-4 h-4 text-gray-600" />
+          <span className="text-sm font-medium text-gray-900">
+            {property.mortgage.lender}
+          </span>
+        </div>
+        <span className="text-sm text-gray-600">
+          {formatCurrency(currentBalance)}
+        </span>
+      </div>
+
+      {/* Rate and Payment Info */}
+      <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+        <div className="flex items-center gap-1">
+          <TrendingUp className="w-3 h-3" />
+          <span>{formatPercentage(interestRate)}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Calendar className="w-3 h-3" />
+          <span>{property.mortgage.paymentFrequency.toLowerCase()}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Helper function to get payments per year based on frequency
+function getPaymentsPerYear(frequency) {
+  switch (frequency) {
+    case 'MONTHLY':
+      return 12;
+    case 'BIWEEKLY':
+      return 26;
+    case 'WEEKLY':
+      return 52;
+    default:
+      return 12;
+  }
+}
+
+
