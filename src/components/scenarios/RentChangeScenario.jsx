@@ -5,6 +5,7 @@ import { useProperties } from '@/context/PropertyContext';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { formatCurrency, formatPercentage } from '@/utils/formatting';
+import { calculateCapRate, calculateMonthlyCashFlow, calculateAnnualCashFlow, calculateCashOnCashReturn } from '@/utils/financialCalculations';
 
 export default function RentChangeScenario({ propertyId, onClose }) {
   const properties = useProperties();
@@ -25,19 +26,28 @@ export default function RentChangeScenario({ propertyId, onClose }) {
   const calculateRentChangeImpact = () => {
     if (!selectedProperty) return;
 
-    const currentRent = selectedProperty.monthlyRent;
+    const currentRent = selectedProperty.rent.monthlyRent;
     const changeAmount = changeType === 'increase' ? rentChange : -rentChange;
     const newRent = currentRent + changeAmount;
     
+    // Create temporary property object with new rent for calculations
+    const tempProperty = {
+      ...selectedProperty,
+      rent: {
+        ...selectedProperty.rent,
+        monthlyRent: newRent
+      }
+    };
+    
     const currentMonthlyCashFlow = selectedProperty.monthlyCashFlow;
-    const newMonthlyCashFlow = currentMonthlyCashFlow + changeAmount;
-    const newAnnualCashFlow = newMonthlyCashFlow * 12;
+    const newMonthlyCashFlow = calculateMonthlyCashFlow(tempProperty);
+    const newAnnualCashFlow = calculateAnnualCashFlow(tempProperty);
     
     const currentCapRate = selectedProperty.capRate;
-    const newCapRate = (newRent * 12 / selectedProperty.marketValue) * 100;
+    const newCapRate = calculateCapRate(tempProperty);
     
     const currentCashOnCashReturn = selectedProperty.cashOnCashReturn;
-    const newCashOnCashReturn = (newAnnualCashFlow / selectedProperty.totalInvestment) * 100;
+    const newCashOnCashReturn = calculateCashOnCashReturn(tempProperty);
 
     setAnalysisResults({
       currentRent,

@@ -1,6 +1,14 @@
 import { useEffect } from 'react';
 import { properties } from '@/data/properties';
 import { getMonthlyMortgagePayment, getMonthlyMortgageInterest, getMonthlyMortgagePrincipal } from '@/utils/mortgageCalculator';
+import { 
+  calculateAnnualOperatingExpenses, 
+  calculateNOI, 
+  calculateCapRate, 
+  calculateMonthlyCashFlow, 
+  calculateAnnualCashFlow, 
+  calculateCashOnCashReturn 
+} from '@/utils/financialCalculations';
 
 export function usePropertyCalculations() {
   useEffect(() => {
@@ -17,31 +25,25 @@ export function usePropertyCalculations() {
         property.monthlyExpenses.mortgageInterest = mortgageInterest;
         property.monthlyExpenses.mortgagePrincipal = mortgagePrincipal;
         
-        // Calculate operating expenses (excluding mortgage payments)
-        const monthlyOperatingExpenses = 
-          (property.monthlyExpenses.propertyTax || 0) +
-          (property.monthlyExpenses.condoFees || 0) +
-          (property.monthlyExpenses.insurance || 0) +
-          (property.monthlyExpenses.maintenance || 0) +
-          (property.monthlyExpenses.professionalFees || 0) +
-          (property.monthlyExpenses.utilities || 0);
+        // Use standardized financial calculations
+        const annualOperatingExpenses = calculateAnnualOperatingExpenses(property);
+        const noi = calculateNOI(property);
+        const capRate = calculateCapRate(property);
+        const monthlyCashFlow = calculateMonthlyCashFlow(property);
+        const annualCashFlow = calculateAnnualCashFlow(property);
+        const cashOnCashReturn = calculateCashOnCashReturn(property);
         
-        // Calculate Net Operating Income (NOI) = Rent - Operating Expenses (excluding mortgage)
-        const monthlyNOI = property.rent.monthlyRent - monthlyOperatingExpenses;
-        const annualNOI = monthlyNOI * 12;
+        // Update property with standardized calculations
+        property.annualOperatingExpenses = annualOperatingExpenses;
+        property.netOperatingIncome = noi;
+        property.capRate = capRate;
+        property.monthlyCashFlow = monthlyCashFlow;
+        property.annualCashFlow = annualCashFlow;
+        property.cashOnCashReturn = cashOnCashReturn;
         
         // Recalculate total monthly expenses (including mortgage for cash flow calculation)
+        const monthlyOperatingExpenses = annualOperatingExpenses / 12;
         property.monthlyExpenses.total = monthlyOperatingExpenses + property.monthlyExpenses.mortgagePayment;
-        
-        // Recalculate cash flow (after debt service)
-        property.monthlyCashFlow = property.rent.monthlyRent - property.monthlyExpenses.total;
-        property.annualCashFlow = property.monthlyCashFlow * 12;
-        
-        // Recalculate cap rate using correct NOI
-        property.capRate = (annualNOI / property.currentMarketValue) * 100;
-        
-        // Recalculate cash-on-cash return
-        property.cashOnCashReturn = (property.annualCashFlow / property.totalInvestment) * 100;
         
       } catch (error) {
         console.warn(`Error calculating mortgage payments for ${property.id}:`, error);
