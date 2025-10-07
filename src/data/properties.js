@@ -125,7 +125,7 @@ export const properties = [
     mortgage: {
       lender: 'RBC', // Current lender from CSV
       originalAmount: 358000, // Current mortgage amount from CSV
-      interestRate: -0.0075, // -0.75% as decimal (variable rate)
+      interestRate: 0.0445, // 4.45% as decimal (Prime 5.20% - 0.75% discount)
       rateType: 'Variable',
       termMonths: 60,
       amortizationYears: 30.08, // 361 months / 12

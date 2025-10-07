@@ -68,15 +68,24 @@ function getTotalPayments(amortizationYears: number, paymentFrequency: string): 
  * Get periodic interest rate based on payment frequency
  */
 function getPeriodicRate(annualRate: number, paymentFrequency: string): number {
+  // Canadian mortgage calculation uses semi-annual compounding
+  // Step 1: Calculate effective semi-annual rate
+  const semiAnnualRate = annualRate / 2;
+  
+  // Step 2: Convert to equivalent periodic rate using Canadian method
+  // For monthly: r = (1 + semiAnnualRate)^(1/6) - 1
+  // For bi-weekly: r = (1 + semiAnnualRate)^(1/13) - 1  
+  // For weekly: r = (1 + semiAnnualRate)^(1/26) - 1
+  
   switch (paymentFrequency.toLowerCase()) {
     case 'monthly':
-      return annualRate / 12;
+      return Math.pow(1 + semiAnnualRate, 1/6) - 1;
     case 'bi-weekly':
-      return annualRate / 26;
+      return Math.pow(1 + semiAnnualRate, 1/13) - 1;
     case 'weekly':
-      return annualRate / 52;
+      return Math.pow(1 + semiAnnualRate, 1/26) - 1;
     default:
-      return annualRate / 12; // Default to monthly
+      return Math.pow(1 + semiAnnualRate, 1/6) - 1; // Default to monthly
   }
 }
 

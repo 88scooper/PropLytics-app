@@ -33,9 +33,10 @@ const MortgageCardView = ({ mortgage }) => {
       const termRemainingYears = Math.floor(termRemainingMs / (365.25 * 24 * 60 * 60 * 1000));
       const termRemainingMonths = Math.floor((termRemainingMs % (365.25 * 24 * 60 * 60 * 1000)) / (30.44 * 24 * 60 * 60 * 1000));
       
-      // Calculate next payment date based on payment frequency
+      // Calculate next payment date based on payment frequency and amortization schedule
       const nextPaymentDate = new Date(now);
       const paymentFreq = (mortgageObj.paymentFrequency || mortgage.paymentFrequency || '').toUpperCase();
+      
       if (paymentFreq === 'BIWEEKLY' || paymentFreq === 'BI-WEEKLY') {
         // For bi-weekly, assume payments every 14 days from start date
         const daysSinceStart = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
@@ -43,13 +44,17 @@ const MortgageCardView = ({ mortgage }) => {
         const nextPaymentDay = (paymentsMade + 1) * 14;
         nextPaymentDate.setTime(startDate.getTime() + (nextPaymentDay * 24 * 60 * 60 * 1000));
       } else if (paymentFreq === 'MONTHLY') {
-        // For monthly, assume payments on the same day each month
-        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
-        nextPaymentDate.setDate(startDate.getDate());
+        // For monthly, calculate based on 30-day intervals from start date (matching amortization schedule)
+        const daysSinceStart = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+        const paymentsMade = Math.floor(daysSinceStart / 30);
+        const nextPaymentDay = (paymentsMade + 1) * 30;
+        nextPaymentDate.setTime(startDate.getTime() + (nextPaymentDay * 24 * 60 * 60 * 1000));
       } else {
-        // Default to monthly
-        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
-        nextPaymentDate.setDate(startDate.getDate());
+        // Default to monthly with 30-day intervals
+        const daysSinceStart = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+        const paymentsMade = Math.floor(daysSinceStart / 30);
+        const nextPaymentDay = (paymentsMade + 1) * 30;
+        nextPaymentDate.setTime(startDate.getTime() + (nextPaymentDay * 24 * 60 * 60 * 1000));
       }
       
       const daysUntilPayment = Math.ceil((nextPaymentDate - now) / (1000 * 60 * 60 * 24));
@@ -95,7 +100,7 @@ const MortgageCardView = ({ mortgage }) => {
   // Donut chart data for balance - using improved color scheme
   const balanceChartData = [
     { name: 'Current Balance', value: currentBalance, color: '#6B7280' },
-    { name: 'Balance Paid', value: balancePaid, color: '#F3F4F6' }
+    { name: 'Balance Paid', value: balancePaid, color: '#FFFFFF' }
   ];
 
   // Donut chart data for payment breakdown - using improved color scheme
@@ -125,15 +130,15 @@ const MortgageCardView = ({ mortgage }) => {
           
           {/* Left Section - Balance Overview with Donut Chart */}
           <div className="flex items-center gap-4 sm:gap-6">
-            <div className="w-24 h-24 sm:w-36 sm:h-36 relative flex-shrink-0">
+            <div className="w-36 h-36 sm:w-52 sm:h-52 relative flex-shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={balanceChartData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={35}
-                    outerRadius={55}
+                    innerRadius={50}
+                    outerRadius={75}
                     dataKey="value"
                     startAngle={90}
                     endAngle={450}
@@ -151,7 +156,7 @@ const MortgageCardView = ({ mortgage }) => {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
+                <div className="text-center px-2">
                   <div className="text-xs font-medium text-white/90">Starting Balance</div>
                   <div className="text-sm font-bold text-white">{formatCurrency(startingBalance)}</div>
                 </div>
@@ -166,7 +171,7 @@ const MortgageCardView = ({ mortgage }) => {
                 </div>
               </div>
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-white/20 shadow-sm flex-shrink-0"></div>
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-white shadow-sm flex-shrink-0"></div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-medium text-white/80 uppercase tracking-wide">Balance Paid</div>
                   <div className="font-bold text-white text-xs sm:text-sm mt-1">{formatCurrency(balancePaid)}</div>
@@ -175,10 +180,10 @@ const MortgageCardView = ({ mortgage }) => {
             </div>
           </div>
 
-          {/* Middle Section - Next Payment Date with Progress Bar */}
+          {/* Middle Section - Next Payment with Amount */}
           <div className="space-y-4 text-center">
             <div>
-              <div className="text-xs font-medium text-white/80 uppercase tracking-wide mb-2">Next Payment Date</div>
+              <div className="text-xs font-medium text-white/80 uppercase tracking-wide mb-2">Next Payment</div>
               <div className="text-xl font-bold text-white mb-1">
                 {mortgageData.nextPaymentDate.toLocaleDateString('en-US', { 
                   weekday: 'short', 
@@ -187,28 +192,44 @@ const MortgageCardView = ({ mortgage }) => {
                   year: 'numeric'
                 })}
               </div>
-              <div className="text-sm font-medium text-white/90">{mortgageData.daysUntilPayment} days remaining</div>
+              <div className="text-sm font-medium text-white/90 mb-2">{mortgageData.daysUntilPayment} days remaining</div>
+              <div className="text-lg font-bold text-white">
+                {formatCurrency(mortgageData.monthlyPayment)}
+              </div>
             </div>
           </div>
 
-          {/* Right Section - Total Payment Breakdown */}
+          {/* Right Section - Payment Breakdown */}
           <div className="space-y-4">
             <div className="text-left">
-              <div className="text-xs font-medium text-white/80 uppercase tracking-wide mb-2">Total Payment</div>
-              <div className="text-xl font-bold text-white">{formatCurrency(monthlyPayment)}</div>
+              <div className="text-xs font-medium text-white/80 uppercase tracking-wide mb-2">
+                Total Monthly Payment
+              </div>
+              <div className="text-xl font-bold text-white">
+                {mortgageObj.paymentFrequency === 'Bi-weekly' ? formatCurrency(monthlyPayment * 26 / 12) : formatCurrency(monthlyPayment)}
+              </div>
+              {mortgageObj.paymentFrequency === 'Bi-weekly' && (
+                <div className="text-xs font-medium text-white/70 mt-1">
+                  Bi-weekly
+                </div>
+              )}
             </div>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-[#205A3E] flex-shrink-0"></div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-medium text-white/80 uppercase tracking-wide">Principal</div>
+                  <div className="text-xs font-medium text-white/80 uppercase tracking-wide">
+                    {mortgageObj.paymentFrequency === 'Bi-weekly' ? 'Principal (bi-weekly)' : 'Principal'}
+                  </div>
                   <div className="font-bold text-white text-sm">{formatCurrency(principalAmount)}</div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-white/20 flex-shrink-0"></div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-medium text-white/80 uppercase tracking-wide">Interest</div>
+                  <div className="text-xs font-medium text-white/80 uppercase tracking-wide">
+                    {mortgageObj.paymentFrequency === 'Bi-weekly' ? 'Interest (bi-weekly)' : 'Interest'}
+                  </div>
                   <div className="font-bold text-white text-sm">{formatCurrency(interestAmount)}</div>
                 </div>
               </div>
@@ -306,12 +327,20 @@ const MortgageCardView = ({ mortgage }) => {
 
                 {/* Payment Components */}
                 <div className="space-y-4">
-                  <h5 className="text-sm font-semibold text-gray-900 dark:text-white">Payment Components</h5>
+                  <h5 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {mortgageObj.paymentFrequency === 'Bi-weekly' ? 'Bi-weekly Payment Components' : 'Monthly Payment Components'}
+                  </h5>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center py-2">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Principal and Interest</span>
                       <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(monthlyPayment)}</span>
                     </div>
+                    {mortgageObj.paymentFrequency === 'Bi-weekly' && (
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Monthly Equivalent</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(monthlyPayment * 26 / 12)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center py-2">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Property Tax</span>
                       <span className="font-semibold text-gray-900 dark:text-white">-</span>
