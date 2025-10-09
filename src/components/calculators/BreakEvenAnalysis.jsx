@@ -78,9 +78,40 @@ const BreakEvenAnalysis = ({ property }) => {
 
   // Determine risk level based on safety margin
   const getRiskLevel = () => {
-    if (safetyMargin > 20) return { level: 'Low Risk', color: 'emerald', icon: TrendingUp };
-    if (safetyMargin > 10) return { level: 'Moderate Risk', color: 'yellow', icon: AlertCircle };
-    return { level: 'High Risk', color: 'red', icon: TrendingDown };
+    if (safetyMargin > 20) {
+      return {
+        level: 'Low Risk',
+        bgClass: 'bg-green-50 dark:bg-green-900/20',
+        borderClass: 'border-green-200 dark:border-green-800',
+        textClass: 'text-green-900 dark:text-green-300',
+        labelClass: 'text-green-700 dark:text-green-400',
+        iconBgClass: 'bg-green-100 dark:bg-green-900',
+        iconClass: 'text-green-600 dark:text-green-400',
+        icon: TrendingUp
+      };
+    }
+    if (safetyMargin > 10) {
+      return {
+        level: 'Moderate Risk',
+        bgClass: 'bg-yellow-50 dark:bg-yellow-900/20',
+        borderClass: 'border-yellow-200 dark:border-yellow-800',
+        textClass: 'text-yellow-900 dark:text-yellow-300',
+        labelClass: 'text-yellow-700 dark:text-yellow-400',
+        iconBgClass: 'bg-yellow-100 dark:bg-yellow-900',
+        iconClass: 'text-yellow-600 dark:text-yellow-400',
+        icon: AlertCircle
+      };
+    }
+    return {
+      level: 'High Risk',
+      bgClass: 'bg-red-50 dark:bg-red-900/20',
+      borderClass: 'border-red-200 dark:border-red-800',
+      textClass: 'text-red-900 dark:text-red-300',
+      labelClass: 'text-red-700 dark:text-red-400',
+      iconBgClass: 'bg-red-100 dark:bg-red-900',
+      iconClass: 'text-red-600 dark:text-red-400',
+      icon: TrendingDown
+    };
   };
 
   const riskInfo = getRiskLevel();
@@ -96,13 +127,18 @@ const BreakEvenAnalysis = ({ property }) => {
       </p>
 
       {/* Main Metric Card */}
-      <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10 rounded-lg p-6 mb-6">
-        <div className="text-sm font-medium text-blue-700 dark:text-blue-400 uppercase tracking-wider mb-2">
-          Cash Flow Break-Even Vacancy Rate
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-6">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+            <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300">
+            Cash Flow Break-Even Vacancy Rate
+          </h3>
         </div>
-        <div className="text-4xl font-bold text-blue-900 dark:text-blue-300 mb-2">
+        <p className="text-4xl font-bold text-blue-900 dark:text-blue-300 mb-2">
           {formatPercentage(breakEvenVacancyRate)}
-        </div>
+        </p>
         <p className="text-sm text-blue-700 dark:text-blue-400">
           Your property would break even on cash flow if vacant {breakEvenVacancyRate.toFixed(1)}% of the time
         </p>
@@ -110,45 +146,49 @@ const BreakEvenAnalysis = ({ property }) => {
 
       {/* Comparison Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-            Current Vacancy Assumption
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+              <AlertCircle className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Current Vacancy</h3>
           </div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+          <p className="text-3xl font-bold text-gray-900 dark:text-white">
             {formatPercentage(currentVacancyRate)}
-          </div>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Your assumed vacancy rate
           </p>
         </div>
 
-        <div className={`bg-${riskInfo.color}-50 dark:bg-${riskInfo.color}-900/20 rounded-lg p-4`}>
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-            Safety Margin
+        <div className={`${riskInfo.bgClass} border ${riskInfo.borderClass} rounded-lg p-6`}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className={`p-2 ${riskInfo.iconBgClass} rounded-lg`}>
+              <RiskIcon className={`w-5 h-5 ${riskInfo.iconClass}`} />
+            </div>
+            <h3 className={`text-lg font-semibold ${riskInfo.textClass}`}>Safety Margin</h3>
           </div>
-          <div className={`text-2xl font-bold text-${riskInfo.color}-900 dark:text-${riskInfo.color}-300 flex items-center gap-2`}>
-            <RiskIcon className="w-6 h-6" />
+          <p className={`text-3xl font-bold ${riskInfo.textClass}`}>
             {formatPercentage(Math.abs(safetyMargin))}
-          </div>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+          </p>
+          <p className={`text-sm ${riskInfo.labelClass}`}>
             {safetyMargin > 0 ? 'Cushion before break-even' : 'Currently below break-even'}
           </p>
         </div>
       </div>
 
       {/* Risk Assessment */}
-      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-          <AlertCircle className="w-5 h-5" />
+      <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
           Risk Assessment: {riskInfo.level}
         </h3>
-        <div className="space-y-2 text-sm">
+        <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
           {safetyMargin > 20 && (
             <>
-              <p className="text-emerald-700 dark:text-emerald-400">
+              <p className={riskInfo.labelClass}>
                 ✓ <strong>Excellent safety margin.</strong> Your property can sustain significant vacancy periods while maintaining positive cash flow.
               </p>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p>
                 • Even with {formatPercentage(breakEvenVacancyRate)} vacancy, you would still break even on operating costs.
               </p>
             </>
@@ -156,10 +196,10 @@ const BreakEvenAnalysis = ({ property }) => {
           
           {safetyMargin > 10 && safetyMargin <= 20 && (
             <>
-              <p className="text-yellow-700 dark:text-yellow-400">
+              <p className={riskInfo.labelClass}>
                 ⚠ <strong>Moderate risk level.</strong> Your property has a reasonable buffer, but extended vacancies could impact cash flow.
               </p>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p>
                 • Consider maintaining an emergency fund to cover {formatPercentage(Math.abs(safetyMargin))} additional vacancy.
               </p>
             </>
@@ -167,13 +207,13 @@ const BreakEvenAnalysis = ({ property }) => {
           
           {safetyMargin <= 10 && (
             <>
-              <p className="text-red-700 dark:text-red-400">
+              <p className={riskInfo.labelClass}>
                 ⚠ <strong>High risk level.</strong> Your property has limited cushion for vacancy periods. Even small disruptions could result in negative cash flow.
               </p>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p>
                 • Consider strategies to reduce expenses or increase rental income to improve your safety margin.
               </p>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p>
                 • Maintain a robust emergency fund to cover potential vacancy periods.
               </p>
             </>
@@ -184,22 +224,31 @@ const BreakEvenAnalysis = ({ property }) => {
       {/* Additional Context */}
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         <details className="text-sm">
-          <summary className="font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:text-gray-900 dark:hover:text-white">
+          <summary className="font-medium text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400">
             How is this calculated?
           </summary>
-          <div className="mt-3 space-y-2 text-gray-600 dark:text-gray-400">
+          <div className="mt-3 space-y-3 text-gray-600 dark:text-gray-400">
             <p>
               The <strong>Cash Flow Break-Even Vacancy Rate</strong> is calculated as:
             </p>
-            <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded font-mono text-xs">
+            <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700 font-mono text-xs">
               (Total Annual Operating Expenses + Total Annual Debt Service) / Potential Gross Income
             </div>
-            <p className="mt-2">Where:</p>
-            <ul className="list-disc list-inside space-y-1 ml-2">
-              <li><strong>Potential Gross Income:</strong> Maximum possible annual rent (${(breakEvenMetrics.potentialGrossIncome).toLocaleString()})</li>
-              <li><strong>Operating Expenses:</strong> Annual costs excluding mortgage (${(breakEvenMetrics.annualOperatingExpenses).toLocaleString()})</li>
-              <li><strong>Debt Service:</strong> Annual mortgage payments (${(breakEvenMetrics.annualDebtService).toLocaleString()})</li>
-            </ul>
+            <p className="font-medium text-gray-900 dark:text-white">Where:</p>
+            <div className="space-y-2 ml-2">
+              <div className="flex justify-between items-center">
+                <span><strong>Potential Gross Income:</strong></span>
+                <span className="font-semibold">${(breakEvenMetrics.potentialGrossIncome).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span><strong>Operating Expenses:</strong></span>
+                <span className="font-semibold">${(breakEvenMetrics.annualOperatingExpenses).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span><strong>Debt Service:</strong></span>
+                <span className="font-semibold">${(breakEvenMetrics.annualDebtService).toLocaleString()}</span>
+              </div>
+            </div>
           </div>
         </details>
       </div>

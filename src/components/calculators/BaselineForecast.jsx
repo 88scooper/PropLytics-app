@@ -105,24 +105,24 @@ const BaselineForecast = ({ property, assumptions }) => {
       {/* Key Metrics Summary */}
       <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4">
-            <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium mb-1">
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-1">
               Year 10 Net Cash Flow
             </p>
-            <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-300">
+            <p className="text-2xl font-bold text-green-900 dark:text-green-300">
               {formatCurrency(forecastData[9]?.netCashFlow || 0)}
             </p>
           </div>
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-            <p className="text-sm text-blue-700 dark:text-blue-400 font-medium mb-1">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-1">
               Year 10 Total Equity
             </p>
             <p className="text-2xl font-bold text-blue-900 dark:text-blue-300">
               {formatCurrency(forecastData[9]?.equity || 0)}
             </p>
           </div>
-          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
-            <p className="text-sm text-red-700 dark:text-red-400 font-medium mb-1">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-1">
               Year 10 Mortgage Balance
             </p>
             <p className="text-2xl font-bold text-red-900 dark:text-red-300">
