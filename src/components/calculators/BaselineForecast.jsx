@@ -1,11 +1,17 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatCurrency } from '@/utils/formatting';
 import { generateForecast, formatForecastForChart } from '@/lib/sensitivity-analysis';
 
 const BaselineForecast = ({ property, assumptions }) => {
+  const [isClient, setIsClient] = useState(false);
+
+  // Prevent hydration mismatch by only rendering after client mount
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   // Generate forecast data
   const forecastData = useMemo(() => {
     if (!property) return [];
@@ -30,9 +36,26 @@ const BaselineForecast = ({ property, assumptions }) => {
     return null;
   };
 
+  // Prevent hydration mismatch by showing loading state until client mounts
+  if (!isClient) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          📈 Baseline Forecast (10 Years)
+        </h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Loading forecast...
+        </p>
+      </div>
+    );
+  }
+
   if (!property) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          📈 Baseline Forecast (10 Years)
+        </h2>
         <p className="text-gray-600 dark:text-gray-400 text-center">
           Select a property to view the baseline forecast.
         </p>
