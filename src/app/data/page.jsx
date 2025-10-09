@@ -8,180 +8,326 @@ import Button from "@/components/Button";
 import Input from "@/components/Input";
 import { useToast } from "@/context/ToastContext";
 import { useProperties, useProperty } from "@/context/PropertyContext";
-import { Download, Upload, X } from "lucide-react";
+import { Download, Upload, X, ChevronDown, ChevronUp, Edit2, Save, XCircle } from "lucide-react";
 import * as XLSX from 'xlsx';
+
+// PropertyCard component with collapsible sections
+function PropertyCard({ property, onUpdate }) {
+  const [expandedSections, setExpandedSections] = useState({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState({});
+  const { addToast } = useToast();
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditedData({
+      name: property.name || property.nickname || "",
+      address: property.address || "",
+      propertyType: property.propertyType || "",
+      yearBuilt: property.yearBuilt || "",
+      size: property.size || property.squareFootage || "",
+      bedrooms: property.bedrooms?.[0] || "",
+      bathrooms: property.bathrooms?.[0] || "",
+      purchaseDate: property.purchaseDate || "",
+      purchasePrice: property.purchasePrice || "",
+      closingCosts: property.closingCosts || "",
+      renovationCosts: property.renovationCosts || "",
+      currentMarketValue: property.currentMarketValue || property.currentValue || "",
+      monthlyRent: property.rent?.monthlyRent || "",
+      lender: property.mortgage?.lender || "",
+      loanAmount: property.mortgage?.originalAmount || "",
+      interestRate: (property.mortgage?.interestRate * 100) || "",
+      loanTerm: property.mortgage?.amortizationYears || "",
+    });
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditedData({});
+  };
+
+  const handleSave = () => {
+    // In a real app, this would save to the database
+    addToast("Property updated successfully!", { type: "success" });
+    setIsEditing(false);
+    if (onUpdate) onUpdate(property.id, editedData);
+  };
+
+  const updateField = (key, value) => {
+    setEditedData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const Section = ({ title, sectionKey, children }) => {
+    const isExpanded = expandedSections[sectionKey];
+    return (
+      <div className="border-t border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => toggleSection(sectionKey)}
+          className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        >
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+          {isExpanded ? (
+            <ChevronUp className="w-5 h-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-gray-500" />
+          )}
+        </button>
+        {isExpanded && (
+          <div className="p-4 pt-0 bg-gray-50 dark:bg-gray-800/50">
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const DataRow = ({ label, value, editable = false, field = "", type = "text" }) => (
+    <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
+      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</span>
+      {isEditing && editable ? (
+        <input
+          type={type}
+          value={editedData[field] || ""}
+          onChange={(e) => updateField(field, e.target.value)}
+          className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#205A3E]"
+        />
+      ) : (
+        <span className="text-sm text-gray-900 dark:text-gray-100">{value || "N/A"}</span>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      {/* Card Header */}
+      <div className="p-6 bg-gradient-to-r from-[#205A3E] to-[#2a7050] text-white">
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-2xl font-bold">{property.name || property.nickname}</h2>
+            <p className="text-sm opacity-90 mt-1">{property.address}</p>
+          </div>
+          <div className="flex gap-2">
+            {isEditing ? (
+              <>
+                <button
+                  onClick={handleSave}
+                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                  title="Save changes"
+                >
+                  <Save className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                  title="Cancel editing"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleEdit}
+                className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                title="Edit property"
+              >
+                <Edit2 className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Collapsible Sections */}
+      <Section title="Property Details" sectionKey="propertyDetails">
+        <div className="space-y-1">
+          <DataRow label="Property Name" value={property.name || property.nickname} editable field="name" />
+          <DataRow label="Address" value={property.address} editable field="address" />
+          <DataRow label="Property Type" value={property.propertyType || property.type} editable field="propertyType" />
+          <DataRow label="Year Built" value={property.yearBuilt} editable field="yearBuilt" type="number" />
+          <DataRow label="Square Footage" value={property.size || property.squareFootage} editable field="size" type="number" />
+          <DataRow label="Bedrooms" value={property.bedrooms?.[0] || property.bedrooms} editable field="bedrooms" type="number" />
+          <DataRow label="Bathrooms" value={property.bathrooms?.[0] || property.bathrooms} editable field="bathrooms" type="number" />
+          <DataRow label="Unit Config" value={property.unitConfig} />
+        </div>
+      </Section>
+
+      <Section title="Purchase Information" sectionKey="purchaseInfo">
+        <div className="space-y-1">
+          <DataRow label="Purchase Date" value={property.purchaseDate} editable field="purchaseDate" type="date" />
+          <DataRow 
+            label="Purchase Price" 
+            value={`$${(property.purchasePrice || 0).toLocaleString()}`} 
+            editable 
+            field="purchasePrice" 
+            type="number" 
+          />
+          <DataRow 
+            label="Closing Costs" 
+            value={`$${(property.closingCosts || 0).toLocaleString()}`} 
+            editable 
+            field="closingCosts" 
+            type="number" 
+          />
+          <DataRow 
+            label="Renovation Costs" 
+            value={`$${(property.renovationCosts || 0).toLocaleString()}`} 
+            editable 
+            field="renovationCosts" 
+            type="number" 
+          />
+          <DataRow 
+            label="Total Investment" 
+            value={`$${(property.totalInvestment || 0).toLocaleString()}`} 
+          />
+          <DataRow 
+            label="Current Market Value" 
+            value={`$${(property.currentMarketValue || property.currentValue || 0).toLocaleString()}`} 
+            editable 
+            field="currentMarketValue" 
+            type="number" 
+          />
+          <DataRow 
+            label="Appreciation" 
+            value={`$${(property.appreciation || 0).toLocaleString()}`} 
+          />
+        </div>
+      </Section>
+
+      <Section title="Mortgage Details" sectionKey="mortgageDetails">
+        <div className="space-y-1">
+          <DataRow label="Lender" value={property.mortgage?.lender} editable field="lender" />
+          <DataRow 
+            label="Original Amount" 
+            value={`$${(property.mortgage?.originalAmount || 0).toLocaleString()}`} 
+            editable 
+            field="loanAmount" 
+            type="number" 
+          />
+          <DataRow 
+            label="Interest Rate" 
+            value={`${((property.mortgage?.interestRate || 0) * 100).toFixed(2)}%`} 
+            editable 
+            field="interestRate" 
+            type="number" 
+          />
+          <DataRow label="Rate Type" value={property.mortgage?.rateType} />
+          <DataRow 
+            label="Amortization (Years)" 
+            value={property.mortgage?.amortizationYears?.toFixed(1)} 
+            editable 
+            field="loanTerm" 
+            type="number" 
+          />
+          <DataRow label="Term (Months)" value={property.mortgage?.termMonths} />
+          <DataRow label="Payment Frequency" value={property.mortgage?.paymentFrequency} />
+          <DataRow label="Start Date" value={property.mortgage?.startDate} />
+        </div>
+      </Section>
+
+      <Section title="Income & Expenses" sectionKey="incomeExpenses">
+        <div className="space-y-1">
+          <DataRow 
+            label="Monthly Rent" 
+            value={`$${(property.rent?.monthlyRent || 0).toLocaleString()}`} 
+            editable 
+            field="monthlyRent" 
+            type="number" 
+          />
+          <DataRow 
+            label="Annual Rent" 
+            value={`$${(property.rent?.annualRent || 0).toLocaleString()}`} 
+          />
+          <DataRow 
+            label="Property Tax (Monthly)" 
+            value={`$${(property.monthlyPropertyTax || 0).toFixed(2)}`} 
+          />
+          <DataRow 
+            label="Condo Fees (Monthly)" 
+            value={`$${(property.monthlyCondoFees || 0).toFixed(2)}`} 
+          />
+          <DataRow 
+            label="Insurance (Monthly)" 
+            value={`$${(property.monthlyInsurance || 0).toFixed(2)}`} 
+          />
+          <DataRow 
+            label="Maintenance (Monthly)" 
+            value={`$${(property.monthlyMaintenance || 0).toFixed(2)}`} 
+          />
+          <DataRow 
+            label="Professional Fees (Monthly)" 
+            value={`$${(property.monthlyProfessionalFees || 0).toFixed(2)}`} 
+          />
+          <DataRow 
+            label="Total Monthly Expenses" 
+            value={`$${(property.monthlyExpenses?.total || 0).toFixed(2)}`} 
+          />
+        </div>
+      </Section>
+
+      <Section title="Performance Metrics" sectionKey="performanceMetrics">
+        <div className="space-y-1">
+          <DataRow 
+            label="Monthly Cash Flow" 
+            value={`$${(property.monthlyCashFlow || 0).toLocaleString()}`} 
+          />
+          <DataRow 
+            label="Annual Cash Flow" 
+            value={`$${(property.annualCashFlow || 0).toLocaleString()}`} 
+          />
+          <DataRow 
+            label="Cap Rate" 
+            value={`${(property.capRate || 0).toFixed(2)}%`} 
+          />
+          <DataRow 
+            label="Cash on Cash Return" 
+            value={`${(property.cashOnCashReturn || 0).toFixed(2)}%`} 
+          />
+          <DataRow 
+            label="Net Operating Income" 
+            value={`$${(property.netOperatingIncome || 0).toLocaleString()}`} 
+          />
+          <DataRow 
+            label="Occupancy Rate" 
+            value={`${property.occupancy || 0}%`} 
+          />
+        </div>
+      </Section>
+
+      <Section title="Tenant Information" sectionKey="tenantInfo">
+        <div className="space-y-1">
+          <DataRow label="Tenant Name" value={property.tenant?.name} />
+          <DataRow label="Lease Start Date" value={property.tenant?.leaseStartDate} />
+          <DataRow label="Lease End Date" value={property.tenant?.leaseEndDate} />
+          <DataRow 
+            label="Monthly Rent" 
+            value={`$${(property.tenant?.rent || 0).toLocaleString()}`} 
+          />
+          <DataRow label="Status" value={property.tenant?.status} />
+        </div>
+      </Section>
+    </div>
+  );
+}
 
 export default function DataPage() {
   const { addToast } = useToast();
   const { user } = useAuth();
   const properties = useProperties(); // Get properties from context
-  const [saving, setSaving] = useState(false);
-  const [selectedProperty, setSelectedProperty] = useState("");
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ processed: 0, total: 0 });
-  const [form, setForm] = useState({
-    // Property Details
-    name: "",
-    address: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    propertyType: "",
-    units: "",
-    squareFootage: "",
-    yearBuilt: "",
-    bedrooms: "",
-    bathrooms: "",
-    
-    // Key Dates
-    purchaseDate: "",
-    closingDate: "",
-    
-    // Purchase & Initial Costs
-    purchasePrice: "",
-    downPayment: "",
-    closingCosts: "",
-    renovationCosts: "",
-    otherCosts: "",
-    
-    // Current Mortgage Details
-    lender: "",
-    loanAmount: "",
-    interestRate: "",
-    loanTerm: "",
-    monthlyPayment: "",
-    remainingBalance: "",
-    nextPaymentDate: "",
-    
-    // Income & Expenses
-    monthlyRent: "",
-    propertyTax: "",
-    insurance: "",
-    utilities: "",
-    maintenance: "",
-    propertyManagement: "",
-    hoaFees: "",
-    
-    // Current Value
-    currentValue: "",
-    lastAppraisalDate: "",
-  });
-  const [versions, setVersions] = useState([]);
 
-  // Fetch user's properties from Firestore
-  // Properties are now available from PropertyContext
-
-  function fetchPropertyDetails(propertyId) {
-    try {
-      // Find property from context data
-      const realPropertyData = properties.find(p => p.id === propertyId);
-      
-      if (realPropertyData) {
-        const formattedPropertyData = {
-          name: realPropertyData.nickname || realPropertyData.name,
-          address: realPropertyData.address,
-          city: "Toronto", // Extract from address if needed
-          state: "ON",
-          zipCode: realPropertyData.address.split(' ').pop() || "",
-          propertyType: realPropertyData.propertyType,
-          units: "1",
-          squareFootage: realPropertyData.size?.toString() || realPropertyData.squareFootage?.toString(),
-          yearBuilt: realPropertyData.yearBuilt?.toString(),
-          bedrooms: realPropertyData.bedrooms?.[0]?.toString() || "2",
-          bathrooms: realPropertyData.bathrooms?.[0]?.toString() || "2",
-          purchaseDate: realPropertyData.purchaseDate || realPropertyData.purchaseDate,
-          closingDate: realPropertyData.purchaseDate,
-          purchasePrice: realPropertyData.purchasePrice?.toString(),
-          downPayment: (realPropertyData.purchasePrice - realPropertyData.mortgage.originalAmount)?.toString(),
-          closingCosts: realPropertyData.closingCosts?.toString(),
-          renovationCosts: realPropertyData.renovationCosts?.toString(),
-          otherCosts: "0",
-          lender: realPropertyData.mortgage.lender,
-          loanAmount: realPropertyData.mortgage.originalAmount?.toString(),
-          interestRate: (realPropertyData.mortgage.interestRate * 100)?.toString(),
-          loanTerm: realPropertyData.mortgage.amortizationYears?.toString(),
-          monthlyPayment: "0", // Would need to calculate
-          remainingBalance: realPropertyData.mortgage.originalAmount?.toString(),
-          nextPaymentDate: "2024-02-01",
-          monthlyRent: realPropertyData.rent?.monthlyRent?.toString(),
-          propertyTax: realPropertyData.monthlyPropertyTax?.toString(),
-          insurance: realPropertyData.monthlyInsurance?.toString(),
-          utilities: "0",
-          maintenance: realPropertyData.monthlyMaintenance?.toString(),
-          propertyManagement: "0",
-          hoaFees: realPropertyData.monthlyCondoFees?.toString(),
-          currentValue: realPropertyData.currentMarketValue?.toString() || realPropertyData.currentValue?.toString(),
-          lastAppraisalDate: "2023-12-01"
-        };
-        setForm(formattedPropertyData);
-        addToast("Property data loaded successfully!", { type: "success" });
-      } else {
-        addToast("Property not found.", { type: "error" });
-      }
-    } catch (error) {
-      addToast("Failed to load property details.", { type: "error" });
-    }
-  }
-
-  function updateField(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  async function onSave(e) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await new Promise((r) => setTimeout(r, 900));
-      const newVersion = {
-        id: crypto.randomUUID?.() || Math.random().toString(36).slice(2),
-        createdAt: new Date().toISOString(),
-        data: form,
-      };
-      setVersions((prev) => [newVersion, ...prev]);
-      addToast("Property data saved successfully!", { type: "success" });
-    } catch (err) {
-      addToast("Failed to save property data.", { type: "error" });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function onCancel() {
-    if (Object.values(form).some(value => value !== "")) {
-      if (confirm("Are you sure you want to cancel? All unsaved changes will be lost.")) {
-        setForm({
-          name: "", address: "", city: "", state: "", zipCode: "", propertyType: "", units: "", squareFootage: "", yearBuilt: "", bedrooms: "", bathrooms: "",
-          purchaseDate: "", closingDate: "",
-          purchasePrice: "", downPayment: "", closingCosts: "", renovationCosts: "", otherCosts: "",
-          lender: "", loanAmount: "", interestRate: "", loanTerm: "", monthlyPayment: "", remainingBalance: "", nextPaymentDate: "",
-          monthlyRent: "", propertyTax: "", insurance: "", utilities: "", maintenance: "", propertyManagement: "", hoaFees: "",
-          currentValue: "", lastAppraisalDate: "",
-        });
-        addToast("Form reset.", { type: "success" });
-      }
-    }
-  }
-
-  function onDelete() {
-    if (confirm("Are you sure you want to delete this property? This action cannot be undone.")) {
-      addToast("Property deleted.", { type: "success" });
-      // Reset form after deletion
-      setForm({
-        name: "", address: "", city: "", state: "", zipCode: "", propertyType: "", units: "", squareFootage: "", yearBuilt: "", bedrooms: "", bathrooms: "",
-        purchaseDate: "", closingDate: "",
-        purchasePrice: "", downPayment: "", closingCosts: "", renovationCosts: "", otherCosts: "",
-        lender: "", loanAmount: "", interestRate: "", loanTerm: "", monthlyPayment: "", remainingBalance: "", nextPaymentDate: "",
-        monthlyRent: "", propertyTax: "", insurance: "", utilities: "", maintenance: "", propertyManagement: "", hoaFees: "",
-        currentValue: "", lastAppraisalDate: "",
-      });
-    }
-  }
-
-  function restoreVersion(version) {
-    setForm(version.data);
-    addToast("Restored fields from version. Click Save to confirm.", { type: "success" });
-  }
+  const handlePropertyUpdate = (propertyId, updatedData) => {
+    // In a real application, this would update the property in the database
+    console.log("Updating property:", propertyId, updatedData);
+  };
 
   // Excel Template Download
   function downloadTemplate() {
@@ -309,420 +455,48 @@ export default function DataPage() {
     
     addToast(`Successfully processed ${properties.length} properties!`, { type: "success" });
     setIsExcelModalOpen(false);
-    
-    // Refresh properties list
-    await fetchUserProperties();
   }
 
   return (
     <RequireAuth>
       <Layout>
         <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold">Property Data</h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-300">
-              Add or edit comprehensive property information and financial details.
-            </p>
-          </div>
-
-          {/* Property Selector and Excel Workflow */}
-          <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-            <div className="flex-1">
-              <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Select Property
-              </label>
-              <select
-                id="propertySelect"
-                value={selectedProperty}
-                onChange={(e) => {
-                  setSelectedProperty(e.target.value);
-                  if (e.target.value) {
-                    fetchPropertyDetails(e.target.value);
-                  } else {
-                    // Reset form when "Add New Property" is selected
-                    setForm({
-                      name: "", address: "", city: "", state: "", zipCode: "", propertyType: "", units: "", squareFootage: "", yearBuilt: "", bedrooms: "", bathrooms: "",
-                      purchaseDate: "", closingDate: "",
-                      purchasePrice: "", downPayment: "", closingCosts: "", renovationCosts: "", otherCosts: "",
-                      lender: "", loanAmount: "", interestRate: "", loanTerm: "", monthlyPayment: "", remainingBalance: "", nextPaymentDate: "",
-                      monthlyRent: "", propertyTax: "", insurance: "", utilities: "", maintenance: "", propertyManagement: "", hoaFees: "",
-                      currentValue: "", lastAppraisalDate: "",
-                    });
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#205A3E]"
-              >
-                <option value="">Add New Property</option>
-                {properties.map((property) => (
-                  <option key={property.id} value={property.id}>
-                    {property.name} - {property.address}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="flex items-end">
-              <Button
-                type="button"
-                onClick={() => setIsExcelModalOpen(true)}
-                className="flex items-center gap-2"
-              >
-                <Upload className="w-4 h-4" />
-                Import / Export via Excel
-              </Button>
-            </div>
-          </div>
-
-          <form onSubmit={onSave} className="grid gap-8 lg:grid-cols-[1fr_320px] lg:items-start">
-            <div className="space-y-8">
-              {/* Property Details Section */}
-              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <h2 className="text-xl font-semibold mb-6">Property Details</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Input
-                    label="Property Name"
-                    id="name"
-                    value={form.name}
-                    onChange={(e) => updateField("name", e.target.value)}
-                    placeholder="e.g., Maple Street Duplex"
-                  />
-                  <Input
-                    label="Property Type"
-                    id="propertyType"
-                    value={form.propertyType}
-                    onChange={(e) => updateField("propertyType", e.target.value)}
-                    placeholder="e.g., Duplex, Single Family"
-                  />
-                  <Input
-                    label="Street Address"
-                    id="address"
-                    value={form.address}
-                    onChange={(e) => updateField("address", e.target.value)}
-                    placeholder="123 Main Street"
-                  />
-                  <Input
-                    label="City"
-                    id="city"
-                    value={form.city}
-                    onChange={(e) => updateField("city", e.target.value)}
-                    placeholder="Toronto"
-                  />
-                  <Input
-                    label="State/Province"
-                    id="state"
-                    value={form.state}
-                    onChange={(e) => updateField("state", e.target.value)}
-                    placeholder="ON"
-                  />
-                  <Input
-                    label="ZIP/Postal Code"
-                    id="zipCode"
-                    value={form.zipCode}
-                    onChange={(e) => updateField("zipCode", e.target.value)}
-                    placeholder="M5V 2H1"
-                  />
-                  <Input
-                    label="Number of Units"
-                    id="units"
-                    type="number"
-                    value={form.units}
-                    onChange={(e) => updateField("units", e.target.value)}
-                    placeholder="1"
-                  />
-                  <Input
-                    label="Square Footage"
-                    id="squareFootage"
-                    type="number"
-                    value={form.squareFootage}
-                    onChange={(e) => updateField("squareFootage", e.target.value)}
-                    placeholder="2400"
-                  />
-                  <Input
-                    label="Year Built"
-                    id="yearBuilt"
-                    type="number"
-                    value={form.yearBuilt}
-                    onChange={(e) => updateField("yearBuilt", e.target.value)}
-                    placeholder="1985"
-                  />
-                  <Input
-                    label="Bedrooms"
-                    id="bedrooms"
-                    type="number"
-                    value={form.bedrooms}
-                    onChange={(e) => updateField("bedrooms", e.target.value)}
-                    placeholder="3"
-                  />
-                  <Input
-                    label="Bathrooms"
-                    id="bathrooms"
-                    type="number"
-                    value={form.bathrooms}
-                    onChange={(e) => updateField("bathrooms", e.target.value)}
-                    placeholder="2"
-                  />
-                </div>
-              </div>
-
-              {/* Key Dates Section */}
-              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <h2 className="text-xl font-semibold mb-6">Key Dates</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Input
-                    label="Purchase Date"
-                    id="purchaseDate"
-                    type="date"
-                    value={form.purchaseDate}
-                    onChange={(e) => updateField("purchaseDate", e.target.value)}
-                  />
-                  <Input
-                    label="Closing Date"
-                    id="closingDate"
-                    type="date"
-                    value={form.closingDate}
-                    onChange={(e) => updateField("closingDate", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Purchase & Initial Costs Section */}
-              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <h2 className="text-xl font-semibold mb-6">Purchase & Initial Costs</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Input
-                    label="Purchase Price"
-                    id="purchasePrice"
-                    type="number"
-                    value={form.purchasePrice}
-                    onChange={(e) => updateField("purchasePrice", e.target.value)}
-                    placeholder="850000"
-                  />
-                  <Input
-                    label="Down Payment"
-                    id="downPayment"
-                    type="number"
-                    value={form.downPayment}
-                    onChange={(e) => updateField("downPayment", e.target.value)}
-                    placeholder="170000"
-                  />
-                  <Input
-                    label="Closing Costs"
-                    id="closingCosts"
-                    type="number"
-                    value={form.closingCosts}
-                    onChange={(e) => updateField("closingCosts", e.target.value)}
-                    placeholder="25000"
-                  />
-                  <Input
-                    label="Renovation Costs"
-                    id="renovationCosts"
-                    type="number"
-                    value={form.renovationCosts}
-                    onChange={(e) => updateField("renovationCosts", e.target.value)}
-                    placeholder="45000"
-                  />
-                  <Input
-                    label="Other Costs"
-                    id="otherCosts"
-                    type="number"
-                    value={form.otherCosts}
-                    onChange={(e) => updateField("otherCosts", e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-              {/* Current Mortgage Details Section */}
-              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <h2 className="text-xl font-semibold mb-6">Current Mortgage Details</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Input
-                    label="Lender"
-                    id="lender"
-                    value={form.lender}
-                    onChange={(e) => updateField("lender", e.target.value)}
-                    placeholder="TD Bank"
-                  />
-                  <Input
-                    label="Loan Amount"
-                    id="loanAmount"
-                    type="number"
-                    value={form.loanAmount}
-                    onChange={(e) => updateField("loanAmount", e.target.value)}
-                    placeholder="680000"
-                  />
-                  <Input
-                    label="Interest Rate (%)"
-                    id="interestRate"
-                    type="number"
-                    step="0.01"
-                    value={form.interestRate}
-                    onChange={(e) => updateField("interestRate", e.target.value)}
-                    placeholder="4.25"
-                  />
-                  <Input
-                    label="Loan Term (years)"
-                    id="loanTerm"
-                    type="number"
-                    value={form.loanTerm}
-                    onChange={(e) => updateField("loanTerm", e.target.value)}
-                    placeholder="25"
-                  />
-                  <Input
-                    label="Monthly Payment"
-                    id="monthlyPayment"
-                    type="number"
-                    value={form.monthlyPayment}
-                    onChange={(e) => updateField("monthlyPayment", e.target.value)}
-                    placeholder="3200"
-                  />
-                  <Input
-                    label="Remaining Balance"
-                    id="remainingBalance"
-                    type="number"
-                    value={form.remainingBalance}
-                    onChange={(e) => updateField("remainingBalance", e.target.value)}
-                    placeholder="665000"
-                  />
-                  <Input
-                    label="Next Payment Date"
-                    id="nextPaymentDate"
-                    type="date"
-                    value={form.nextPaymentDate}
-                    onChange={(e) => updateField("nextPaymentDate", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Income & Expenses Section */}
-              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <h2 className="text-xl font-semibold mb-6">Income & Expenses</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Input
-                    label="Monthly Rent"
-                    id="monthlyRent"
-                    type="number"
-                    value={form.monthlyRent}
-                    onChange={(e) => updateField("monthlyRent", e.target.value)}
-                    placeholder="4200"
-                  />
-                  <Input
-                    label="Property Tax (monthly)"
-                    id="propertyTax"
-                    type="number"
-                    value={form.propertyTax}
-                    onChange={(e) => updateField("propertyTax", e.target.value)}
-                    placeholder="450"
-                  />
-                  <Input
-                    label="Insurance (monthly)"
-                    id="insurance"
-                    type="number"
-                    value={form.insurance}
-                    onChange={(e) => updateField("insurance", e.target.value)}
-                    placeholder="180"
-                  />
-                  <Input
-                    label="Utilities (monthly)"
-                    id="utilities"
-                    type="number"
-                    value={form.utilities}
-                    onChange={(e) => updateField("utilities", e.target.value)}
-                    placeholder="120"
-                  />
-                  <Input
-                    label="Maintenance (monthly)"
-                    id="maintenance"
-                    type="number"
-                    value={form.maintenance}
-                    onChange={(e) => updateField("maintenance", e.target.value)}
-                    placeholder="150"
-                  />
-                  <Input
-                    label="Property Management (monthly)"
-                    id="propertyManagement"
-                    type="number"
-                    value={form.propertyManagement}
-                    onChange={(e) => updateField("propertyManagement", e.target.value)}
-                    placeholder="210"
-                  />
-                  <Input
-                    label="HOA Fees (monthly)"
-                    id="hoaFees"
-                    type="number"
-                    value={form.hoaFees}
-                    onChange={(e) => updateField("hoaFees", e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-              {/* Current Value Section */}
-              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <h2 className="text-xl font-semibold mb-6">Current Value</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Input
-                    label="Current Market Value"
-                    id="currentValue"
-                    type="number"
-                    value={form.currentValue}
-                    onChange={(e) => updateField("currentValue", e.target.value)}
-                    placeholder="920000"
-                  />
-                  <Input
-                    label="Last Appraisal Date"
-                    id="lastAppraisalDate"
-                    type="date"
-                    value={form.lastAppraisalDate}
-                    onChange={(e) => updateField("lastAppraisalDate", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-4 pt-4">
-                <Button type="submit" loading={saving}>
-                  Save Property
-                </Button>
-                <Button type="button" variant="secondary" onClick={onCancel}>
-                  Cancel
-                </Button>
-                <Button type="button" variant="secondary" onClick={onDelete} className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10">
-                  Delete Property
-                </Button>
-              </div>
-            </div>
-
-            {/* Version History Sidebar */}
-            <aside className="rounded-lg border border-black/10 dark:border-white/10 p-4">
-              <h2 className="font-semibold mb-4">Version History</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                Restoring only updates the form. Click Save to confirm and create a new version.
+          {/* Header Section */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">Property Data</h1>
+              <p className="mt-2 text-gray-600 dark:text-gray-300">
+                View and manage comprehensive property information and financial details.
               </p>
-              <ul className="space-y-3 text-sm">
-                {versions.length === 0 && (
-                  <li className="text-gray-500 dark:text-gray-400 text-center py-4">
-                    No versions yet.
-                  </li>
-                )}
-                {versions.map((v) => (
-                  <li key={v.id} className="rounded-md border border-black/10 dark:border-white/10 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="font-medium">{new Date(v.createdAt).toLocaleString()}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-300 truncate">
-                          {v.data.name || "Untitled"} • ${v.data.monthlyRent || 0}/mo rent
-                        </div>
-                      </div>
-                      <Button type="button" variant="secondary" onClick={() => restoreVersion(v)}>
-                        Restore
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </aside>
-          </form>
+            </div>
+            <Button
+              type="button"
+              onClick={() => setIsExcelModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Import / Export via Excel
+            </Button>
+          </div>
+
+          {/* Property Cards Grid */}
+          {properties && properties.length > 0 ? (
+            <div className="space-y-6">
+              {properties.map((property) => (
+                <PropertyCard
+                  key={property.id}
+                  property={property}
+                  onUpdate={handlePropertyUpdate}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p className="text-gray-600 dark:text-gray-400">
+                No properties found. Import properties using Excel or add them manually.
+              </p>
+            </div>
+          )}
 
           {/* Excel Workflow Modal */}
           {isExcelModalOpen && (
