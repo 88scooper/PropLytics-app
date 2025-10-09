@@ -1,18 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import { useProperties, usePortfolioMetrics } from "@/context/PropertyContext";
 import ScenarioAnalysisDashboard from "@/components/scenarios/ScenarioAnalysisDashboard";
+import AssumptionsPanel from "@/components/calculators/AssumptionsPanel";
+import BaselineForecast from "@/components/calculators/BaselineForecast";
+import SensitivityDashboard from "@/components/calculators/SensitivityDashboard";
+import SaveScenarioModal from "@/components/calculators/SaveScenarioModal";
+import SavedScenariosPanel from "@/components/calculators/SavedScenariosPanel";
+import { DEFAULT_ASSUMPTIONS } from "@/lib/sensitivity-analysis";
 import { formatCurrency, formatPercentage } from "@/utils/formatting";
 
 export default function AnalyticsPage() {
-  const [activeTab, setActiveTab] = useState('scenarios');
+  const [activeTab, setActiveTab] = useState('sensitivity');
+  const [selectedPropertyId, setSelectedPropertyId] = useState('');
+  const [assumptions, setAssumptions] = useState(DEFAULT_ASSUMPTIONS);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [scenariosKey, setScenariosKey] = useState(0); // Key to force refresh of SavedScenariosPanel
   const properties = useProperties();
   const portfolioMetrics = usePortfolioMetrics();
 
+  // Set default property selection
+  useEffect(() => {
+    if (!selectedPropertyId && properties.length > 0) {
+      setSelectedPropertyId(properties[0].id);
+    }
+  }, [selectedPropertyId, properties]);
+
+  // Get selected property
+  const selectedProperty = properties.find(p => p.id === selectedPropertyId);
+
+  // Handle save scenario success
+  const handleSaveSuccess = () => {
+    setScenariosKey(prev => prev + 1); // Increment key to refresh SavedScenariosPanel
+  };
+
+  // Handle load scenario
+  const handleLoadScenario = (loadedAssumptions) => {
+    setAssumptions(loadedAssumptions);
+  };
+
   const tabs = [
+    { id: 'sensitivity', label: 'Sensitivity Analysis', icon: '🎯' },
     { id: 'scenarios', label: 'Scenario Analysis', icon: '📊' },
     { id: 'portfolio', label: 'Portfolio Analytics', icon: '📈' },
     { id: 'insights', label: 'Insights', icon: '💡' }
@@ -51,6 +82,72 @@ export default function AnalyticsPage() {
 
           {/* Tab Content */}
           <div className="mt-6">
+            {activeTab === 'sensitivity' && (
+              <div className="space-y-6">
+                {/* Property Selector */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Select Property to Analyze
+                  </label>
+                  <select
+                    value={selectedPropertyId}
+                    onChange={(e) => setSelectedPropertyId(e.target.value)}
+                    className="w-full md:w-96 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                             transition-colors"
+                  >
+                    {properties.map((property) => (
+                      <option key={property.id} value={property.id}>
+                        {property.nickname} - {property.address}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Main Dashboard Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left Column - Assumptions Panel and Saved Scenarios */}
+                  <div className="lg:col-span-1 space-y-6">
+                    <AssumptionsPanel 
+                      assumptions={assumptions}
+                      onAssumptionsChange={setAssumptions}
+                      onSaveClick={() => setShowSaveModal(true)}
+                    />
+                    <SavedScenariosPanel 
+                      key={scenariosKey}
+                      propertyId={selectedPropertyId}
+                      onLoadScenario={handleLoadScenario}
+                      currentAssumptions={assumptions}
+                    />
+                  </div>
+
+                  {/* Right Column - Forecast and Dashboard */}
+                  <div className="lg:col-span-2 space-y-6">
+                    <BaselineForecast 
+                      property={selectedProperty}
+                      assumptions={DEFAULT_ASSUMPTIONS}
+                    />
+                    <SensitivityDashboard 
+                      property={selectedProperty}
+                      assumptions={assumptions}
+                    />
+                  </div>
+                </div>
+
+                {/* Save Scenario Modal */}
+                {showSaveModal && selectedProperty && (
+                  <SaveScenarioModal
+                    isOpen={showSaveModal}
+                    onClose={() => setShowSaveModal(false)}
+                    assumptions={assumptions}
+                    property={selectedProperty}
+                    onSaveSuccess={handleSaveSuccess}
+                  />
+                )}
+              </div>
+            )}
+
             {activeTab === 'scenarios' && <ScenarioAnalysisDashboard />}
             
             {activeTab === 'portfolio' && (

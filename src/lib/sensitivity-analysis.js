@@ -1,0 +1,256 @@
+/**
+ * Sensitivity Analysis Utility Functions
+ * 
+ * This module provides functions for:
+ * - 10-year financial forecasts
+ * - IRR (Internal Rate of Return) calculations
+ * - Scenario modeling with variable assumptions
+ */
+
+import { getCurrentMortgageBalance, getMonthlyMortgagePayment } from '@/utils/mortgageCalculator';
+
+/**
+ * Default assumptions for sensitivity analysis
+ */
+export const DEFAULT_ASSUMPTIONS = {
+  annualRentIncrease: 2.0, // 2% per year
+  annualExpenseInflation: 2.5, // 2.5% per year
+  annualPropertyAppreciation: 3.0, // 3% per year
+  vacancyRate: 5.0, // 5% vacancy allowance
+  futureInterestRate: 5.0, // 5% for mortgage renewals
+};
+
+/**
+ * Calculate IRR using Newton-Raphson method
+ * @param {Array<number>} cashFlows - Array of cash flows (negative for investment, positive for returns)
+ * @returns {number} IRR as a percentage
+ */
+export function calculateIRR(cashFlows) {
+  if (!cashFlows || cashFlows.length < 2) {
+    return 0;
+  }
+
+  // Initial guess
+  let rate = 0.1;
+  const maxIterations = 1000;
+  const tolerance = 0.000001;
+
+  for (let i = 0; i < maxIterations; i++) {
+    let npv = 0;
+    let dnpv = 0;
+
+    for (let j = 0; j < cashFlows.length; j++) {
+      npv += cashFlows[j] / Math.pow(1 + rate, j);
+      dnpv += (-j * cashFlows[j]) / Math.pow(1 + rate, j + 1);
+    }
+
+    const newRate = rate - npv / dnpv;
+
+    if (Math.abs(newRate - rate) < tolerance) {
+      return newRate * 100; // Return as percentage
+    }
+
+    rate = newRate;
+  }
+
+  return rate * 100; // Return as percentage even if not converged
+}
+
+/**
+ * Calculate NPV (Net Present Value)
+ * @param {Array<number>} cashFlows - Array of cash flows
+ * @param {number} discountRate - Discount rate as decimal (e.g., 0.08 for 8%)
+ * @returns {number} NPV
+ */
+export function calculateNPV(cashFlows, discountRate) {
+  return cashFlows.reduce((npv, cashFlow, year) => {
+    return npv + cashFlow / Math.pow(1 + discountRate, year);
+  }, 0);
+}
+
+/**
+ * Generate 10-year forecast for a property
+ * @param {Object} property - Property object
+ * @param {Object} assumptions - Forecast assumptions
+ * @returns {Object} Forecast data with yearly projections
+ */
+export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS) {
+  const forecast = {
+    years: [],
+    netCashFlow: [],
+    mortgageBalance: [],
+    propertyValue: [],
+    equity: [],
+    cumulativeCashFlow: [],
+    totalProfit: [],
+  };
+
+  // Get current mortgage details
+  let currentMortgageBalance;
+  try {
+    currentMortgageBalance = getCurrentMortgageBalance(property.mortgage);
+  } catch (error) {
+    console.warn('Error getting mortgage balance, using original amount:', error);
+    currentMortgageBalance = property.mortgage.originalAmount;
+  }
+
+  let monthlyMortgagePayment;
+  try {
+    monthlyMortgagePayment = getMonthlyMortgagePayment(property.mortgage);
+  } catch (error) {
+    console.warn('Error calculating mortgage payment:', error);
+    // Fallback calculation
+    const monthlyRate = (property.mortgage.interestRate / 12);
+    const numPayments = property.mortgage.amortizationYears * 12;
+    monthlyMortgagePayment = property.mortgage.originalAmount * 
+      (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
+      (Math.pow(1 + monthlyRate, numPayments) - 1);
+  }
+
+  // Starting values
+  let currentRent = property.rent.monthlyRent;
+  let currentPropertyValue = property.currentMarketValue;
+  let mortgageBalance = currentMortgageBalance;
+  let cumulativeCashFlow = 0;
+  
+  // Calculate current monthly operating expenses (excluding mortgage)
+  const currentMonthlyOperatingExpenses = 
+    (property.monthlyExpenses.propertyTax || 0) +
+    (property.monthlyExpenses.condoFees || 0) +
+    (property.monthlyExpenses.insurance || 0) +
+    (property.monthlyExpenses.maintenance || 0) +
+    (property.monthlyExpenses.professionalFees || 0) +
+    (property.monthlyExpenses.utilities || 0);
+
+  // Project 10 years into the future
+  for (let year = 1; year <= 10; year++) {
+    forecast.years.push(year);
+
+    // Calculate rent with vacancy allowance
+    const effectiveRent = currentRent * (1 - assumptions.vacancyRate / 100);
+    const annualRentalIncome = effectiveRent * 12;
+
+    // Calculate operating expenses (grows with inflation)
+    const annualOperatingExpenses = currentMonthlyOperatingExpenses * 12 * 
+      Math.pow(1 + assumptions.annualExpenseInflation / 100, year - 1);
+
+    // Calculate interest payment for this year
+    const monthlyInterestRate = property.mortgage.interestRate / 12;
+    const annualInterest = mortgageBalance * property.mortgage.interestRate;
+
+    // Calculate principal payment
+    const annualMortgagePayment = monthlyMortgagePayment * 12;
+    const annualPrincipal = Math.min(annualMortgagePayment - annualInterest, mortgageBalance);
+
+    // Update mortgage balance
+    mortgageBalance = Math.max(0, mortgageBalance - annualPrincipal);
+
+    // Calculate net cash flow (after debt service)
+    const netCashFlow = annualRentalIncome - annualOperatingExpenses - annualMortgagePayment;
+    cumulativeCashFlow += netCashFlow;
+
+    // Calculate property value (appreciates annually)
+    currentPropertyValue = property.currentMarketValue * 
+      Math.pow(1 + assumptions.annualPropertyAppreciation / 100, year);
+
+    // Calculate equity
+    const equity = currentPropertyValue - mortgageBalance;
+
+    // Calculate total profit if sold today (equity + cumulative cash flow - initial investment)
+    const totalProfit = equity + cumulativeCashFlow - property.totalInvestment;
+
+    // Store values
+    forecast.netCashFlow.push(netCashFlow);
+    forecast.mortgageBalance.push(mortgageBalance);
+    forecast.propertyValue.push(currentPropertyValue);
+    forecast.equity.push(equity);
+    forecast.cumulativeCashFlow.push(cumulativeCashFlow);
+    forecast.totalProfit.push(totalProfit);
+
+    // Update rent for next year
+    currentRent = currentRent * (1 + assumptions.annualRentIncrease / 100);
+  }
+
+  return forecast;
+}
+
+/**
+ * Calculate key return metrics for a property over 10 years
+ * @param {Object} property - Property object
+ * @param {Object} assumptions - Forecast assumptions
+ * @returns {Object} Return metrics (IRR, average annual cash flow, total profit)
+ */
+export function calculateReturnMetrics(property, assumptions = DEFAULT_ASSUMPTIONS) {
+  const forecast = generateForecast(property, assumptions);
+
+  // Calculate IRR
+  // Cash flows: Year 0 = -initial investment, Years 1-9 = net cash flow, Year 10 = net cash flow + sale proceeds
+  const cashFlows = [
+    -property.totalInvestment, // Initial investment (negative)
+    ...forecast.netCashFlow.slice(0, 9), // Years 1-9 cash flows
+    forecast.netCashFlow[9] + forecast.equity[9] // Year 10: cash flow + equity from sale
+  ];
+
+  const irr = calculateIRR(cashFlows);
+
+  // Calculate average annual cash flow
+  const averageAnnualCashFlow = forecast.netCashFlow.reduce((sum, cf) => sum + cf, 0) / 10;
+
+  // Total profit at end of year 10 (if property is sold)
+  const totalProfitAtSale = forecast.totalProfit[9];
+
+  return {
+    irr,
+    averageAnnualCashFlow,
+    totalProfitAtSale,
+    forecast
+  };
+}
+
+/**
+ * Compare two scenarios and calculate percentage differences
+ * @param {Object} baseline - Baseline metrics
+ * @param {Object} newScenario - New scenario metrics
+ * @returns {Object} Comparison with differences
+ */
+export function compareScenarios(baseline, newScenario) {
+  return {
+    irr: {
+      baseline: baseline.irr,
+      newScenario: newScenario.irr,
+      difference: newScenario.irr - baseline.irr,
+      percentChange: baseline.irr !== 0 ? ((newScenario.irr - baseline.irr) / Math.abs(baseline.irr)) * 100 : 0
+    },
+    averageAnnualCashFlow: {
+      baseline: baseline.averageAnnualCashFlow,
+      newScenario: newScenario.averageAnnualCashFlow,
+      difference: newScenario.averageAnnualCashFlow - baseline.averageAnnualCashFlow,
+      percentChange: baseline.averageAnnualCashFlow !== 0 ? 
+        ((newScenario.averageAnnualCashFlow - baseline.averageAnnualCashFlow) / Math.abs(baseline.averageAnnualCashFlow)) * 100 : 0
+    },
+    totalProfitAtSale: {
+      baseline: baseline.totalProfitAtSale,
+      newScenario: newScenario.totalProfitAtSale,
+      difference: newScenario.totalProfitAtSale - baseline.totalProfitAtSale,
+      percentChange: baseline.totalProfitAtSale !== 0 ? 
+        ((newScenario.totalProfitAtSale - baseline.totalProfitAtSale) / Math.abs(baseline.totalProfitAtSale)) * 100 : 0
+    }
+  };
+}
+
+/**
+ * Format forecast data for chart display
+ * @param {Object} forecast - Forecast object from generateForecast
+ * @returns {Array} Array of data points for charting
+ */
+export function formatForecastForChart(forecast) {
+  return forecast.years.map((year, index) => ({
+    year,
+    netCashFlow: Math.round(forecast.netCashFlow[index]),
+    mortgageBalance: Math.round(forecast.mortgageBalance[index]),
+    equity: Math.round(forecast.equity[index]),
+    propertyValue: Math.round(forecast.propertyValue[index]),
+    cumulativeCashFlow: Math.round(forecast.cumulativeCashFlow[index])
+  }));
+}
+
