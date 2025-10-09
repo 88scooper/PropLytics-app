@@ -18,6 +18,7 @@ export const DEFAULT_ASSUMPTIONS = {
   annualPropertyAppreciation: 3.0, // 3% per year
   vacancyRate: 5.0, // 5% vacancy allowance
   futureInterestRate: 5.0, // 5% for mortgage renewals
+  exitCapRate: 5.0, // 5% cap rate for calculating future sale price
 };
 
 /**
@@ -83,6 +84,7 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS) {
     equity: [],
     cumulativeCashFlow: [],
     totalProfit: [],
+    noi: [], // Net Operating Income (before debt service)
   };
 
   // Get current mortgage details
@@ -134,6 +136,9 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS) {
     const annualOperatingExpenses = currentMonthlyOperatingExpenses * 12 * 
       Math.pow(1 + assumptions.annualExpenseInflation / 100, year - 1);
 
+    // Calculate NOI (Net Operating Income - before debt service)
+    const noi = annualRentalIncome - annualOperatingExpenses;
+
     // Calculate interest payment for this year
     const monthlyInterestRate = property.mortgage.interestRate / 12;
     const annualInterest = mortgageBalance * property.mortgage.interestRate;
@@ -149,9 +154,15 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS) {
     const netCashFlow = annualRentalIncome - annualOperatingExpenses - annualMortgagePayment;
     cumulativeCashFlow += netCashFlow;
 
-    // Calculate property value (appreciates annually)
-    currentPropertyValue = property.currentMarketValue * 
-      Math.pow(1 + assumptions.annualPropertyAppreciation / 100, year);
+    // Calculate property value
+    // For year 10, use Exit Cap Rate formula: Future Sale Price = NOI / Exit Cap Rate
+    // For other years, use appreciation model
+    if (year === 10 && assumptions.exitCapRate && assumptions.exitCapRate > 0) {
+      currentPropertyValue = noi / (assumptions.exitCapRate / 100);
+    } else {
+      currentPropertyValue = property.currentMarketValue * 
+        Math.pow(1 + assumptions.annualPropertyAppreciation / 100, year);
+    }
 
     // Calculate equity
     const equity = currentPropertyValue - mortgageBalance;
@@ -166,6 +177,7 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS) {
     forecast.equity.push(equity);
     forecast.cumulativeCashFlow.push(cumulativeCashFlow);
     forecast.totalProfit.push(totalProfit);
+    forecast.noi.push(noi);
 
     // Update rent for next year
     currentRent = currentRent * (1 + assumptions.annualRentIncrease / 100);

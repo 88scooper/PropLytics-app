@@ -51,6 +51,13 @@ const AssumptionsPanel = ({ assumptions, onAssumptionsChange, onSaveClick }) => 
       tooltip: 'Expected mortgage interest rate for renewals. Use this to model what happens when your current term expires.',
       suffix: '%',
       step: '0.1'
+    },
+    {
+      id: 'exitCapRate',
+      label: 'Exit Cap Rate',
+      tooltip: 'The capitalization rate used to determine the future sale price. Future Sale Price = Final Year NOI / Exit Cap Rate. Typically 0.5-1% higher than entry cap rate.',
+      suffix: '%',
+      step: '0.1'
     }
   ];
 
@@ -123,6 +130,7 @@ const AssumptionsPanel = ({ assumptions, onAssumptionsChange, onSaveClick }) => 
             annualPropertyAppreciation: 3.0,
             vacancyRate: 5.0,
             futureInterestRate: 5.0,
+            exitCapRate: 5.0,
           })}
           className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 
                    font-medium transition-colors"
