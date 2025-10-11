@@ -1,18 +1,25 @@
 "use client";
 
-import { useState, use, useMemo } from "react";
+import { useState, use, useMemo, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
 import { useProperty } from "@/context/PropertyContext";
 import { formatCurrency, formatPercentage, formatNumber } from "@/utils/formatting";
 import { calculateAmortizationSchedule } from "@/utils/mortgageCalculator";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
+import AnnualExpenseChart from '@/components/charts/AnnualExpenseChart';
 
 export default function PropertyDetailPage({ params }) {
   const { propertyId } = use(params) || {};
+  const [isHydrated, setIsHydrated] = useState(false);
   
   // Get property data using propertyId from PropertyContext
   const property = useProperty(propertyId);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   // Debug logging for capRate and cashOnCashReturn
   if (property) {
@@ -50,8 +57,68 @@ export default function PropertyDetailPage({ params }) {
     }
   }, [property]);
 
-  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [expenseView, setExpenseView] = useState('monthly'); // 'monthly' or 'annual'
+
+  // Prepare expense data for pie chart
+  const expenseChartData = useMemo(() => {
+    if (!property?.monthlyExpenses || !isHydrated) return [];
+    
+    const colors = ['#205A3E', '#4ade80', '#22c55e', '#16a34a', '#15803d', '#166534', '#14532d', '#052e16'];
+    
+    return Object.entries(property.monthlyExpenses)
+      .filter(([key, value]) => key !== 'total' && value > 0)
+      .map(([key, value], index) => ({
+        name: key.replace(/([A-Z])/g, ' $1').trim().replace(/^\w/, c => c.toUpperCase()),
+        value: expenseView === 'annual' ? value * 12 : value,
+        color: colors[index % colors.length]
+      }));
+  }, [property?.monthlyExpenses, expenseView, isHydrated]);
+
+  // Generate historical income and cost data from actual property data
+  const historicalData = useMemo(() => {
+    if (!property || !isHydrated) return [];
+    
+    const data = [];
+    
+    // Define historical data for each property based on available CSV data
+    const historicalDataMap = {
+      'richmond-st-e-403': [
+        { year: '2023', income: 40200, expenses: 23493.77, cashFlow: 16706.23 },
+        { year: '2024', income: 41323.03, expenses: 17399.9, cashFlow: 23923.13 },
+        { year: '2025', income: 41400, expenses: 17400, cashFlow: 24000 }
+      ],
+      'tretti-way-317': [
+        { year: '2024', income: 36000, expenses: 2567.21, cashFlow: 33432.79 },
+        { year: '2025', income: 36000, expenses: 2537.5, cashFlow: 33462.5 }
+      ],
+      'wilson-ave-415': [
+        { year: '2025', income: 28800, expenses: 10237.2, cashFlow: 18562.8 }
+      ]
+    };
+    
+    // Get historical data for this property
+    const propertyHistory = historicalDataMap[property.id] || [];
+    
+    // If no historical data available, create a simple current year entry
+    if (propertyHistory.length === 0) {
+      const currentYear = new Date().getFullYear().toString();
+      const currentIncome = property.rent?.annualRent || 0;
+      const currentExpenses = property.monthlyExpenses?.total ? property.monthlyExpenses.total * 12 : 0;
+      const currentCashFlow = currentIncome - currentExpenses;
+      
+      data.push({
+        year: currentYear,
+        income: currentIncome,
+        expenses: currentExpenses,
+        cashFlow: currentCashFlow
+      });
+    } else {
+      // Use actual historical data
+      data.push(...propertyHistory);
+    }
+    
+    return data;
+  }, [property, isHydrated]);
 
   if (!property) {
     return (
@@ -197,14 +264,14 @@ export default function PropertyDetailPage({ params }) {
                     </div>
                   </div>
                 </div>
-                <div className="grid gap-6 sm:grid-cols-2">
+                <div className="grid gap-6 lg:grid-cols-3">
                   <div>
                     <h3 className="font-medium mb-3">{expenseView === 'monthly' ? 'Monthly' : 'Annual'} Income</h3>
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">Rental Income</span>
                         <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                          {formatCurrency(expenseView === 'monthly' ? property.rent.monthlyRent : property.rent.annualRent)}
+                          {isHydrated ? formatCurrency(expenseView === 'monthly' ? (property.rent?.monthlyRent || 0) : (property.rent?.annualRent || 0)) : '--'}
                         </span>
                       </div>
                     </div>
@@ -212,28 +279,76 @@ export default function PropertyDetailPage({ params }) {
                   <div>
                     <h3 className="font-medium mb-3">{expenseView === 'monthly' ? 'Monthly' : 'Annual'} Expenses</h3>
                     <div className="space-y-2">
-                      {Object.entries(property.monthlyExpenses).map(([key, value]) => {
-                        if (key === 'total') return null;
-                        const displayValue = expenseView === 'annual' ? value * 12 : value;
-                        return (
-                          <div key={key} className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400 capitalize">
-                              {key.replace(/([A-Z])/g, ' $1').trim()}
-                            </span>
-                            <span className="font-medium text-red-600 dark:text-red-400">
-                              -{formatCurrency(displayValue)}
-                            </span>
+                      {isHydrated ? (
+                        <>
+                          {Object.entries(property.monthlyExpenses || {}).map(([key, value]) => {
+                            if (key === 'total') return null;
+                            const safeValue = value || 0;
+                            const displayValue = expenseView === 'annual' ? safeValue * 12 : safeValue;
+                            return (
+                              <div key={key} className="flex justify-between">
+                                <span className="text-gray-600 dark:text-gray-400 capitalize">
+                                  {key.replace(/([A-Z])/g, ' $1').trim()}
+                                </span>
+                                <span className="font-medium text-red-600 dark:text-red-400">
+                                  -{formatCurrency(displayValue)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          <div className="pt-2 border-t border-black/10 dark:border-white/10">
+                            <div className="flex justify-between font-semibold">
+                              <span>Total Expenses</span>
+                              <span className="text-red-600 dark:text-red-400">
+                                -{formatCurrency(expenseView === 'annual' ? (property.monthlyExpenses?.total || 0) * 12 : (property.monthlyExpenses?.total || 0))}
+                              </span>
+                            </div>
                           </div>
-                        );
-                      })}
-                      <div className="pt-2 border-t border-black/10 dark:border-white/10">
-                        <div className="flex justify-between font-semibold">
-                          <span>Total Expenses</span>
-                          <span className="text-red-600 dark:text-red-400">
-                            -{formatCurrency(expenseView === 'annual' ? property.monthlyExpenses.total * 12 : property.monthlyExpenses.total)}
-                          </span>
+                        </>
+                      ) : (
+                        <div className="flex justify-center py-4">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#205A3E]"></div>
                         </div>
-                      </div>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-medium mb-3">{expenseView === 'monthly' ? 'Monthly' : 'Annual'} Expense Breakdown</h3>
+                    <div className="h-48">
+                      {expenseChartData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={expenseChartData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={25}
+                              outerRadius={60}
+                              paddingAngle={2}
+                              dataKey="value"
+                            >
+                              {expenseChartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip 
+                              formatter={(value) => [formatCurrency(value), 'Amount']}
+                              labelFormatter={(label) => `${label}:`}
+                            />
+                            <Legend 
+                              verticalAlign="bottom" 
+                              height={36}
+                              formatter={(value) => <span className="text-xs">{value}</span>}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <div className="text-center text-gray-500 dark:text-gray-400">
+                            <div className="text-sm">No expense data available</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -241,16 +356,16 @@ export default function PropertyDetailPage({ params }) {
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                        {formatCurrency(expenseView === 'annual' ? property.annualCashFlow : property.monthlyCashFlow)}
+                        {isHydrated ? formatCurrency(expenseView === 'annual' ? (property.annualCashFlow || 0) : (property.monthlyCashFlow || 0)) : '--'}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">{expenseView === 'annual' ? 'Annual' : 'Monthly'} Cash Flow</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold">{formatPercentage(property.capRate)}</div>
+                      <div className="text-2xl font-bold">{isHydrated ? formatPercentage(property.capRate || 0) : '--'}</div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Cap Rate</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold">{formatPercentage(property.cashOnCashReturn)}</div>
+                      <div className="text-2xl font-bold">{isHydrated ? formatPercentage(property.cashOnCashReturn || 0) : '--'}</div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Cash on Cash</div>
                     </div>
                   </div>
@@ -262,13 +377,6 @@ export default function PropertyDetailPage({ params }) {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold">Mortgage Details</h2>
                   <div className="flex gap-2">
-                    <Button 
-                      variant="secondary" 
-                      size="sm"
-                      onClick={() => setShowPaymentHistory(!showPaymentHistory)}
-                    >
-                      {showPaymentHistory ? 'Hide' : 'View'} Schedule
-                    </Button>
                     <Button variant="secondary" size="sm">
                       Edit Mortgage
                     </Button>
@@ -406,104 +514,98 @@ export default function PropertyDetailPage({ params }) {
                 )}
               </div>
 
-              {/* Payment History */}
-              {mortgageData && (
-                <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold">Payment History</h2>
-                    <Button 
-                      variant="secondary" 
-                      size="sm"
-                      onClick={() => setShowPaymentHistory(!showPaymentHistory)}
-                    >
-                      {showPaymentHistory ? 'Hide' : 'Show'} Full Schedule
-                    </Button>
-                  </div>
-                  
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-black/10 dark:border-white/10">
-                          <th className="text-left py-2 font-medium">Payment #</th>
-                          <th className="text-left py-2 font-medium">Date</th>
-                          <th className="text-right py-2 font-medium">Principal</th>
-                          <th className="text-right py-2 font-medium">Interest</th>
-                          <th className="text-right py-2 font-medium">Total</th>
-                          <th className="text-right py-2 font-medium">Remaining Balance</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(showPaymentHistory ? mortgageData.schedule : mortgageData.schedule.slice(0, 12)).map((payment, index) => (
-                          <tr key={index} className="border-b border-black/5 dark:border-white/5">
-                            <td className="py-2">{payment.paymentNumber}</td>
-                            <td className="py-2">{new Date(payment.paymentDate).toLocaleDateString()}</td>
-                            <td className="text-right py-2 text-emerald-600 dark:text-emerald-400">
-                              {formatCurrency(payment.principal)}
-                            </td>
-                            <td className="text-right py-2 text-red-600 dark:text-red-400">
-                              {formatCurrency(payment.interest)}
-                            </td>
-                            <td className="text-right py-2 font-medium">
-                              {formatCurrency(payment.monthlyPayment)}
-                            </td>
-                            <td className="text-right py-2 text-gray-600 dark:text-gray-400">
-                              {formatCurrency(payment.remainingBalance)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    
-                    {!showPaymentHistory && mortgageData.schedule.length > 12 && (
-                      <div className="mt-4 text-center">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          Showing first 12 of {mortgageData.schedule.length} payments
-                        </p>
-                        <Button 
-                          variant="secondary" 
-                          size="sm"
-                          onClick={() => setShowPaymentHistory(true)}
-                        >
-                          View Complete Schedule
-                        </Button>
-                      </div>
-                    )}
-                    
-                    {showPaymentHistory && (
-                      <div className="mt-4 text-center">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          Showing all {mortgageData.schedule.length} payments
-                        </p>
-                        <Button 
-                          variant="secondary" 
-                          size="sm"
-                          onClick={() => setShowPaymentHistory(false)}
-                        >
-                          Show Less
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
-              {/* Charts Placeholder */}
+              {/* Historical Performance Chart */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <h2 className="text-xl font-semibold mb-4">Performance Charts</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="h-48 rounded-lg bg-gray-100 dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
-                    <div className="text-center text-gray-500 dark:text-gray-400">
-                      <div className="text-sm">Cash Flow Over Time</div>
-                      <div className="text-xs">Chart placeholder</div>
-                    </div>
-                  </div>
-                  <div className="h-48 rounded-lg bg-gray-100 dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
-                    <div className="text-center text-gray-500 dark:text-gray-400">
-                      <div className="text-sm">Expense Breakdown</div>
-                      <div className="text-xs">Chart placeholder</div>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">Historical Performance</h2>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                    Based on actual records
+                  </span>
                 </div>
+                <div className="h-80">
+                  {historicalData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={historicalData}>
+                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                        <XAxis 
+                          dataKey="year" 
+                          tick={{ fontSize: 12 }}
+                          tickLine={{ stroke: '#9ca3af' }}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 12 }}
+                          tickLine={{ stroke: '#9ca3af' }}
+                          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                        />
+                        <Tooltip 
+                          formatter={(value, name) => [
+                            formatCurrency(value), 
+                            name === 'income' ? 'Income' : name === 'expenses' ? 'Expenses' : 'Cash Flow'
+                          ]}
+                          labelFormatter={(year) => `Year: ${year}`}
+                          contentStyle={{
+                            backgroundColor: 'white',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                          }}
+                        />
+                        <Legend 
+                          formatter={(value) => {
+                            switch(value) {
+                              case 'income': return 'Income';
+                              case 'expenses': return 'Expenses';
+                              case 'cashFlow': return 'Cash Flow';
+                              default: return value;
+                            }
+                          }}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="income" 
+                          stroke="#22c55e" 
+                          strokeWidth={3}
+                          dot={{ fill: '#22c55e', strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: '#22c55e', strokeWidth: 2 }}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="expenses" 
+                          stroke="#ef4444" 
+                          strokeWidth={3}
+                          dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: '#ef4444', strokeWidth: 2 }}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="cashFlow" 
+                          stroke="#205A3E" 
+                          strokeWidth={3}
+                          dot={{ fill: '#205A3E', strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: '#205A3E', strokeWidth: 2 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center text-gray-500 dark:text-gray-400">
+                        <div className="text-sm">No historical data available</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Annual Expense History Chart */}
+              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">Annual Expense History</h2>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                    Categorized expenses
+                  </span>
+                </div>
+                <AnnualExpenseChart expenseHistory={property?.expenseHistory || []} />
               </div>
             </div>
 

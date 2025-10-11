@@ -75,8 +75,9 @@ const navItems = [
     href: "/mortgages",
     label: "Mortgages",
     icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+        <circle cx="12" cy="12" r="8.8"/>
+        <text x="12" y="17.5" fontSize="13.2" textAnchor="middle" fill="currentColor" fontFamily="Arial, sans-serif" fontWeight="900">$</text>
       </svg>
     )
   },

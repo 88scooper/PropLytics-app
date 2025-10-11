@@ -24,8 +24,6 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useProperties, usePortfolioMetrics, usePropertyContext } from "@/context/PropertyContext";
-import { getCurrentMortgageBalance } from "@/utils/mortgageCalculator";
-import PortfolioMortgageDashboard from "@/components/mortgages/PortfolioMortgageDashboard";
 import { formatCurrency, formatPercentage } from "@/utils/formatting";
 
 // ROI data for different time periods
@@ -749,8 +747,6 @@ export default function PortfolioSummaryPage() {
             </div>
           </div>
 
-          {/* Mortgage Dashboard Section */}
-          <PortfolioMortgageDashboard />
         </div>
       </Layout>
     </RequireAuth>

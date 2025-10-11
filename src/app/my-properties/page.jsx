@@ -6,7 +6,6 @@ import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
 import { useProperties, usePropertyContext } from "@/context/PropertyContext";
-import PropertyMortgageSummary from "@/components/mortgages/PropertyMortgageSummary";
 import { formatCurrency, formatPercentage } from "@/utils/formatting";
 
 export default function MyPropertiesPage() {
@@ -138,16 +137,10 @@ function PropertyCard({ property }) {
         </div>
         
         <div className="mt-3 pt-3 border-t border-black/10 dark:border-white/10">
-          <div className="flex items-center justify-between text-xs sm:text-sm mb-2">
+          <div className="flex items-center justify-between text-xs sm:text-sm">
             <span className="text-gray-500 dark:text-gray-400">Cap Rate</span>
             <span className="font-medium">{formatPercentage(capRate)}</span>
           </div>
-          
-          {/* Mortgage Summary */}
-          <PropertyMortgageSummary 
-            propertyId={property.id} 
-            className="text-xs"
-          />
         </div>
       </div>
     </Link>

@@ -68,13 +68,28 @@ export const properties = [
       annualRent: 41400, // 3450 * 12
     },
 
-    expenses: {
-      propertyTax: { amount: 2205.39, frequency: 'Annually' },
-      condoFees: { amount: 9954.84, frequency: 'Annually' }, // 829.57/month
-      insurance: { amount: 512, frequency: 'Annually' },
-      maintenance: { amount: 829.17, frequency: 'Annually' },
-      professionalFees: { amount: 3898.5, frequency: 'Annually' },
-    },
+    expenseHistory: [
+      // 2023 Expenses
+      { id: 'richmond-2023-tax', date: '2023-01-15', amount: 524.39, category: 'Property Tax', description: 'Annual property tax payment' },
+      { id: 'richmond-2023-condo', date: '2023-01-15', amount: 1580.58, category: 'Condo Fees', description: 'Monthly condo fees' },
+      { id: 'richmond-2023-utilities', date: '2023-02-01', amount: 54, category: 'Other', description: 'Utility charges' },
+      { id: 'richmond-2023-professional', date: '2023-03-15', amount: 3785.59, category: 'Other', description: 'Professional fees' },
+      { id: 'richmond-2023-interest', date: '2023-06-01', amount: 1696.05, category: 'Other', description: 'Interest & bank charges' },
+      
+      // 2024 Expenses
+      { id: 'richmond-2024-tax', date: '2024-01-15', amount: 3218.8, category: 'Property Tax', description: 'Annual property tax payment' },
+      { id: 'richmond-2024-condo', date: '2024-01-15', amount: 9562.04, category: 'Condo Fees', description: 'Monthly condo fees' },
+      { id: 'richmond-2024-insurance', date: '2024-02-01', amount: 310.14, category: 'Insurance', description: 'Property insurance' },
+      { id: 'richmond-2024-interest', date: '2024-06-01', amount: 10343.11, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'richmond-2024-maintenance', date: '2024-08-15', amount: 59.68, category: 'Maintenance', description: 'Minor repairs' },
+      
+      // 2025 Expenses
+      { id: 'richmond-2025-tax', date: '2025-01-15', amount: 2205.39, category: 'Property Tax', description: 'Annual property tax payment' },
+      { id: 'richmond-2025-condo', date: '2025-01-15', amount: 9954.84, category: 'Condo Fees', description: 'Monthly condo fees' },
+      { id: 'richmond-2025-insurance', date: '2025-02-01', amount: 512, category: 'Insurance', description: 'Property insurance' },
+      { id: 'richmond-2025-maintenance', date: '2025-03-15', amount: 829.17, category: 'Maintenance', description: 'Maintenance and repairs' },
+      { id: 'richmond-2025-professional', date: '2025-04-01', amount: 3898.5, category: 'Other', description: 'Professional fees' },
+    ],
 
     tenant: {
       name: 'Steve MacNeil, Kate St John',
@@ -161,12 +176,20 @@ export const properties = [
       annualRent: 27600, // 2300 * 12
     },
 
-    expenses: {
-      propertyTax: { amount: 2294.1, frequency: 'Annually' },
-      condoFees: { amount: 5204.88, frequency: 'Annually' }, // 433.74/month
-      insurance: { amount: 552.96, frequency: 'Annually' },
-      professionalFees: { amount: 2712, frequency: 'Annually' },
-    },
+    expenseHistory: [
+      // 2024 Expenses (purchased in Oct 2023, but expenses start from 2024)
+      { id: 'tretti-2024-tax', date: '2024-01-15', amount: 2294.1, category: 'Property Tax', description: 'Annual property tax payment' },
+      { id: 'tretti-2024-condo', date: '2024-01-15', amount: 5204.88, category: 'Condo Fees', description: 'Monthly condo fees' },
+      { id: 'tretti-2024-insurance', date: '2024-02-01', amount: 552.96, category: 'Insurance', description: 'Property insurance' },
+      { id: 'tretti-2024-professional', date: '2024-03-01', amount: 2712, category: 'Other', description: 'Professional fees' },
+      { id: 'tretti-2024-advertising', date: '2024-06-15', amount: 467, category: 'Other', description: 'Advertising costs' },
+      
+      // 2025 Expenses
+      { id: 'tretti-2025-tax', date: '2025-01-15', amount: 2294.1, category: 'Property Tax', description: 'Annual property tax payment' },
+      { id: 'tretti-2025-condo', date: '2025-01-15', amount: 5204.88, category: 'Condo Fees', description: 'Monthly condo fees' },
+      { id: 'tretti-2025-insurance', date: '2025-02-01', amount: 552.96, category: 'Insurance', description: 'Property insurance' },
+      { id: 'tretti-2025-advertising', date: '2025-06-15', amount: 527, category: 'Other', description: 'Advertising costs' },
+    ],
 
     tenant: {
       name: 'Pratikkumar Chaudary',
@@ -251,14 +274,15 @@ export const properties = [
       annualRent: 28800, // 2400 * 12
     },
 
-    expenses: {
-      propertyTax: { amount: 0, frequency: 'Annually' }, // Not specified in CSV
-      condoFees: { amount: 0, frequency: 'Annually' }, // Not specified in CSV
-      insurance: { amount: 710, frequency: 'Annually' },
-      maintenance: { amount: 253.9, frequency: 'Annually' },
-      professionalFees: { amount: 2712, frequency: 'Annually' },
-      utilities: { amount: 175.96, frequency: 'Annually' },
-    },
+    expenseHistory: [
+      // 2025 Expenses (purchased in Jan 2025)
+      { id: 'wilson-2025-insurance', date: '2025-02-01', amount: 710, category: 'Insurance', description: 'Property insurance' },
+      { id: 'wilson-2025-maintenance', date: '2025-03-15', amount: 253.9, category: 'Maintenance', description: 'Maintenance and repairs' },
+      { id: 'wilson-2025-professional', date: '2025-04-01', amount: 2712, category: 'Other', description: 'Professional fees' },
+      { id: 'wilson-2025-utilities', date: '2025-05-01', amount: 175.96, category: 'Other', description: 'Utility charges' },
+      { id: 'wilson-2025-advertising', date: '2025-06-15', amount: 527, category: 'Other', description: 'Advertising costs' },
+      { id: 'wilson-2025-condo', date: '2025-01-15', amount: 2300, category: 'Condo Fees', description: 'Monthly condo fees' },
+    ],
 
     tenant: {
       name: 'Aanal Shah, Kavya Gandhi, Parth Patel',
