@@ -183,9 +183,9 @@ export default function PropertyDetailPage({ params }) {
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Purchase & Initial Costs */}
+              {/* Property Summary & Purchase Details */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <h2 className="text-xl font-semibold mb-4">Purchase & Initial Costs</h2>
+                <h2 className="text-xl font-semibold mb-4">Property Summary & Purchase Details</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-3">
                     <div className="flex justify-between">
