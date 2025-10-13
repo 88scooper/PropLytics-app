@@ -8,6 +8,28 @@ import Button from "@/components/Button";
 import { useProperties, usePropertyContext } from "@/context/PropertyContext";
 import { formatCurrency, formatPercentage } from "@/utils/formatting";
 
+// Historical data map for YoY calculations
+const historicalDataMap = {
+  'richmond-st-e-403': [
+    { year: '2023', income: 40200, expenses: 23493.77 },
+    { year: '2024', income: 41323.03, expenses: 17399.9 },
+    { year: '2025', income: 41400, expenses: 17400 }
+  ],
+  'tretti-way-317': [
+    { year: '2024', income: 36000, expenses: 2567.21 },
+    { year: '2025', income: 36000, expenses: 2537.5 }
+  ],
+  'wilson-ave-415': [
+    { year: '2025', income: 28800, expenses: 10237.2 }
+  ]
+};
+
+// Calculate YoY change percentage
+function calculateYoYChange(currentValue, previousValue) {
+  if (!previousValue || previousValue === 0) return null;
+  return ((currentValue - previousValue) / previousValue) * 100;
+}
+
 export default function MyPropertiesPage() {
   const { calculationsComplete } = usePropertyContext();
   const properties = useProperties();
@@ -79,6 +101,22 @@ function PropertyCard({ property }) {
   const capRate = property.capRate;
   const squareFeet = property.size || property.squareFootage || 0;
   const rentPerSqFt = squareFeet > 0 ? property.rent.monthlyRent / squareFeet : 0;
+  
+  // Calculate YoY changes
+  const historicalData = historicalDataMap[property.id] || [];
+  const currentYear = new Date().getFullYear().toString();
+  const lastYear = (new Date().getFullYear() - 1).toString();
+  
+  const currentYearData = historicalData.find(d => d.year === currentYear);
+  const lastYearData = historicalData.find(d => d.year === lastYear);
+  
+  const yoyRevenueChange = currentYearData && lastYearData 
+    ? calculateYoYChange(currentYearData.income, lastYearData.income) 
+    : null;
+  
+  const yoyExpenseChange = currentYearData && lastYearData 
+    ? calculateYoYChange(currentYearData.expenses, lastYearData.expenses) 
+    : null;
 
   return (
     <Link 
@@ -140,6 +178,30 @@ function PropertyCard({ property }) {
             <div className="text-gray-500 dark:text-gray-400">Rent/Sq Ft</div>
             <div className="font-medium">
               {formatCurrency(rentPerSqFt)}
+            </div>
+          </div>
+          <div>
+            <div className="text-gray-500 dark:text-gray-400">YoY Revenue</div>
+            <div className={`font-medium ${
+              yoyRevenueChange === null 
+                ? 'text-gray-400' 
+                : yoyRevenueChange >= 0 
+                  ? 'text-emerald-600 dark:text-emerald-400' 
+                  : 'text-red-600 dark:text-red-400'
+            }`}>
+              {yoyRevenueChange !== null ? `${yoyRevenueChange >= 0 ? '+' : ''}${yoyRevenueChange.toFixed(1)}%` : 'N/A'}
+            </div>
+          </div>
+          <div>
+            <div className="text-gray-500 dark:text-gray-400">YoY Expenses</div>
+            <div className={`font-medium ${
+              yoyExpenseChange === null 
+                ? 'text-gray-400' 
+                : yoyExpenseChange >= 0 
+                  ? 'text-red-600 dark:text-red-400' 
+                  : 'text-emerald-600 dark:text-emerald-400'
+            }`}>
+              {yoyExpenseChange !== null ? `${yoyExpenseChange >= 0 ? '+' : ''}${yoyExpenseChange.toFixed(1)}%` : 'N/A'}
             </div>
           </div>
         </div>
