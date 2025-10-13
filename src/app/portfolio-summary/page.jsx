@@ -98,14 +98,16 @@ export default function PortfolioSummaryPage() {
     { id: 'portfolioValue', name: 'Total Estimated Portfolio Value', isVisible: true },
     { id: 'equity', name: 'Total Estimated Equity', isVisible: true },
     { id: 'mortgageDebt', name: 'Total Mortgage Debt', isVisible: true },
-    { id: 'monthlyRevenue', name: 'Total Monthly Revenue', isVisible: true },
-    { id: 'monthlyExpenses', name: 'Total Monthly Expenses', isVisible: true },
+    { id: 'annualRevenue', name: 'Total Annual Revenue', isVisible: true },
+    { id: 'annualExpenses', name: 'Total Annual Expenses', isVisible: true },
+    { id: 'annualDeductibleExpenses', name: 'Total Annual Deductible Expenses', isVisible: true },
     { id: 'monthlyCashFlow', name: 'Monthly Net Cash Flow', isVisible: true },
     { id: 'cashOnCash', name: 'Annual Cash on Cash', isVisible: true },
     { id: 'netOperatingIncome', name: 'Annual Net Operating Income', isVisible: true },
     { id: 'returnOnCost', name: 'Total Estimated Return On Investment', isVisible: true },
     { id: 'capRate', name: 'Average Annual Cap Rate', isVisible: true },
-    { id: 'totalProperties', name: 'Total Properties', isVisible: true },
+    { id: 'avgRentPerSqFt', name: 'Average Rent Per Square Foot', isVisible: true },
+    { id: 'totalProperties', name: 'Total Properties & Units', isVisible: true },
     { id: 'financialGoals', name: 'Financial Goals', isVisible: true },
   ];
 
@@ -223,6 +225,9 @@ export default function PortfolioSummaryPage() {
   const totalPortfolioValue = portfolioMetrics.totalValue || 0;
   const totalEquity = portfolioMetrics.totalEquity || 0;
   const totalProperties = portfolioMetrics.totalProperties || 0;
+  const totalUnits = properties.reduce((sum, property) => sum + (property.units || 0), 0);
+  const totalSquareFeet = properties.reduce((sum, property) => sum + (property.size || property.squareFootage || 0), 0);
+  const averageRentPerSqFt = totalSquareFeet > 0 ? (portfolioMetrics.totalMonthlyRent || 0) / totalSquareFeet : 0;
   const averageOccupancyRate = portfolioMetrics.averageOccupancy || 0;
   const averageCapRate = portfolioMetrics.averageCapRate || 0;
 
@@ -358,14 +363,14 @@ export default function PortfolioSummaryPage() {
                         tooltipText="The estimated market value of your properties minus the remaining mortgage balances."
                       />
                     );
-                  case 'monthlyRevenue':
+                  case 'annualRevenue':
                     return (
                       <MetricCard
                         key={metric.id}
-                        title="Total Monthly Revenue"
-                        value={formatCurrency(portfolioMetrics.totalMonthlyRent || 0)}
+                        title="Total Annual Revenue"
+                        value={formatCurrency((portfolioMetrics.totalMonthlyRent || 0) * 12)}
                         showInfoIcon={true}
-                        tooltipText="The total monthly rental income from all properties in your portfolio."
+                        tooltipText="The total annual rental income from all properties in your portfolio."
                       />
                     );
                   case 'monthlyCashFlow':
@@ -380,24 +385,39 @@ export default function PortfolioSummaryPage() {
                         customColor={monthlyCashFlowValue < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}
                       />
                     );
-                  case 'monthlyExpenses':
+                  case 'annualExpenses':
                     return (
                       <MetricCard
                         key={metric.id}
-                        title="Total Monthly Expenses"
-                        value={formatCurrency(totalMonthlyExpenses)}
+                        title="Total Annual Expenses"
+                        value={formatCurrency(totalMonthlyExpenses * 12)}
                         showInfoIcon={true}
-                        tooltipText="The sum of all recurring monthly costs, including mortgage, taxes, fees, and insurance."
+                        tooltipText="The sum of all recurring annual costs, including mortgage, taxes, fees, and insurance."
+                      />
+                    );
+                  case 'annualDeductibleExpenses':
+                    return (
+                      <MetricCard
+                        key={metric.id}
+                        title="Total Annual Deductible Expenses"
+                        value={formatCurrency(portfolioMetrics?.totalAnnualDeductibleExpenses || 0)}
+                        isExpense={true}
+                        showInfoIcon={true}
+                        tooltipText="Tax-deductible expenses including mortgage interest, property tax, utilities, insurance, maintenance, and professional fees. These costs can be written off to reduce your taxable income."
                       />
                     );
                   case 'totalProperties':
                     return (
                       <MetricCard
                         key={metric.id}
-                        title="Total Properties"
-                        value={totalProperties.toString()}
+                        title="Total Properties & Units"
                         showInfoIcon={true}
-                        tooltipText="The total number of investment properties currently in your portfolio."
+                        tooltipText="The total number of investment properties and rental units currently in your portfolio."
+                        isMultiMetric={true}
+                        multiMetrics={[
+                          { label: "Properties", value: totalProperties.toString() },
+                          { label: "Units", value: totalUnits.toString() }
+                        ]}
                       />
                     );
                   case 'occupancyRate':
@@ -418,6 +438,16 @@ export default function PortfolioSummaryPage() {
                         value={formatPercentage(averageCapRate)}
                         showInfoIcon={true}
                         tooltipText="The rate of return on a real estate investment property based on the income that the property is expected to generate."
+                      />
+                    );
+                  case 'avgRentPerSqFt':
+                    return (
+                      <MetricCard
+                        key={metric.id}
+                        title="Average Rent Per Square Foot"
+                        value={formatCurrency(averageRentPerSqFt)}
+                        showInfoIcon={true}
+                        tooltipText="The average monthly rental income per square foot across all properties in your portfolio. This helps compare rental efficiency between properties of different sizes."
                       />
                     );
                   case 'returnOnCost':
