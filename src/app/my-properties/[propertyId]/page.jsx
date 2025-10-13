@@ -353,7 +353,7 @@ export default function PropertyDetailPage({ params }) {
                   </div>
                 </div>
                 <div className="mt-6 pt-4 border-t border-black/10 dark:border-white/10">
-                  <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                         {isHydrated ? formatCurrency(expenseView === 'annual' ? (property.annualCashFlow || 0) : (property.monthlyCashFlow || 0)) : '--'}
@@ -367,6 +367,12 @@ export default function PropertyDetailPage({ params }) {
                     <div className="text-center">
                       <div className="text-2xl font-bold">{isHydrated ? formatPercentage(property.cashOnCashReturn || 0) : '--'}</div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Cash on Cash</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">
+                        {isHydrated ? formatCurrency((property.size || property.squareFootage) > 0 ? property.rent.monthlyRent / (property.size || property.squareFootage) : 0) : '--'}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Rent/Sq Ft</div>
                     </div>
                   </div>
                 </div>

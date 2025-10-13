@@ -77,6 +77,8 @@ export default function MyPropertiesPage() {
 function PropertyCard({ property }) {
   const monthlyCashFlow = property.monthlyCashFlow;
   const capRate = property.capRate;
+  const squareFeet = property.size || property.squareFootage || 0;
+  const rentPerSqFt = squareFeet > 0 ? property.rent.monthlyRent / squareFeet : 0;
 
   return (
     <Link 
@@ -132,6 +134,12 @@ function PropertyCard({ property }) {
             <div className="text-gray-500 dark:text-gray-400">Cash Flow</div>
             <div className={`font-medium ${monthlyCashFlow >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
               {formatCurrency(monthlyCashFlow)}
+            </div>
+          </div>
+          <div>
+            <div className="text-gray-500 dark:text-gray-400">Rent/Sq Ft</div>
+            <div className="font-medium">
+              {formatCurrency(rentPerSqFt)}
             </div>
           </div>
         </div>
