@@ -63,7 +63,8 @@ export default function PropertyDetailPage({ params }) {
   const expenseChartData = useMemo(() => {
     if (!property?.monthlyExpenses || !isHydrated) return [];
     
-    const colors = ['#205A3E', '#4ade80', '#22c55e', '#16a34a', '#15803d', '#166534', '#14532d', '#052e16'];
+    // Diverse color palette for better visualization
+    const colors = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
     
     return Object.entries(property.monthlyExpenses)
       .filter(([key, value]) => key !== 'total' && value > 0)
@@ -326,6 +327,8 @@ export default function PropertyDetailPage({ params }) {
                               outerRadius={60}
                               paddingAngle={2}
                               dataKey="value"
+                              label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                              labelLine={false}
                             >
                               {expenseChartData.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={entry.color} />
