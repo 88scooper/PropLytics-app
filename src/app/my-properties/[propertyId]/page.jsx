@@ -687,25 +687,6 @@ export default function PropertyDetailPage({ params }) {
                   ))}
                 </div>
               </div>
-
-              {/* Property Details */}
-              <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
-                <h3 className="font-semibold mb-3">Property Details</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Square Footage</span>
-                    <span className="font-medium">{formatNumber(property.squareFootage)} sq ft</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Year Built</span>
-                    <span className="font-medium">{property.yearBuilt}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Property Type</span>
-                    <span className="font-medium">{property.type}</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
