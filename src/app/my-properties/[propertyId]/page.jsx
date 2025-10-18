@@ -181,9 +181,9 @@ export default function PropertyDetailPage({ params }) {
             )}
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6">
+            {/* Main Content - Full Width */}
+            <div className="space-y-6">
               {/* Property Summary & Purchase Details */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
                 <h2 className="text-xl font-semibold mb-4">Property Summary & Purchase Details</h2>
@@ -389,6 +389,90 @@ export default function PropertyDetailPage({ params }) {
                 </div>
               </div>
 
+
+
+              {/* Historical Performance Chart */}
+              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">Historical Performance</h2>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                    Based on actual records
+                  </span>
+                </div>
+                <div className="h-80">
+                  {historicalData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={historicalData}>
+                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                        <XAxis 
+                          dataKey="year" 
+                          tick={{ fontSize: 12 }}
+                          tickLine={{ stroke: '#9ca3af' }}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 12 }}
+                          tickLine={{ stroke: '#9ca3af' }}
+                          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                        />
+                        <Tooltip 
+                          formatter={(value, name) => [
+                            formatCurrency(value), 
+                            name === 'income' ? 'Income' : name === 'expenses' ? 'Expenses' : 'Cash Flow'
+                          ]}
+                          labelFormatter={(year) => `Year: ${year}`}
+                          contentStyle={{
+                            backgroundColor: 'white',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                          }}
+                        />
+                        <Legend 
+                          formatter={(value) => {
+                            switch(value) {
+                              case 'income': return 'Income';
+                              case 'expenses': return 'Expenses';
+                              case 'cashFlow': return 'Cash Flow';
+                              default: return value;
+                            }
+                          }}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="income" 
+                          stroke="#22c55e" 
+                          strokeWidth={3}
+                          dot={{ fill: '#22c55e', strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: '#22c55e', strokeWidth: 2 }}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="expenses" 
+                          stroke="#ef4444" 
+                          strokeWidth={3}
+                          dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: '#ef4444', strokeWidth: 2 }}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="cashFlow" 
+                          stroke="#205A3E" 
+                          strokeWidth={3}
+                          dot={{ fill: '#205A3E', strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: '#205A3E', strokeWidth: 2 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center text-gray-500 dark:text-gray-400">
+                        <div className="text-sm">No historical data available</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Enhanced Mortgage Details */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -531,160 +615,9 @@ export default function PropertyDetailPage({ params }) {
                 )}
               </div>
 
-
-              {/* Historical Performance Chart */}
+              {/* Current Tenants */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">Historical Performance</h2>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                    Based on actual records
-                  </span>
-                </div>
-                <div className="h-80">
-                  {historicalData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={historicalData}>
-                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                        <XAxis 
-                          dataKey="year" 
-                          tick={{ fontSize: 12 }}
-                          tickLine={{ stroke: '#9ca3af' }}
-                        />
-                        <YAxis 
-                          tick={{ fontSize: 12 }}
-                          tickLine={{ stroke: '#9ca3af' }}
-                          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                        />
-                        <Tooltip 
-                          formatter={(value, name) => [
-                            formatCurrency(value), 
-                            name === 'income' ? 'Income' : name === 'expenses' ? 'Expenses' : 'Cash Flow'
-                          ]}
-                          labelFormatter={(year) => `Year: ${year}`}
-                          contentStyle={{
-                            backgroundColor: 'white',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                          }}
-                        />
-                        <Legend 
-                          formatter={(value) => {
-                            switch(value) {
-                              case 'income': return 'Income';
-                              case 'expenses': return 'Expenses';
-                              case 'cashFlow': return 'Cash Flow';
-                              default: return value;
-                            }
-                          }}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="income" 
-                          stroke="#22c55e" 
-                          strokeWidth={3}
-                          dot={{ fill: '#22c55e', strokeWidth: 2, r: 4 }}
-                          activeDot={{ r: 6, stroke: '#22c55e', strokeWidth: 2 }}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="expenses" 
-                          stroke="#ef4444" 
-                          strokeWidth={3}
-                          dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
-                          activeDot={{ r: 6, stroke: '#ef4444', strokeWidth: 2 }}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="cashFlow" 
-                          stroke="#205A3E" 
-                          strokeWidth={3}
-                          dot={{ fill: '#205A3E', strokeWidth: 2, r: 4 }}
-                          activeDot={{ r: 6, stroke: '#205A3E', strokeWidth: 2 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center text-gray-500 dark:text-gray-400">
-                        <div className="text-sm">No historical data available</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Annual Expense History Chart */}
-              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">Annual Expense History</h2>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                    Categorized expenses
-                  </span>
-                </div>
-                <AnnualExpenseChart expenseHistory={property?.expenseHistory || []} />
-              </div>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Mortgage Summary - Coming Soon */}
-              {false && (
-                <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
-                  <h3 className="font-semibold mb-3">Mortgage Summary</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Current Balance</span>
-                      <span className="font-medium">{formatCurrency(mortgageData.currentBalance)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Monthly Payment</span>
-                      <span className="font-medium">{formatCurrency(mortgageData.paymentAmount)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Interest Rate</span>
-                      <span className="font-medium">{mortgageData.interestRate}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Principal Paid</span>
-                      <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                        {formatCurrency(mortgageData.purchasePrice - mortgageData.currentBalance)}
-                      </span>
-                    </div>
-                    <div className="pt-2 border-t border-black/10 dark:border-white/10">
-                      <div className="flex justify-between font-medium">
-                        <span>Total Payments</span>
-                        <span>{mortgageData.paymentHistory.length}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Quick Stats */}
-              <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
-                <h3 className="font-semibold mb-3">Quick Stats</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Occupancy</span>
-                    <span className="font-medium">{property.occupancy}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Annual Cash Flow</span>
-                    <span className={`font-medium ${property.annualCashFlow >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                      {formatCurrency(property.annualCashFlow)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Total Units</span>
-                    <span className="font-medium">{property.units}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tenants */}
-              <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
-                <h3 className="font-semibold mb-3">Current Tenants</h3>
+                <h2 className="text-xl font-semibold mb-4">Current Tenants</h2>
                 <div className="space-y-3">
                   {property.tenants.map((tenant, index) => (
                     <div key={index} className="text-sm">
@@ -697,6 +630,17 @@ export default function PropertyDetailPage({ params }) {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* Annual Expense History Chart */}
+              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">Annual Expense History</h2>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                    Categorized expenses
+                  </span>
+                </div>
+                <AnnualExpenseChart expenseHistory={property?.expenseHistory || []} />
               </div>
             </div>
           </div>
