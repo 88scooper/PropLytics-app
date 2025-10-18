@@ -194,6 +194,14 @@ export default function PropertyDetailPage({ params }) {
                       <span className="font-medium">{formatCurrency(property.purchasePrice)}</span>
                     </div>
                     <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Original Mortgage</span>
+                      <span className="font-medium">{formatCurrency(property.mortgage.originalAmount)}</span>
+                    </div>
+                    
+                    {/* Visual Separator */}
+                    <div className="pt-2 border-t border-black/10 dark:border-white/10"></div>
+                    
+                    <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Down Payment</span>
                       <span className="font-medium">{formatCurrency(property.purchasePrice - property.mortgage.originalAmount)}</span>
                     </div>
@@ -202,13 +210,13 @@ export default function PropertyDetailPage({ params }) {
                       <span className="font-medium">{formatCurrency(property.closingCosts)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Renovation Costs</span>
-                      <span className="font-medium">{formatCurrency(property.renovationCosts)}</span>
+                      <span className="text-gray-600 dark:text-gray-400">Initial Renovations</span>
+                      <span className="font-medium">{formatCurrency(property.initialRenovations)}</span>
                     </div>
                     <div className="pt-2 border-t border-black/10 dark:border-white/10">
                       <div className="flex justify-between font-semibold">
-                        <span>Total Investment</span>
-                        <span>{formatCurrency(property.totalInvestment)}</span>
+                        <span>Total Investment (Cash)</span>
+                        <span>{formatCurrency((property.purchasePrice - property.mortgage.originalAmount) + property.closingCosts + property.initialRenovations)}</span>
                       </div>
                     </div>
                   </div>

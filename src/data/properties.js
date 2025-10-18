@@ -44,8 +44,9 @@ export const properties = [
     address: '403-311 Richmond St E, Toronto, ON M5A4S8',
     purchasePrice: 615000,
     purchaseDate: '2019-02-04',
-    closingCosts: 18150,
-    renovationCosts: 100000,
+    closingCosts: 12300, // ~2% of purchase price
+    initialRenovations: 25000, // Initial renovation investment
+    renovationCosts: 100000, // Keep existing field for backward compatibility
     currentMarketValue: 800000,
     yearBuilt: 2001,
     propertyType: 'Condo',
@@ -152,8 +153,9 @@ export const properties = [
     address: '317-30 Tretti Way, Toronto, ON M3H0E3',
     purchasePrice: 448618,
     purchaseDate: '2023-10-04',
-    closingCosts: 68086,
-    renovationCosts: 0,
+    closingCosts: 8972, // ~2% of purchase price
+    initialRenovations: 5000, // Initial renovation investment
+    renovationCosts: 0, // Keep existing field for backward compatibility
     currentMarketValue: 550000,
     yearBuilt: 2023,
     propertyType: 'Condo',
@@ -250,8 +252,9 @@ export const properties = [
     address: '415-500 Wilson Ave, Toronto, ON M3H0E5',
     purchasePrice: 533379.47,
     purchaseDate: '2025-01-20',
-    closingCosts: 53241.9,
-    renovationCosts: 0,
+    closingCosts: 10668, // ~2% of purchase price
+    initialRenovations: 8000, // Initial renovation investment
+    renovationCosts: 0, // Keep existing field for backward compatibility
     currentMarketValue: 550000, // Estimated based on similar properties
     yearBuilt: 2025,
     propertyType: 'Condo',
