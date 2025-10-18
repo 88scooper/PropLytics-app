@@ -58,6 +58,7 @@ export default function PropertyDetailPage({ params }) {
   }, [property]);
 
   const [expenseView, setExpenseView] = useState('monthly'); // 'monthly' or 'annual'
+  const [hoveredSegment, setHoveredSegment] = useState(null); // For hover interactions
 
   // Prepare expense data for pie chart
   const expenseChartData = useMemo(() => {
@@ -325,34 +326,88 @@ export default function PropertyDetailPage({ params }) {
                     <h3 className="font-medium mb-3">{expenseView === 'monthly' ? 'Monthly' : 'Annual'} Expense Breakdown</h3>
                     <div className="h-48">
                       {expenseChartData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={expenseChartData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={25}
-                              outerRadius={60}
-                              paddingAngle={2}
-                              dataKey="value"
-                              label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-                              labelLine={false}
-                            >
-                              {expenseChartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                            <Tooltip 
-                              formatter={(value) => [formatCurrency(value), 'Amount']}
-                              labelFormatter={(label) => `${label}:`}
-                            />
-                            <Legend 
-                              verticalAlign="bottom" 
-                              height={36}
-                              formatter={(value) => <span className="text-xs">{value}</span>}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
+                        <div className="flex items-center gap-6 h-full">
+                          {/* Donut Chart */}
+                          <div className="flex-shrink-0 relative">
+                            <ResponsiveContainer width={120} height={120}>
+                              <PieChart>
+                                <Pie
+                                  data={expenseChartData}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={35}
+                                  outerRadius={55}
+                                  paddingAngle={2}
+                                  dataKey="value"
+                                  stroke="none"
+                                  onMouseEnter={(data, index) => setHoveredSegment(index)}
+                                  onMouseLeave={() => setHoveredSegment(null)}
+                                >
+                                  {expenseChartData.map((entry, index) => (
+                                    <Cell 
+                                      key={`cell-${index}`} 
+                                      fill={entry.color}
+                                      style={{
+                                        filter: hoveredSegment === index ? 'brightness(1.1) drop-shadow(0 0 6px rgba(0,0,0,0.3))' : 'none',
+                                        transform: hoveredSegment === index ? 'scale(1.05)' : 'scale(1)',
+                                        transformOrigin: 'center',
+                                        transition: 'all 0.2s ease-in-out'
+                                      }}
+                                    />
+                                  ))}
+                                </Pie>
+                              </PieChart>
+                            </ResponsiveContainer>
+                            {/* Center Text */}
+                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                              <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                                {formatCurrency(expenseChartData.reduce((sum, item) => sum + item.value, 0))}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                Total {expenseView === 'monthly' ? 'Monthly' : 'Annual'} Expense
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Data-Rich Legend */}
+                          <div className="flex-1 space-y-2">
+                            {expenseChartData.map((entry, index) => {
+                              const total = expenseChartData.reduce((sum, item) => sum + item.value, 0);
+                              const percentage = ((entry.value / total) * 100).toFixed(1);
+                              
+                              return (
+                                <div 
+                                  key={index}
+                                  className={`flex items-center justify-between py-1 px-2 rounded transition-all duration-200 cursor-pointer group ${
+                                    hoveredSegment === index 
+                                      ? 'bg-gray-100 dark:bg-gray-700 shadow-sm' 
+                                      : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                                  }`}
+                                  onMouseEnter={() => setHoveredSegment(index)}
+                                  onMouseLeave={() => setHoveredSegment(null)}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div 
+                                      className="w-3 h-3 rounded-full flex-shrink-0" 
+                                      style={{ backgroundColor: entry.color }}
+                                    ></div>
+                                    <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+                                      {entry.name}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs">
+                                    <span className="text-gray-500 dark:text-gray-400 min-w-[3rem] text-right">
+                                      {percentage}%
+                                    </span>
+                                    <span className="text-gray-900 dark:text-gray-100 font-medium min-w-[4rem] text-right">
+                                      {formatCurrency(entry.value)}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
                       ) : (
                         <div className="flex items-center justify-center h-full">
                           <div className="text-center text-gray-500 dark:text-gray-400">
