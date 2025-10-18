@@ -26,17 +26,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { useProperties, usePortfolioMetrics, usePropertyContext } from "@/context/PropertyContext";
 import { formatCurrency, formatPercentage } from "@/utils/formatting";
 
-// ROI data for different time periods
-const roiData = {
-  1: 8.2,   // 1 Year ROI
-  2: 12.5,  // 2 Year ROI
-  3: 18.7,  // 3 Year ROI
-  4: 24.3,  // 4 Year ROI
-  5: 28.3,  // 5 Year ROI
-  10: 45.7, // 10 Year ROI
-  15: 62.4, // 15 Year ROI
-  20: 78.9  // 20 Year ROI
-};
 
 // Sortable Metric Item Component
 function SortableMetricItem({ metric, onToggleVisibility }) {
@@ -102,10 +91,10 @@ export default function PortfolioSummaryPage() {
     { id: 'annualExpenses', name: 'Total Annual Expenses', isVisible: true },
     { id: 'annualDeductibleExpenses', name: 'Total Annual Deductible Expenses', isVisible: true },
     { id: 'monthlyCashFlow', name: 'Monthly Net Cash Flow', isVisible: true },
-    { id: 'cashOnCash', name: 'Annual Cash on Cash', isVisible: true },
     { id: 'netOperatingIncome', name: 'Annual Net Operating Income', isVisible: true },
-    { id: 'returnOnCost', name: 'Total Estimated Return On Investment', isVisible: true },
-    { id: 'capRate', name: 'Average Annual Cap Rate', isVisible: true },
+    { id: 'overallCapRate', name: 'Overall Cap Rate', isVisible: true },
+    { id: 'portfolioLTV', name: 'Portfolio LTV', isVisible: true },
+    { id: 'blendedCashOnCash', name: 'Blended Cash on Cash', isVisible: true },
     { id: 'avgRentPerSqFt', name: 'Average Rent Per Square Foot', isVisible: true },
     { id: 'totalProperties', name: 'Total Properties & Units', isVisible: true },
     { id: 'financialGoals', name: 'Financial Goals', isVisible: true },
@@ -114,8 +103,6 @@ export default function PortfolioSummaryPage() {
   // State for metrics (array of objects to preserve order and visibility)
   const [metrics, setMetrics] = useState(defaultMetrics);
 
-  // State for ROI time period selection
-  const [selectedROIYear, setSelectedROIYear] = useState(2);
 
   // State for expense view toggle (Annual Expenses vs Annual Deductible Expenses)
   const [expenseViewType, setExpenseViewType] = useState('annual');
@@ -215,8 +202,6 @@ export default function PortfolioSummaryPage() {
   const totalMortgageDebt = portfolioMetrics.totalMortgageBalance || 0;
 
   const annualCashFlow = portfolioMetrics.totalAnnualCashFlow || 0;
-  const totalCashInvested = portfolioMetrics.totalInvestment || 0;
-  const cashOnCashReturn = portfolioMetrics.cashOnCashReturn || 0;
 
     const totalRevenue = (portfolioMetrics.totalMonthlyRent || 0) * 12;
     const netOperatingIncome = portfolioMetrics.netOperatingIncome || 0;
@@ -230,6 +215,21 @@ export default function PortfolioSummaryPage() {
   const averageRentPerSqFt = totalSquareFeet > 0 ? (portfolioMetrics.totalMonthlyRent || 0) / totalSquareFeet : 0;
   const averageOccupancyRate = portfolioMetrics.averageOccupancy || 0;
   const averageCapRate = portfolioMetrics.averageCapRate || 0;
+
+  // Calculate new KPIs
+  // 1. Overall Cap Rate = Total Annual NOI / Total Estimated Portfolio Value
+  const totalAnnualNOI = portfolioMetrics.netOperatingIncome || 0;
+  const overallCapRate = totalPortfolioValue > 0 ? (totalAnnualNOI / totalPortfolioValue) * 100 : 0;
+
+  // 2. Portfolio LTV = Total Mortgage Debt / Total Estimated Portfolio Value
+  const portfolioLTV = totalPortfolioValue > 0 ? (totalMortgageDebt / totalPortfolioValue) * 100 : 0;
+
+  // 3. Blended Cash on Cash Return = Total Annual Cash Flow Before Tax / Total Initial Cash Invested
+  const totalAnnualCashFlowBeforeTax = portfolioMetrics.totalAnnualCashFlow || 0;
+  const totalInitialCashInvested = properties.reduce((sum, property) => {
+    return sum + (property.purchasePrice - property.mortgage.originalAmount);
+  }, 0);
+  const blendedCashOnCashReturn = totalInitialCashInvested > 0 ? (totalAnnualCashFlowBeforeTax / totalInitialCashInvested) * 100 : 0;
 
   // Show loading state until calculations are complete to prevent hydration mismatch
   if (!calculationsComplete) {
@@ -430,16 +430,6 @@ export default function PortfolioSummaryPage() {
                         tooltipText="The average percentage of occupied units across all properties in your portfolio."
                       />
                     );
-                  case 'capRate':
-                    return (
-                      <MetricCard
-                        key={metric.id}
-                        title="Average Cap Rate"
-                        value={formatPercentage(averageCapRate)}
-                        showInfoIcon={true}
-                        tooltipText="The rate of return on a real estate investment property based on the income that the property is expected to generate."
-                      />
-                    );
                   case 'avgRentPerSqFt':
                     return (
                       <MetricCard
@@ -449,47 +439,6 @@ export default function PortfolioSummaryPage() {
                         showInfoIcon={true}
                         tooltipText="The average monthly rental income per square foot across all properties in your portfolio. This helps compare rental efficiency between properties of different sizes."
                       />
-                    );
-                  case 'returnOnCost':
-                    return (
-                      <div key={metric.id} className="rounded-lg border border-black/10 dark:border-white/10 p-6 hover:bg-black/5 dark:hover:bg-white/5 transition">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-3">
-                              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Estimate Return on Investment (ROI)</h3>
-                              <div className="relative group">
-                                <div className="w-4 h-4 rounded-full bg-white dark:bg-gray-100 border-2 border-[#205A3E] dark:border-[#4ade80] flex items-center justify-center cursor-help">
-                                  <span className="text-[#205A3E] dark:text-[#4ade80] text-xs font-bold">i</span>
-                                </div>
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-2 bg-[#205A3E] text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-normal z-10 w-64 shadow-lg">
-                                  This metric calculates the total return based on the initial capital invested.
-                                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[#205A3E]"></div>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-3 mb-3">
-                              <select
-                                value={selectedROIYear}
-                                onChange={(e) => setSelectedROIYear(Number(e.target.value))}
-                                className="text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#205A3E]"
-                              >
-                                <option value={1}>1 Year</option>
-                                <option value={2}>2 Year</option>
-                                <option value={3}>3 Year</option>
-                                <option value={4}>4 Year</option>
-                                <option value={5}>5 Year</option>
-                                <option value={10}>10 Year</option>
-                                <option value={15}>15 Year</option>
-                                <option value={20}>20 Year</option>
-                              </select>
-                              <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                {roiData[selectedROIYear]}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
                     );
                   case 'financialGoals':
                     return (
@@ -501,7 +450,7 @@ export default function PortfolioSummaryPage() {
                         isMultiMetric={true}
                         multiMetrics={[
                           { label: "Portfolio Value", value: formatCurrency(totalPortfolioValue * 1.1) },
-                          { label: "Cash on Cash", value: formatPercentage(cashOnCashReturn * 1.2) }
+                          { label: "Cash Flow", value: formatCurrency(annualCashFlow * 1.2) }
                         ]}
                       />
                     );
@@ -516,16 +465,6 @@ export default function PortfolioSummaryPage() {
                         tooltipText="The total remaining mortgage balance across all properties in your portfolio."
                       />
                     );
-                  case 'cashOnCash':
-                    return (
-                      <MetricCard
-                        key={metric.id}
-                        title="Cash on Cash"
-                        value={formatPercentage(cashOnCashReturn)}
-                        showInfoIcon={true}
-                        tooltipText="Measures the annual pre-tax cash flow as a percentage of the total cash invested."
-                      />
-                    );
                   case 'netOperatingIncome':
                     return (
                       <MetricCard
@@ -534,6 +473,36 @@ export default function PortfolioSummaryPage() {
                         value={formatCurrency(netOperatingIncome)}
                         showInfoIcon={true}
                         tooltipText="Calculates the property's profitability by subtracting operating expenses from total revenue."
+                      />
+                    );
+                  case 'overallCapRate':
+                    return (
+                      <MetricCard
+                        key={metric.id}
+                        title="Overall Cap Rate"
+                        value={formatPercentage(overallCapRate)}
+                        showInfoIcon={true}
+                        tooltipText="The portfolio's capitalization rate calculated as total annual NOI divided by total estimated portfolio value. This provides a comprehensive view of your portfolio's income-generating efficiency."
+                      />
+                    );
+                  case 'portfolioLTV':
+                    return (
+                      <MetricCard
+                        key={metric.id}
+                        title="Portfolio LTV"
+                        value={formatPercentage(portfolioLTV)}
+                        showInfoIcon={true}
+                        tooltipText="The loan-to-value ratio across your entire portfolio, calculated as total mortgage debt divided by total estimated portfolio value. Lower LTV indicates more equity and lower financial risk."
+                      />
+                    );
+                  case 'blendedCashOnCash':
+                    return (
+                      <MetricCard
+                        key={metric.id}
+                        title="Blended Cash on Cash"
+                        value={formatPercentage(blendedCashOnCashReturn)}
+                        showInfoIcon={true}
+                        tooltipText="The blended cash-on-cash return across your portfolio, calculated as total annual cash flow before tax divided by total initial cash invested. This shows the return on your actual cash investment."
                       />
                     );
                   default:
