@@ -244,10 +244,10 @@ export default function PropertyDetailPage({ params }) {
                 </div>
               </div>
 
-              {/* Current Financials */}
+              {/* Unified Monthly Financials Card */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">Current Financials</h2>
+                  <h2 className="text-xl font-semibold">Property Financials</h2>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-600 dark:text-gray-400">View:</span>
                     <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
@@ -274,202 +274,122 @@ export default function PropertyDetailPage({ params }) {
                     </div>
                   </div>
                 </div>
-                {/* Redesigned Financials with Two-Column Layout */}
-                <div className="grid gap-6 lg:grid-cols-2">
-                  {/* Left Column - Income & Expenses */}
-                  <div className="space-y-6">
-                    {/* Income Section */}
-                    <div>
-                      <h3 className="font-medium mb-3 text-emerald-600 dark:text-emerald-400">Income</h3>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400">Gross Rental Income</span>
-                          <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                            {isHydrated ? formatCurrency(expenseView === 'monthly' ? (property.rent?.monthlyRent || 0) : (property.rent?.annualRent || 0)) : '--'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400">Other Income</span>
-                          <span className="font-medium text-emerald-600 dark:text-emerald-400">$0</span>
-                        </div>
-                        <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800">
-                          <div className="flex justify-between font-semibold">
-                            <span className="text-emerald-700 dark:text-emerald-300">Total Income</span>
-                            <span className="text-emerald-600 dark:text-emerald-400">
-                              {isHydrated ? formatCurrency(expenseView === 'monthly' ? (property.rent?.monthlyRent || 0) : (property.rent?.annualRent || 0)) : '--'}
-                            </span>
+
+                <div className="space-y-6">
+                  {/* Income Section */}
+                  <div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-900 dark:text-gray-100">Total Income</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {isHydrated ? formatCurrency(expenseView === 'monthly' ? (property.rent?.monthlyRent || 0) : (property.rent?.annualRent || 0)) : '--'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Expenses Section */}
+                  <div>
+                    <h3 className="font-medium mb-4 text-gray-900 dark:text-gray-100">
+                      {expenseView === 'monthly' ? 'Monthly' : 'Annual'} Total Expense
+                    </h3>
+                    <div className="grid grid-cols-2 gap-8">
+                      {/* Donut Chart */}
+                      <div className="flex justify-center">
+                        <div className="relative">
+                          <ResponsiveContainer width={140} height={140}>
+                            <PieChart>
+                              <Pie
+                                data={expenseChartData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={40}
+                                outerRadius={65}
+                                paddingAngle={2}
+                                dataKey="value"
+                                stroke="none"
+                                onMouseEnter={(data, index) => setHoveredSegment(index)}
+                                onMouseLeave={() => setHoveredSegment(null)}
+                              >
+                                {expenseChartData.map((entry, index) => (
+                                  <Cell
+                                    key={`cell-${index}`}
+                                    fill={entry.color}
+                                    style={{
+                                      filter: hoveredSegment === index ? 'brightness(1.1) drop-shadow(0 0 6px rgba(0,0,0,0.3))' : 'none',
+                                      transform: hoveredSegment === index ? 'scale(1.05)' : 'scale(1)',
+                                      transformOrigin: 'center',
+                                      transition: 'all 0.2s ease-in-out'
+                                    }}
+                                  />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                          {/* Center Text */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                              {formatCurrency(expenseChartData.reduce((sum, item) => sum + item.value, 0))}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Total {expenseView === 'monthly' ? 'Monthly' : 'Annual'} Expense
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Expenses Section */}
-                    <div>
-                      <h3 className="font-medium mb-3 text-red-600 dark:text-red-400">Expenses</h3>
+                      {/* Data-Rich Legend */}
                       <div className="space-y-2">
-                        {isHydrated ? (
-                          <>
-                            {Object.entries(property.monthlyExpenses || {}).map(([key, value]) => {
-                              if (key === 'total') return null;
-                              const safeValue = value || 0;
-                              const displayValue = expenseView === 'annual' ? safeValue * 12 : safeValue;
-                              return (
-                                <div key={key} className="flex justify-between">
-                                  <span className="text-gray-600 dark:text-gray-400 capitalize">
-                                    {key.replace(/([A-Z])/g, ' $1').trim()}
-                                  </span>
-                                  <span className="font-medium text-red-600 dark:text-red-400">
-                                    -{formatCurrency(displayValue)}
+                        {expenseChartData.length > 0 ? (
+                          expenseChartData.map((entry, index) => {
+                            const total = expenseChartData.reduce((sum, item) => sum + item.value, 0);
+                            const percentage = ((entry.value / total) * 100).toFixed(1);
+
+                            return (
+                              <div
+                                key={index}
+                                className={`flex items-center justify-between py-2 px-3 rounded-lg transition-all duration-200 cursor-pointer group ${
+                                  hoveredSegment === index
+                                    ? 'bg-gray-100 dark:bg-gray-700 shadow-sm'
+                                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                                }`}
+                                onMouseEnter={() => setHoveredSegment(index)}
+                                onMouseLeave={() => setHoveredSegment(null)}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className="w-3 h-3 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: entry.color }}
+                                  ></div>
+                                  <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+                                    {entry.name}
                                   </span>
                                 </div>
-                              );
-                            })}
-                            <div className="pt-2 border-t border-red-200 dark:border-red-800">
-                              <div className="flex justify-between font-semibold">
-                                <span className="text-red-700 dark:text-red-300">Total Expenses</span>
-                                <span className="text-red-600 dark:text-red-400">
-                                  -{formatCurrency(expenseView === 'annual' ? (property.monthlyExpenses?.total || 0) * 12 : (property.monthlyExpenses?.total || 0))}
-                                </span>
+                                <div className="flex items-center gap-3 text-xs">
+                                  <span className="text-gray-500 dark:text-gray-400 min-w-[3rem] text-right">
+                                    {percentage}%
+                                  </span>
+                                  <span className="text-gray-900 dark:text-gray-100 font-medium min-w-[4rem] text-right">
+                                    {formatCurrency(entry.value)}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          </>
+                            );
+                          })
                         ) : (
-                          <div className="flex justify-center py-4">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#205A3E]"></div>
+                          <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                            <div className="text-sm">No expense data available</div>
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Right Column - Net Cash Flow & Expense Breakdown */}
-                  <div className="space-y-6">
-                    {/* Net Cash Flow - Bottom Line */}
-                    <div>
-                      <h3 className="font-medium mb-3 text-gray-700 dark:text-gray-300">Cash Flow Analysis</h3>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400">Gross Income</span>
-                          <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                            {isHydrated ? formatCurrency(expenseView === 'monthly' ? (property.rent?.monthlyRent || 0) : (property.rent?.annualRent || 0)) : '--'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400">Total Expenses</span>
-                          <span className="font-medium text-red-600 dark:text-red-400">
-                            -{formatCurrency(expenseView === 'annual' ? (property.monthlyExpenses?.total || 0) * 12 : (property.monthlyExpenses?.total || 0))}
-                          </span>
-                        </div>
-                        <div className="pt-2 border-t border-black/10 dark:border-white/10">
-                          <div className="flex justify-between font-semibold">
-                            <span className="text-gray-900 dark:text-gray-100">Net Cash Flow</span>
-                            <span className={`${
-                              isHydrated && (expenseView === 'monthly' ? (property.rent?.monthlyRent || 0) - (property.monthlyExpenses?.total || 0) : (property.rent?.annualRent || 0) - ((property.monthlyExpenses?.total || 0) * 12)) >= 0 
-                                ? 'text-emerald-600 dark:text-emerald-400' 
-                                : 'text-red-600 dark:text-red-400'
-                            }`}>
-                              {isHydrated ? formatCurrency(expenseView === 'monthly' ? (property.rent?.monthlyRent || 0) - (property.monthlyExpenses?.total || 0) : (property.rent?.annualRent || 0) - ((property.monthlyExpenses?.total || 0) * 12)) : '--'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Enhanced Expense Breakdown */}
-                    <div>
-                      <h3 className="font-medium mb-3">{expenseView === 'monthly' ? 'Monthly' : 'Annual'} Expense Breakdown</h3>
-                    <div className="h-48">
-                      {expenseChartData.length > 0 ? (
-                        <div className="flex items-center gap-6 h-full">
-                          {/* Donut Chart */}
-                          <div className="flex-shrink-0 relative">
-                            <ResponsiveContainer width={120} height={120}>
-                              <PieChart>
-                                <Pie
-                                  data={expenseChartData}
-                                  cx="50%"
-                                  cy="50%"
-                                  innerRadius={35}
-                                  outerRadius={55}
-                                  paddingAngle={2}
-                                  dataKey="value"
-                                  stroke="none"
-                                  onMouseEnter={(data, index) => setHoveredSegment(index)}
-                                  onMouseLeave={() => setHoveredSegment(null)}
-                                >
-                                  {expenseChartData.map((entry, index) => (
-                                    <Cell 
-                                      key={`cell-${index}`} 
-                                      fill={entry.color}
-                                      style={{
-                                        filter: hoveredSegment === index ? 'brightness(1.1) drop-shadow(0 0 6px rgba(0,0,0,0.3))' : 'none',
-                                        transform: hoveredSegment === index ? 'scale(1.05)' : 'scale(1)',
-                                        transformOrigin: 'center',
-                                        transition: 'all 0.2s ease-in-out'
-                                      }}
-                                    />
-                                  ))}
-                                </Pie>
-                              </PieChart>
-                            </ResponsiveContainer>
-                            {/* Center Text */}
-                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                              <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                                {formatCurrency(expenseChartData.reduce((sum, item) => sum + item.value, 0))}
-                              </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
-                                Total {expenseView === 'monthly' ? 'Monthly' : 'Annual'} Expense
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Data-Rich Legend */}
-                          <div className="flex-1 space-y-2">
-                            {expenseChartData.map((entry, index) => {
-                              const total = expenseChartData.reduce((sum, item) => sum + item.value, 0);
-                              const percentage = ((entry.value / total) * 100).toFixed(1);
-                              
-                              return (
-                                <div 
-                                  key={index}
-                                  className={`flex items-center justify-between py-1 px-2 rounded transition-all duration-200 cursor-pointer group ${
-                                    hoveredSegment === index 
-                                      ? 'bg-gray-100 dark:bg-gray-700 shadow-sm' 
-                                      : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                                  }`}
-                                  onMouseEnter={() => setHoveredSegment(index)}
-                                  onMouseLeave={() => setHoveredSegment(null)}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <div 
-                                      className="w-3 h-3 rounded-full flex-shrink-0" 
-                                      style={{ backgroundColor: entry.color }}
-                                    ></div>
-                                    <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
-                                      {entry.name}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-3 text-xs">
-                                    <span className="text-gray-500 dark:text-gray-400 min-w-[3rem] text-right">
-                                      {percentage}%
-                                    </span>
-                                    <span className="text-gray-900 dark:text-gray-100 font-medium min-w-[4rem] text-right">
-                                      {formatCurrency(entry.value)}
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-full">
-                          <div className="text-center text-gray-500 dark:text-gray-400">
-                            <div className="text-sm">No expense data available</div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                  {/* Net Cash Flow - Bottom Line */}
+                  <div className="pt-4 border-t-2 border-gray-300 dark:border-gray-600">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">Net Cash Flow</span>
+                      <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        {isHydrated ? formatCurrency(expenseView === 'monthly' ? (property.rent?.monthlyRent || 0) - (property.monthlyExpenses?.total || 0) : (property.rent?.annualRent || 0) - ((property.monthlyExpenses?.total || 0) * 12)) : '--'}
+                      </span>
                     </div>
                   </div>
                 </div>

@@ -87,6 +87,7 @@ export default function PortfolioSummaryPage() {
     { id: 'portfolioValue', name: 'Total Estimated Portfolio Value', isVisible: true },
     { id: 'equity', name: 'Total Estimated Equity', isVisible: true },
     { id: 'mortgageDebt', name: 'Total Mortgage Debt', isVisible: true },
+    { id: 'annualEquityBuilt', name: 'Annual Equity Built', isVisible: true },
     { id: 'annualRevenue', name: 'Total Annual Revenue', isVisible: true },
     { id: 'annualExpenses', name: 'Total Annual Expenses', isVisible: true },
     { id: 'annualDeductibleExpenses', name: 'Total Annual Deductible Expenses', isVisible: true },
@@ -230,6 +231,14 @@ export default function PortfolioSummaryPage() {
     return sum + (property.purchasePrice - property.mortgage.originalAmount);
   }, 0);
   const blendedCashOnCashReturn = totalInitialCashInvested > 0 ? (totalAnnualCashFlowBeforeTax / totalInitialCashInvested) * 100 : 0;
+
+  // 4. Annual Equity Built = Sum of annual principal payments from all mortgages
+  const annualEquityBuilt = properties.reduce((sum, property) => {
+    if (property.mortgage && property.monthlyExpenses?.mortgagePrincipal) {
+      return sum + (property.monthlyExpenses.mortgagePrincipal * 12);
+    }
+    return sum;
+  }, 0);
 
   // Show loading state until calculations are complete to prevent hydration mismatch
   if (!calculationsComplete) {
@@ -465,6 +474,16 @@ export default function PortfolioSummaryPage() {
                         tooltipText="The total remaining mortgage balance across all properties in your portfolio."
                       />
                     );
+                  case 'annualEquityBuilt':
+                    return (
+                      <MetricCard
+                        key={metric.id}
+                        title="Annual Equity Built"
+                        value={formatCurrency(annualEquityBuilt)}
+                        showInfoIcon={true}
+                        tooltipText="The total annual principal payments across all mortgages in your portfolio. This represents the equity being built each year through mortgage payments."
+                      />
+                    );
                   case 'netOperatingIncome':
                     return (
                       <MetricCard
@@ -482,7 +501,7 @@ export default function PortfolioSummaryPage() {
                         title="Overall Cap Rate"
                         value={formatPercentage(overallCapRate)}
                         showInfoIcon={true}
-                        tooltipText="The portfolio's capitalization rate calculated as total annual NOI divided by total estimated portfolio value. This provides a comprehensive view of your portfolio's income-generating efficiency."
+                        tooltipText="The portfolio's capitalization rate calculated as total annual NOI divided by total estimated portfolio value. A 'strong' cap rate for a rental property in the Toronto area is typically considered to be in the 5% to 7% range for suburban and high-demand areas, while downtown core properties often have lower cap rates of 3.75% to 4.25% due to higher property values and demand."
                       />
                     );
                   case 'portfolioLTV':
@@ -492,7 +511,7 @@ export default function PortfolioSummaryPage() {
                         title="Portfolio LTV"
                         value={formatPercentage(portfolioLTV)}
                         showInfoIcon={true}
-                        tooltipText="The loan-to-value ratio across your entire portfolio, calculated as total mortgage debt divided by total estimated portfolio value. Lower LTV indicates more equity and lower financial risk."
+                        tooltipText="The loan-to-value ratio across your entire portfolio, calculated as total mortgage debt divided by total estimated portfolio value. Many lenders use 80% as the threshold for a good LTV ratio. Anything below this value is even better."
                       />
                     );
                   case 'blendedCashOnCash':
@@ -502,7 +521,7 @@ export default function PortfolioSummaryPage() {
                         title="Blended Cash on Cash"
                         value={formatPercentage(blendedCashOnCashReturn)}
                         showInfoIcon={true}
-                        tooltipText="The blended cash-on-cash return across your portfolio, calculated as total annual cash flow before tax divided by total initial cash invested. This shows the return on your actual cash investment."
+                        tooltipText="The blended cash-on-cash return across your portfolio, calculated as total annual cash flow before tax divided by total initial cash invested. A good cash-on-cash return in real estate is generally considered to be between 8% and 12%."
                       />
                     );
                   default:

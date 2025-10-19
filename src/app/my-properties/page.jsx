@@ -102,6 +102,25 @@ function PropertyCard({ property }) {
   const squareFeet = property.size || property.squareFootage || 0;
   const rentPerSqFt = squareFeet > 0 ? property.rent.monthlyRent / squareFeet : 0;
   
+  // Calculate Key Metrics
+  const annualCashFlow = property.annualCashFlow || (monthlyCashFlow * 12);
+  const downPayment = property.purchasePrice - (property.mortgage?.originalAmount || 0);
+  const closingCosts = property.closingCosts || 0;
+  const initialRenovations = property.initialRenovations || 0;
+  const totalInitialCashInvested = downPayment + closingCosts + initialRenovations;
+  
+  // Cash on Cash Return = Annual Cash Flow / Total Initial Cash Invested
+  const cashOnCashReturn = totalInitialCashInvested > 0 ? (annualCashFlow / totalInitialCashInvested) * 100 : 0;
+  
+  // Internal Rate of Return (simplified calculation)
+  // This is a simplified IRR calculation - in practice, IRR would require more complex calculations
+  const currentValue = property.currentMarketValue || property.currentValue || 0;
+  const totalReturn = currentValue - property.purchasePrice;
+  const yearsHeld = new Date().getFullYear() - new Date(property.purchaseDate).getFullYear();
+  const irr = yearsHeld > 0 && totalInitialCashInvested > 0 
+    ? Math.pow((currentValue + (annualCashFlow * yearsHeld)) / totalInitialCashInvested, 1/yearsHeld) - 1 
+    : 0;
+  
   // Calculate YoY changes
   const historicalData = historicalDataMap[property.id] || [];
   const currentYear = new Date().getFullYear().toString();
@@ -207,9 +226,28 @@ function PropertyCard({ property }) {
         </div>
         
         <div className="mt-3 pt-3 border-t border-black/10 dark:border-white/10">
-          <div className="flex items-center justify-between text-xs sm:text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Cap Rate</span>
-            <span className="font-medium">{formatPercentage(capRate)}</span>
+          <div className="space-y-2">
+            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Key Metrics</div>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="text-center">
+                <div className="text-gray-500 dark:text-gray-400">Cap Rate</div>
+                <div className="font-medium text-[#205A3E] dark:text-[#4ade80]">
+                  {formatPercentage(capRate)}
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-gray-500 dark:text-gray-400">Cash on Cash</div>
+                <div className="font-medium text-[#205A3E] dark:text-[#4ade80]">
+                  {formatPercentage(cashOnCashReturn)}
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-gray-500 dark:text-gray-400">IRR</div>
+                <div className="font-medium text-[#205A3E] dark:text-[#4ade80]">
+                  {formatPercentage(irr * 100)}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

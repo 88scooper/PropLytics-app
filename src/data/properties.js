@@ -45,7 +45,7 @@ export const properties = [
     purchasePrice: 615000,
     purchaseDate: '2019-02-04',
     closingCosts: 12300, // ~2% of purchase price
-    initialRenovations: 25000, // Initial renovation investment
+    initialRenovations: 100000, // Initial renovation investment
     renovationCosts: 100000, // Keep existing field for backward compatibility
     currentMarketValue: 800000,
     yearBuilt: 2001,
@@ -136,6 +136,14 @@ export const properties = [
     currentValue: 800000,
     imageUrl: '/images/311 Richmond St E.png',
     tenants: [
+      {
+        name: 'Marci Graore',
+        unit: 'Unit 403',
+        rent: 3200,
+        leaseStart: '2023-03-01',
+        leaseEnd: '2025-01-31',
+        status: 'Past'
+      },
       {
         name: 'Steve MacNeil, Kate St John',
         unit: 'Unit 403',
@@ -235,6 +243,14 @@ export const properties = [
     currentValue: 550000,
     imageUrl: '/images/30 Tretti Way.png',
     tenants: [
+      {
+        name: 'Honey Goyal',
+        unit: 'Unit 317',
+        rent: 2500,
+        leaseStart: '2023-10-01',
+        leaseEnd: '2024-06-30',
+        status: 'Past'
+      },
       {
         name: 'Pratikkumar Chaudary',
         unit: 'Unit 317',

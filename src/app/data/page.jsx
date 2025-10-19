@@ -16,6 +16,8 @@ function PropertyCard({ property, onUpdate }) {
   const [expandedSections, setExpandedSections] = useState({});
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState({});
+  const [expenseView, setExpenseView] = useState('monthly');
+  const [tenantView, setTenantView] = useState('current');
   const { addToast } = useToast();
 
   const toggleSection = (section) => {
@@ -88,9 +90,9 @@ function PropertyCard({ property, onUpdate }) {
     );
   };
 
-  const DataRow = ({ label, value, editable = false, field = "", type = "text" }) => (
+  const DataRow = ({ label, value, editable = false, field = "", type = "text", isBold = false }) => (
     <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
-      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</span>
+      <span className={`text-sm font-medium text-gray-600 dark:text-gray-400 ${isBold ? 'font-bold' : ''}`}>{label}</span>
       {isEditing && editable ? (
         <input
           type={type}
@@ -99,7 +101,7 @@ function PropertyCard({ property, onUpdate }) {
           className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#205A3E]"
         />
       ) : (
-        <span className="text-sm text-gray-900 dark:text-gray-100">{value || "N/A"}</span>
+        <span className={`text-sm text-gray-900 dark:text-gray-100 ${isBold ? 'font-bold' : ''}`}>{value || "N/A"}</span>
       )}
     </div>
   );
@@ -169,6 +171,17 @@ function PropertyCard({ property, onUpdate }) {
             type="number" 
           />
           <DataRow 
+            label="Original Mortgage" 
+            value={`$${(property.mortgage?.originalAmount || 0).toLocaleString()}`} 
+            editable 
+            field="originalAmount" 
+            type="number" 
+          />
+          <DataRow 
+            label="Down Payment" 
+            value={`$${((property.purchasePrice || 0) - (property.mortgage?.originalAmount || 0)).toLocaleString()}`} 
+          />
+          <DataRow 
             label="Closing Costs" 
             value={`$${(property.closingCosts || 0).toLocaleString()}`} 
             editable 
@@ -176,15 +189,15 @@ function PropertyCard({ property, onUpdate }) {
             type="number" 
           />
           <DataRow 
-            label="Renovation Costs" 
-            value={`$${(property.renovationCosts || 0).toLocaleString()}`} 
+            label="Initial Renovations" 
+            value={`$${(property.initialRenovations || 0).toLocaleString()}`} 
             editable 
-            field="renovationCosts" 
+            field="initialRenovations" 
             type="number" 
           />
           <DataRow 
-            label="Total Investment" 
-            value={`$${(property.totalInvestment || 0).toLocaleString()}`} 
+            label="Total Investment (Cash)" 
+            value={`$${(((property.purchasePrice || 0) - (property.mortgage?.originalAmount || 0)) + (property.closingCosts || 0) + (property.initialRenovations || 0)).toLocaleString()}`} 
           />
           <DataRow 
             label="Current Market Value" 
@@ -233,83 +246,204 @@ function PropertyCard({ property, onUpdate }) {
 
       <Section title="Income & Expenses" sectionKey="incomeExpenses">
         <div className="space-y-1">
+          {/* View Toggle */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-sm text-gray-600 dark:text-gray-400">View:</span>
+            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+              <button
+                onClick={() => setExpenseView('monthly')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  expenseView === 'monthly'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setExpenseView('annual')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  expenseView === 'annual'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Annual
+              </button>
+            </div>
+          </div>
+
+          {/* Income */}
           <DataRow 
-            label="Monthly Rent" 
-            value={`$${(property.rent?.monthlyRent || 0).toLocaleString()}`} 
+            label={expenseView === 'monthly' ? 'Monthly Rent' : 'Annual Rent'} 
+            value={`$${expenseView === 'monthly' ? (property.rent?.monthlyRent || 0).toLocaleString() : (property.rent?.annualRent || 0).toLocaleString()}`} 
             editable 
-            field="monthlyRent" 
+            field={expenseView === 'monthly' ? 'monthlyRent' : 'annualRent'} 
             type="number" 
           />
           <DataRow 
-            label="Annual Rent" 
-            value={`$${(property.rent?.annualRent || 0).toLocaleString()}`} 
+            label={expenseView === 'monthly' ? 'Total Monthly Revenue' : 'Total Annual Revenue'} 
+            value={`$${expenseView === 'monthly' ? (property.rent?.monthlyRent || 0).toLocaleString() : (property.rent?.annualRent || 0).toLocaleString()}`} 
+            isBold={true}
           />
-          <DataRow 
-            label="Property Tax (Monthly)" 
-            value={`$${(property.monthlyPropertyTax || 0).toFixed(2)}`} 
-          />
-          <DataRow 
-            label="Condo Fees (Monthly)" 
-            value={`$${(property.monthlyCondoFees || 0).toFixed(2)}`} 
-          />
-          <DataRow 
-            label="Insurance (Monthly)" 
-            value={`$${(property.monthlyInsurance || 0).toFixed(2)}`} 
-          />
-          <DataRow 
-            label="Maintenance (Monthly)" 
-            value={`$${(property.monthlyMaintenance || 0).toFixed(2)}`} 
-          />
-          <DataRow 
-            label="Professional Fees (Monthly)" 
-            value={`$${(property.monthlyProfessionalFees || 0).toFixed(2)}`} 
-          />
-          <DataRow 
-            label="Total Monthly Expenses" 
-            value={`$${(property.monthlyExpenses?.total || 0).toFixed(2)}`} 
-          />
-        </div>
-      </Section>
 
-      <Section title="Performance Metrics" sectionKey="performanceMetrics">
-        <div className="space-y-1">
+          {/* Separator */}
+          <div className="py-2"></div>
+
+          {/* Expenses */}
           <DataRow 
-            label="Monthly Cash Flow" 
-            value={`$${(property.monthlyCashFlow || 0).toLocaleString()}`} 
+            label="Advertising" 
+            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.advertising || 0) : ((property.monthlyExpenses?.advertising || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
           />
           <DataRow 
-            label="Annual Cash Flow" 
-            value={`$${(property.annualCashFlow || 0).toLocaleString()}`} 
+            label="Insurance" 
+            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.insurance || 0) : ((property.monthlyExpenses?.insurance || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
           />
           <DataRow 
-            label="Cap Rate" 
-            value={`${(property.capRate || 0).toFixed(2)}%`} 
+            label="Interest & Banking Charges" 
+            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.mortgageInterest || 0) : ((property.monthlyExpenses?.mortgageInterest || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
           />
           <DataRow 
-            label="Cash on Cash Return" 
-            value={`${(property.cashOnCashReturn || 0).toFixed(2)}%`} 
+            label="Office Expenses" 
+            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.officeExpenses || 0) : ((property.monthlyExpenses?.officeExpenses || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
           />
           <DataRow 
-            label="Net Operating Income" 
-            value={`$${(property.netOperatingIncome || 0).toLocaleString()}`} 
+            label="Professional Fees" 
+            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.professionalFees || 0) : ((property.monthlyExpenses?.professionalFees || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
           />
           <DataRow 
-            label="Occupancy Rate" 
-            value={`${property.occupancy || 0}%`} 
+            label="Management & Administration" 
+            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.management || 0) : ((property.monthlyExpenses?.management || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+          />
+          <DataRow 
+            label="Repairs & Maintenance" 
+            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.maintenance || 0) : ((property.monthlyExpenses?.maintenance || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+          />
+          <DataRow 
+            label="Property Taxes" 
+            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.propertyTax || 0) : ((property.monthlyExpenses?.propertyTax || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+          />
+          <DataRow 
+            label="Travel" 
+            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.travel || 0) : ((property.monthlyExpenses?.travel || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+          />
+          <DataRow 
+            label="Utilities" 
+            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.utilities || 0) : ((property.monthlyExpenses?.utilities || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+          />
+          <DataRow 
+            label="Motor Vehicle Expense" 
+            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.motorVehicle || 0) : ((property.monthlyExpenses?.motorVehicle || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+          />
+          <DataRow 
+            label="Other Rental Expense (incl. Condo Fees & Broker Fees)" 
+            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.condoFees || 0) : ((property.monthlyExpenses?.condoFees || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+          />
+          <DataRow 
+            label="Mortgage (Principal)" 
+            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.mortgagePrincipal || 0) : ((property.monthlyExpenses?.mortgagePrincipal || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+          />
+          <DataRow 
+            label={expenseView === 'monthly' ? 'Total Monthly Expenses' : 'Total Annual Expenses'} 
+            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.total || 0) : ((property.monthlyExpenses?.total || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+            isBold={true}
           />
         </div>
       </Section>
 
       <Section title="Tenant Information" sectionKey="tenantInfo">
         <div className="space-y-1">
-          <DataRow label="Tenant Name" value={property.tenant?.name} />
-          <DataRow label="Lease Start Date" value={property.tenant?.leaseStartDate} />
-          <DataRow label="Lease End Date" value={property.tenant?.leaseEndDate} />
-          <DataRow 
-            label="Monthly Rent" 
-            value={`$${(property.tenant?.rent || 0).toLocaleString()}`} 
-          />
-          <DataRow label="Status" value={property.tenant?.status} />
+          {/* View Toggle */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-sm text-gray-600 dark:text-gray-400">View:</span>
+            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+              <button
+                onClick={() => setTenantView('current')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  tenantView === 'current'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Current
+              </button>
+              <button
+                onClick={() => setTenantView('all')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  tenantView === 'all'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Tenant History
+              </button>
+            </div>
+          </div>
+
+          {tenantView === 'current' ? (
+            /* Current Tenant */
+            <>
+              <DataRow label="Tenant Name" value={property.tenant?.name || property.tenants?.find(t => t.status === 'Current')?.name || 'N/A'} />
+              <DataRow label="Unit" value={property.tenants?.find(t => t.status === 'Current')?.unit || 'N/A'} />
+              <DataRow label="Lease Start Date" value={property.tenant?.leaseStartDate || property.tenants?.find(t => t.status === 'Current')?.leaseStart || 'N/A'} />
+              <DataRow label="Lease End Date" value={property.tenant?.leaseEndDate || property.tenants?.find(t => t.status === 'Current')?.leaseEnd || 'N/A'} />
+              <DataRow 
+                label="Monthly Rent" 
+                value={`$${(property.tenant?.rent || property.tenants?.find(t => t.status === 'Current')?.rent || 0).toLocaleString()}`} 
+              />
+              <DataRow label="Key Deposit" value="" />
+              <DataRow label="Status" value={property.tenant?.status || property.tenants?.find(t => t.status === 'Current')?.status || 'N/A'} />
+            </>
+          ) : (
+            /* All Tenants */
+            <div className="space-y-4">
+              {property.tenants && property.tenants.length > 0 ? (
+                property.tenants.map((tenant, index) => (
+                  <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Tenant {index + 1}</span>
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          tenant.status === 'Current' 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                        }`}>
+                          {tenant.status}
+                        </span>
+                      </div>
+                      <DataRow label="Name" value={tenant.name} />
+                      <DataRow label="Unit" value={tenant.unit} />
+                      <DataRow label="Lease Start" value={tenant.leaseStart} />
+                      <DataRow label="Lease End" value={tenant.leaseEnd} />
+                      <DataRow 
+                        label="Monthly Rent" 
+                        value={`$${(tenant.rent || 0).toLocaleString()}`} 
+                      />
+                      <DataRow label="Key Deposit" value="" />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                  <div className="text-sm">No tenant data available</div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </Section>
+
+      <Section title="Property Notes" sectionKey="propertyNotes">
+        <div className="space-y-1">
+          <DataRow label="Appliance Details" value="" editable field="applianceDetails" type="text" />
+          <DataRow label="Paint Details" value="" editable field="paintDetails" type="text" />
+          <DataRow label="Flooring Details" value="" editable field="flooringDetails" type="text" />
+          <DataRow label="Kitchen Features" value="" editable field="kitchenFeatures" type="text" />
+          <DataRow label="Bathroom Features" value="" editable field="bathroomFeatures" type="text" />
+          <DataRow label="Special Features" value="" editable field="specialFeatures" type="text" />
+          <DataRow label="Maintenance Notes" value="" editable field="maintenanceNotes" type="text" />
+          <DataRow label="Upgrade History" value="" editable field="upgradeHistory" type="text" />
+          <DataRow label="General Notes" value="" editable field="generalNotes" type="text" />
         </div>
       </Section>
     </div>
