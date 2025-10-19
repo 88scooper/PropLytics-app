@@ -274,56 +274,110 @@ export default function PropertyDetailPage({ params }) {
                     </div>
                   </div>
                 </div>
-                <div className="grid gap-6 lg:grid-cols-3">
-                  <div>
-                    <h3 className="font-medium mb-3">{expenseView === 'monthly' ? 'Monthly' : 'Annual'} Income</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Rental Income</span>
-                        <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                          {isHydrated ? formatCurrency(expenseView === 'monthly' ? (property.rent?.monthlyRent || 0) : (property.rent?.annualRent || 0)) : '--'}
-                        </span>
+                {/* Redesigned Financials with Two-Column Layout */}
+                <div className="grid gap-6 lg:grid-cols-2">
+                  {/* Left Column - Income & Expenses */}
+                  <div className="space-y-6">
+                    {/* Income Section */}
+                    <div>
+                      <h3 className="font-medium mb-3 text-emerald-600 dark:text-emerald-400">Income</h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Gross Rental Income</span>
+                          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                            {isHydrated ? formatCurrency(expenseView === 'monthly' ? (property.rent?.monthlyRent || 0) : (property.rent?.annualRent || 0)) : '--'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Other Income</span>
+                          <span className="font-medium text-emerald-600 dark:text-emerald-400">$0</span>
+                        </div>
+                        <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800">
+                          <div className="flex justify-between font-semibold">
+                            <span className="text-emerald-700 dark:text-emerald-300">Total Income</span>
+                            <span className="text-emerald-600 dark:text-emerald-400">
+                              {isHydrated ? formatCurrency(expenseView === 'monthly' ? (property.rent?.monthlyRent || 0) : (property.rent?.annualRent || 0)) : '--'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expenses Section */}
+                    <div>
+                      <h3 className="font-medium mb-3 text-red-600 dark:text-red-400">Expenses</h3>
+                      <div className="space-y-2">
+                        {isHydrated ? (
+                          <>
+                            {Object.entries(property.monthlyExpenses || {}).map(([key, value]) => {
+                              if (key === 'total') return null;
+                              const safeValue = value || 0;
+                              const displayValue = expenseView === 'annual' ? safeValue * 12 : safeValue;
+                              return (
+                                <div key={key} className="flex justify-between">
+                                  <span className="text-gray-600 dark:text-gray-400 capitalize">
+                                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                                  </span>
+                                  <span className="font-medium text-red-600 dark:text-red-400">
+                                    -{formatCurrency(displayValue)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                            <div className="pt-2 border-t border-red-200 dark:border-red-800">
+                              <div className="flex justify-between font-semibold">
+                                <span className="text-red-700 dark:text-red-300">Total Expenses</span>
+                                <span className="text-red-600 dark:text-red-400">
+                                  -{formatCurrency(expenseView === 'annual' ? (property.monthlyExpenses?.total || 0) * 12 : (property.monthlyExpenses?.total || 0))}
+                                </span>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex justify-center py-4">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#205A3E]"></div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
-                  <div>
-                    <h3 className="font-medium mb-3">{expenseView === 'monthly' ? 'Monthly' : 'Annual'} Expenses</h3>
-                    <div className="space-y-2">
-                      {isHydrated ? (
-                        <>
-                          {Object.entries(property.monthlyExpenses || {}).map(([key, value]) => {
-                            if (key === 'total') return null;
-                            const safeValue = value || 0;
-                            const displayValue = expenseView === 'annual' ? safeValue * 12 : safeValue;
-                            return (
-                              <div key={key} className="flex justify-between">
-                                <span className="text-gray-600 dark:text-gray-400 capitalize">
-                                  {key.replace(/([A-Z])/g, ' $1').trim()}
-                                </span>
-                                <span className="font-medium text-red-600 dark:text-red-400">
-                                  -{formatCurrency(displayValue)}
-                                </span>
-                              </div>
-                            );
-                          })}
-                          <div className="pt-2 border-t border-black/10 dark:border-white/10">
-                            <div className="flex justify-between font-semibold">
-                              <span>Total Expenses</span>
-                              <span className="text-red-600 dark:text-red-400">
-                                -{formatCurrency(expenseView === 'annual' ? (property.monthlyExpenses?.total || 0) * 12 : (property.monthlyExpenses?.total || 0))}
-                              </span>
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex justify-center py-4">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#205A3E]"></div>
+                  
+                  {/* Right Column - Net Cash Flow & Expense Breakdown */}
+                  <div className="space-y-6">
+                    {/* Net Cash Flow - Bottom Line */}
+                    <div>
+                      <h3 className="font-medium mb-3 text-gray-700 dark:text-gray-300">Cash Flow Analysis</h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Gross Income</span>
+                          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                            {isHydrated ? formatCurrency(expenseView === 'monthly' ? (property.rent?.monthlyRent || 0) : (property.rent?.annualRent || 0)) : '--'}
+                          </span>
                         </div>
-                      )}
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Total Expenses</span>
+                          <span className="font-medium text-red-600 dark:text-red-400">
+                            -{formatCurrency(expenseView === 'annual' ? (property.monthlyExpenses?.total || 0) * 12 : (property.monthlyExpenses?.total || 0))}
+                          </span>
+                        </div>
+                        <div className="pt-2 border-t border-black/10 dark:border-white/10">
+                          <div className="flex justify-between font-semibold">
+                            <span className="text-gray-900 dark:text-gray-100">Net Cash Flow</span>
+                            <span className={`${
+                              isHydrated && (expenseView === 'monthly' ? (property.rent?.monthlyRent || 0) - (property.monthlyExpenses?.total || 0) : (property.rent?.annualRent || 0) - ((property.monthlyExpenses?.total || 0) * 12)) >= 0 
+                                ? 'text-emerald-600 dark:text-emerald-400' 
+                                : 'text-red-600 dark:text-red-400'
+                            }`}>
+                              {isHydrated ? formatCurrency(expenseView === 'monthly' ? (property.rent?.monthlyRent || 0) - (property.monthlyExpenses?.total || 0) : (property.rent?.annualRent || 0) - ((property.monthlyExpenses?.total || 0) * 12)) : '--'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <h3 className="font-medium mb-3">{expenseView === 'monthly' ? 'Monthly' : 'Annual'} Expense Breakdown</h3>
+
+                    {/* Enhanced Expense Breakdown */}
+                    <div>
+                      <h3 className="font-medium mb-3">{expenseView === 'monthly' ? 'Monthly' : 'Annual'} Expense Breakdown</h3>
                     <div className="h-48">
                       {expenseChartData.length > 0 ? (
                         <div className="flex items-center gap-6 h-full">
@@ -416,29 +470,6 @@ export default function PropertyDetailPage({ params }) {
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
-                <div className="mt-6 pt-4 border-t border-black/10 dark:border-white/10">
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                        {isHydrated ? formatCurrency(expenseView === 'annual' ? (property.annualCashFlow || 0) : (property.monthlyCashFlow || 0)) : '--'}
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">{expenseView === 'annual' ? 'Annual' : 'Monthly'} Cash Flow</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{isHydrated ? formatPercentage(property.capRate || 0) : '--'}</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Cap Rate</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{isHydrated ? formatPercentage(property.cashOnCashReturn || 0) : '--'}</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Cash on Cash</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">
-                        {isHydrated ? formatCurrency((property.size || property.squareFootage) > 0 ? property.rent.monthlyRent / (property.size || property.squareFootage) : 0) : '--'}
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Rent/Sq Ft</div>
                     </div>
                   </div>
                 </div>
