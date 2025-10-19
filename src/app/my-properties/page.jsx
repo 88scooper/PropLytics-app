@@ -8,26 +8,176 @@ import Button from "@/components/Button";
 import { useProperties, usePropertyContext } from "@/context/PropertyContext";
 import { formatCurrency, formatPercentage } from "@/utils/formatting";
 
-// Historical data map for YoY calculations
-const historicalDataMap = {
-  'richmond-st-e-403': [
-    { year: '2023', income: 40200, expenses: 23493.77 },
-    { year: '2024', income: 41323.03, expenses: 17399.9 },
-    { year: '2025', income: 41400, expenses: 17400 }
-  ],
-  'tretti-way-317': [
-    { year: '2024', income: 36000, expenses: 2567.21 },
-    { year: '2025', income: 36000, expenses: 2537.5 }
-  ],
-  'wilson-ave-415': [
-    { year: '2025', income: 28800, expenses: 10237.2 }
-  ]
-};
-
 // Calculate YoY change percentage
 function calculateYoYChange(currentValue, previousValue) {
   if (!previousValue || previousValue === 0) return null;
   return ((currentValue - previousValue) / previousValue) * 100;
+}
+
+// Get revenue for a specific period with proper tenant transition handling
+function getRevenueForPeriod(property, year, startMonth = 1, endMonth = 12) {
+  if (!property.tenants || property.tenants.length === 0) return 0;
+  
+  const targetYear = parseInt(year);
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+  
+  // Create period start and end dates
+  const periodStart = new Date(targetYear, startMonth - 1, 1);
+  const periodEnd = new Date(targetYear, endMonth, 0); // Last day of endMonth
+  
+  // For current year, limit to current month if period extends beyond
+  if (targetYear === currentYear && endMonth > currentMonth) {
+    const adjustedEndMonth = Math.min(endMonth, currentMonth);
+    const adjustedPeriodEnd = new Date(targetYear, adjustedEndMonth, 0);
+    periodEnd.setTime(adjustedPeriodEnd.getTime());
+  }
+  
+  let totalRevenue = 0;
+  
+  // Process each tenant to calculate revenue for the period
+  property.tenants.forEach(tenant => {
+    const leaseStart = new Date(tenant.leaseStart);
+    const leaseEnd = tenant.leaseEnd === 'Active' || tenant.leaseEnd === 'Current' 
+      ? new Date(currentYear, currentMonth - 1, new Date().getDate())
+      : new Date(tenant.leaseEnd);
+    
+    // Check if tenant was active during any part of the period
+    if (leaseStart <= periodEnd && leaseEnd >= periodStart) {
+      // Calculate the overlap between tenant lease and the period
+      const overlapStart = new Date(Math.max(leaseStart.getTime(), periodStart.getTime()));
+      const overlapEnd = new Date(Math.min(leaseEnd.getTime(), periodEnd.getTime()));
+      
+      // Calculate days in overlap
+      const daysInOverlap = Math.max(0, Math.ceil((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1);
+      
+      // Calculate days in the month for proration
+      const overlapStartMonth = overlapStart.getMonth();
+      const overlapEndMonth = overlapEnd.getMonth();
+      
+      let monthlyRevenue = 0;
+      
+      // Handle same month
+      if (overlapStartMonth === overlapEndMonth) {
+        const daysInMonth = new Date(overlapStart.getFullYear(), overlapStart.getMonth() + 1, 0).getDate();
+        const prorationFactor = daysInOverlap / daysInMonth;
+        monthlyRevenue = tenant.rent * prorationFactor;
+      } else {
+        // Handle multiple months
+        for (let month = overlapStartMonth; month <= overlapEndMonth; month++) {
+          const monthStart = new Date(overlapStart.getFullYear(), month, 1);
+          const monthEnd = new Date(overlapStart.getFullYear(), month + 1, 0);
+          
+          const monthOverlapStart = new Date(Math.max(overlapStart.getTime(), monthStart.getTime()));
+          const monthOverlapEnd = new Date(Math.min(overlapEnd.getTime(), monthEnd.getTime()));
+          
+          const daysInMonth = monthEnd.getDate();
+          const daysInOverlap = Math.max(0, Math.ceil((monthOverlapEnd - monthOverlapStart) / (1000 * 60 * 60 * 24)) + 1);
+          const prorationFactor = daysInOverlap / daysInMonth;
+          
+          monthlyRevenue += tenant.rent * prorationFactor;
+        }
+      }
+      
+      totalRevenue += monthlyRevenue;
+    }
+  });
+  
+  return totalRevenue;
+}
+
+// Get expenses for a specific period with prorated annual expenses
+function getExpensesForPeriod(property, year, startMonth = 1, endMonth = 12) {
+  if (!property.expenseHistory) return 0;
+  
+  const targetYear = parseInt(year);
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+  
+  // For current year, limit to current month if period extends beyond
+  const actualEndMonth = targetYear === currentYear ? Math.min(endMonth, currentMonth) : endMonth;
+  
+  let totalExpenses = 0;
+  
+  // Process each expense
+  property.expenseHistory.forEach(expense => {
+    const expenseDate = new Date(expense.date);
+    const expenseYear = expenseDate.getFullYear();
+    const expenseMonth = expenseDate.getMonth() + 1;
+    
+    // Only process expenses from the target year
+    if (expenseYear !== targetYear) return;
+    
+    // Determine if this is an annual expense that should be prorated
+    const isAnnualExpense = expense.category === 'Property Tax' || 
+                           expense.category === 'Insurance' ||
+                           expense.amount > 1000; // Large expenses likely annual
+    
+    if (isAnnualExpense) {
+      // Prorate annual expenses across the entire year
+      const monthsInYear = 12;
+      const proratedAmount = (expense.amount / monthsInYear) * (actualEndMonth - startMonth + 1);
+      totalExpenses += proratedAmount;
+    } else {
+      // For monthly/one-time expenses, only include if they fall within the period
+      if (expenseMonth >= startMonth && expenseMonth <= actualEndMonth) {
+        totalExpenses += expense.amount;
+      }
+    }
+  });
+  
+  return totalExpenses;
+}
+
+// Calculate YoY changes with proper period-over-period comparison and data completeness warnings
+function calculateYoYChanges(property) {
+  const currentYear = new Date().getFullYear();
+  const previousYear = currentYear - 1;
+  const currentMonth = new Date().getMonth() + 1; // 1-12
+  
+  // Compare Jan through current month for both years
+  const startMonth = 1;
+  const endMonth = currentMonth;
+  
+  // Get current year data (Jan through current month)
+  const currentRevenue = getRevenueForPeriod(property, currentYear.toString(), startMonth, endMonth);
+  const currentExpenses = getExpensesForPeriod(property, currentYear.toString(), startMonth, endMonth);
+  
+  // Get previous year data (Jan through same month)
+  const previousRevenue = getRevenueForPeriod(property, previousYear.toString(), startMonth, endMonth);
+  const previousExpenses = getExpensesForPeriod(property, previousYear.toString(), startMonth, endMonth);
+  
+  // Calculate YoY changes
+  const yoyRevenueChange = calculateYoYChange(currentRevenue, previousRevenue);
+  const yoyExpenseChange = calculateYoYChange(currentExpenses, previousExpenses);
+  
+  // Create comparison period description
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const comparisonPeriod = startMonth === endMonth 
+    ? monthNames[startMonth - 1] 
+    : `${monthNames[startMonth - 1]}-${monthNames[endMonth - 1]}`;
+  
+  // Determine if current year data is incomplete
+  const isIncompleteData = currentMonth < 12;
+  const dataCompletenessWarning = isIncompleteData 
+    ? `Based on ${comparisonPeriod} data only` 
+    : 'Full year comparison';
+  
+  // Check if we have sufficient data for meaningful comparison
+  const hasData = previousRevenue > 0 && previousExpenses > 0 && currentRevenue > 0 && currentExpenses > 0;
+  
+  return {
+    yoyRevenueChange,
+    yoyExpenseChange,
+    currentRevenue,
+    currentExpenses,
+    previousRevenue,
+    previousExpenses,
+    comparisonPeriod,
+    isIncompleteData,
+    dataCompletenessWarning,
+    hasData
+  };
 }
 
 export default function MyPropertiesPage() {
@@ -121,21 +271,9 @@ function PropertyCard({ property }) {
     ? Math.pow((currentValue + (annualCashFlow * yearsHeld)) / totalInitialCashInvested, 1/yearsHeld) - 1 
     : 0;
   
-  // Calculate YoY changes
-  const historicalData = historicalDataMap[property.id] || [];
-  const currentYear = new Date().getFullYear().toString();
-  const lastYear = (new Date().getFullYear() - 1).toString();
-  
-  const currentYearData = historicalData.find(d => d.year === currentYear);
-  const lastYearData = historicalData.find(d => d.year === lastYear);
-  
-  const yoyRevenueChange = currentYearData && lastYearData 
-    ? calculateYoYChange(currentYearData.income, lastYearData.income) 
-    : null;
-  
-  const yoyExpenseChange = currentYearData && lastYearData 
-    ? calculateYoYChange(currentYearData.expenses, lastYearData.expenses) 
-    : null;
+  // Calculate YoY changes dynamically from property data
+  const yoyData = calculateYoYChanges(property);
+  const { yoyRevenueChange, yoyExpenseChange, hasData, comparisonPeriod, isIncompleteData, dataCompletenessWarning } = yoyData;
 
   return (
     <Link 
@@ -200,27 +338,63 @@ function PropertyCard({ property }) {
             </div>
           </div>
           <div>
-            <div className="text-gray-500 dark:text-gray-400">YoY Revenue</div>
+            <div className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              YoY Revenue
+              {isIncompleteData && (
+                <svg className="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              )}
+              <div className="group relative">
+                <svg className="w-3 h-3 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                </svg>
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                  Year-over-year revenue change ({comparisonPeriod} {new Date().getFullYear()} vs {comparisonPeriod} {new Date().getFullYear() - 1}). {dataCompletenessWarning}. Green = increase, Red = decrease.
+                </div>
+              </div>
+            </div>
             <div className={`font-medium ${
-              yoyRevenueChange === null 
+              !hasData || yoyRevenueChange === null 
                 ? 'text-gray-400' 
                 : yoyRevenueChange >= 0 
                   ? 'text-emerald-600 dark:text-emerald-400' 
                   : 'text-red-600 dark:text-red-400'
             }`}>
-              {yoyRevenueChange !== null ? `${yoyRevenueChange >= 0 ? '+' : ''}${yoyRevenueChange.toFixed(1)}%` : 'N/A'}
+              {!hasData || yoyRevenueChange === null 
+                ? 'N/A' 
+                : `${yoyRevenueChange >= 0 ? '+' : ''}${yoyRevenueChange.toFixed(1)}%`
+              }
             </div>
           </div>
           <div>
-            <div className="text-gray-500 dark:text-gray-400">YoY Expenses</div>
+            <div className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              YoY Expenses
+              {isIncompleteData && (
+                <svg className="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              )}
+              <div className="group relative">
+                <svg className="w-3 h-3 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                </svg>
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                  Year-over-year expense change ({comparisonPeriod} {new Date().getFullYear()} vs {comparisonPeriod} {new Date().getFullYear() - 1}). {dataCompletenessWarning}. Green = decrease (good), Red = increase (bad).
+                </div>
+              </div>
+            </div>
             <div className={`font-medium ${
-              yoyExpenseChange === null 
+              !hasData || yoyExpenseChange === null 
                 ? 'text-gray-400' 
                 : yoyExpenseChange >= 0 
                   ? 'text-red-600 dark:text-red-400' 
                   : 'text-emerald-600 dark:text-emerald-400'
             }`}>
-              {yoyExpenseChange !== null ? `${yoyExpenseChange >= 0 ? '+' : ''}${yoyExpenseChange.toFixed(1)}%` : 'N/A'}
+              {!hasData || yoyExpenseChange === null 
+                ? 'N/A' 
+                : `${yoyExpenseChange >= 0 ? '+' : ''}${yoyExpenseChange.toFixed(1)}%`
+              }
             </div>
           </div>
         </div>
