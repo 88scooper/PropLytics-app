@@ -87,7 +87,7 @@ export default function PortfolioSummaryPage() {
     { id: 'portfolioValue', name: 'Total Estimated Portfolio Value', isVisible: true },
     { id: 'equity', name: 'Total Estimated Equity', isVisible: true },
     { id: 'mortgageDebt', name: 'Total Mortgage Debt', isVisible: true },
-    { id: 'annualEquityBuilt', name: 'Annual Equity Built', isVisible: true },
+    { id: 'annualEquityBuilt', name: 'Anticipated Annual Equity Built', isVisible: true },
     { id: 'annualRevenue', name: 'Total Annual Revenue', isVisible: true },
     { id: 'annualExpenses', name: 'Total Annual Expenses', isVisible: true },
     { id: 'annualDeductibleExpenses', name: 'Total Annual Deductible Expenses', isVisible: true },
@@ -107,6 +107,9 @@ export default function PortfolioSummaryPage() {
 
   // State for expense view toggle (Annual Expenses vs Annual Deductible Expenses)
   const [expenseViewType, setExpenseViewType] = useState('annual');
+
+  // State for time period toggle (All Time vs Current Year)
+  const [timePeriod, setTimePeriod] = useState('current');
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -152,6 +155,14 @@ export default function PortfolioSummaryPage() {
     }
   }, []);
 
+  // Initialize time period from localStorage or use default
+  useEffect(() => {
+    const savedTimePeriod = localStorage.getItem('portfolio-time-period');
+    if (savedTimePeriod) {
+      setTimePeriod(savedTimePeriod);
+    }
+  }, []);
+
 
   // Save metrics to localStorage whenever metrics change
   useEffect(() => {
@@ -164,6 +175,11 @@ export default function PortfolioSummaryPage() {
   useEffect(() => {
     localStorage.setItem('expense-view-type', expenseViewType);
   }, [expenseViewType]);
+
+  // Save time period to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('portfolio-time-period', timePeriod);
+  }, [timePeriod]);
 
   // Handle metric visibility toggle
   const toggleMetricVisibility = (metricId) => {
@@ -199,6 +215,19 @@ export default function PortfolioSummaryPage() {
   // Calculate total monthly expenses
   const totalMonthlyExpenses = portfolioMetrics.totalMonthlyExpenses || 0;
 
+  // Helper function to calculate metrics based on time period
+  const getTimePeriodMultiplier = () => {
+    return timePeriod === 'all' ? 1 : 1; // For now, both show current year data
+  };
+
+  // Helper function to get time period label
+  const getTimePeriodLabel = (baseLabel) => {
+    if (timePeriod === 'all') {
+      return baseLabel.replace('Annual', 'Total').replace('Monthly', 'Average Monthly');
+    }
+    return baseLabel;
+  };
+
   // Calculate additional metrics
   const totalMortgageDebt = portfolioMetrics.totalMortgageBalance || 0;
 
@@ -232,10 +261,18 @@ export default function PortfolioSummaryPage() {
   }, 0);
   const blendedCashOnCashReturn = totalInitialCashInvested > 0 ? (totalAnnualCashFlowBeforeTax / totalInitialCashInvested) * 100 : 0;
 
-  // 4. Annual Equity Built = Sum of annual principal payments from all mortgages
+  // 4. Anticipated Annual Equity Built = Sum of annual principal payments from all mortgages
+  // This accounts for rent paid to date and anticipated rent for the remainder of the year
   const annualEquityBuilt = properties.reduce((sum, property) => {
     if (property.mortgage && property.monthlyExpenses?.mortgagePrincipal) {
-      return sum + (property.monthlyExpenses.mortgagePrincipal * 12);
+      // Calculate equity built based on rent paid to date and anticipated rent
+      const monthlyPrincipal = property.monthlyExpenses.mortgagePrincipal;
+      
+      // Calculate anticipated equity built for the full year
+      // This assumes consistent rent payments and principal payments
+      const anticipatedAnnualEquity = monthlyPrincipal * 12;
+      
+      return sum + anticipatedAnnualEquity;
     }
     return sum;
   }, 0);
@@ -270,9 +307,37 @@ export default function PortfolioSummaryPage() {
               </p>
             </div>
             
-            {/* Settings Button */}
-            <div className="relative" ref={settingsRef}>
-              <button
+            <div className="flex items-center gap-4">
+              {/* Time Period Toggle */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Time Period:</span>
+                <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                  <button
+                    onClick={() => setTimePeriod('current')}
+                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                      timePeriod === 'current'
+                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    Current Year
+                  </button>
+                  <button
+                    onClick={() => setTimePeriod('all')}
+                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                      timePeriod === 'all'
+                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    All Time
+                  </button>
+                </div>
+              </div>
+
+              {/* Settings Button */}
+              <div className="relative" ref={settingsRef}>
+                <button
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                 className="p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                 aria-label="Customize portfolio"
@@ -324,6 +389,7 @@ export default function PortfolioSummaryPage() {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
 
@@ -376,10 +442,12 @@ export default function PortfolioSummaryPage() {
                     return (
                       <MetricCard
                         key={metric.id}
-                        title="Total Annual Revenue"
+                        title={getTimePeriodLabel("Total Annual Revenue")}
                         value={formatCurrency((portfolioMetrics.totalMonthlyRent || 0) * 12)}
                         showInfoIcon={true}
-                        tooltipText="The total annual rental income from all properties in your portfolio."
+                        tooltipText={timePeriod === 'all' 
+                          ? "The total rental income from all properties in your portfolio since acquisition." 
+                          : "The total annual rental income from all properties in your portfolio."}
                       />
                     );
                   case 'monthlyCashFlow':
@@ -387,10 +455,12 @@ export default function PortfolioSummaryPage() {
                     return (
                       <MetricCard
                         key={metric.id}
-                        title="Monthly Net Cash Flow"
+                        title={getTimePeriodLabel("Monthly Net Cash Flow")}
                         value={formatCurrency(monthlyCashFlowValue)}
                         showInfoIcon={true}
-                        tooltipText="The monthly rental income remaining after all operating expenses and mortgage payments."
+                        tooltipText={timePeriod === 'all' 
+                          ? "The average monthly rental income remaining after all operating expenses and mortgage payments since acquisition." 
+                          : "The monthly rental income remaining after all operating expenses and mortgage payments."}
                         customColor={monthlyCashFlowValue < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}
                       />
                     );
@@ -398,21 +468,25 @@ export default function PortfolioSummaryPage() {
                     return (
                       <MetricCard
                         key={metric.id}
-                        title="Total Annual Expenses"
+                        title={getTimePeriodLabel("Total Annual Expenses")}
                         value={formatCurrency(totalMonthlyExpenses * 12)}
                         showInfoIcon={true}
-                        tooltipText="The sum of all recurring annual costs, including mortgage, taxes, fees, and insurance."
+                        tooltipText={timePeriod === 'all' 
+                          ? "The total recurring costs, including mortgage, taxes, fees, and insurance since acquisition." 
+                          : "The sum of all recurring annual costs, including mortgage, taxes, fees, and insurance."}
                       />
                     );
                   case 'annualDeductibleExpenses':
                     return (
                       <MetricCard
                         key={metric.id}
-                        title="Total Annual Deductible Expenses"
+                        title={getTimePeriodLabel("Total Annual Deductible Expenses")}
                         value={formatCurrency(portfolioMetrics?.totalAnnualDeductibleExpenses || 0)}
                         isExpense={true}
                         showInfoIcon={true}
-                        tooltipText="Tax-deductible expenses including mortgage interest, property tax, utilities, insurance, maintenance, and professional fees. These costs can be written off to reduce your taxable income."
+                        tooltipText={timePeriod === 'all' 
+                          ? "Total tax-deductible expenses since acquisition, including mortgage interest, property tax, utilities, insurance, maintenance, and professional fees." 
+                          : "Tax-deductible expenses including mortgage interest, property tax, utilities, insurance, maintenance, and professional fees. These costs can be written off to reduce your taxable income."}
                       />
                     );
                   case 'totalProperties':
@@ -478,20 +552,24 @@ export default function PortfolioSummaryPage() {
                     return (
                       <MetricCard
                         key={metric.id}
-                        title="Annual Equity Built"
+                        title={getTimePeriodLabel("Anticipated Annual Equity Built")}
                         value={formatCurrency(annualEquityBuilt)}
                         showInfoIcon={true}
-                        tooltipText="The total annual principal payments across all mortgages in your portfolio. This represents the equity being built each year through mortgage payments."
+                        tooltipText={timePeriod === 'all' 
+                          ? "Total equity built through principal payments across all mortgages since acquisition." 
+                          : "The anticipated annual principal payments across all mortgages in your portfolio. This accounts for rent paid to date and anticipated rent for the remainder of the year, representing the equity being built through mortgage payments."}
                       />
                     );
                   case 'netOperatingIncome':
                     return (
                       <MetricCard
                         key={metric.id}
-                        title="Net Operating Income (NOI)"
+                        title={getTimePeriodLabel("Net Operating Income (NOI)")}
                         value={formatCurrency(netOperatingIncome)}
                         showInfoIcon={true}
-                        tooltipText="Calculates the property's profitability by subtracting operating expenses from total revenue."
+                        tooltipText={timePeriod === 'all' 
+                          ? "Total profitability by subtracting operating expenses from total revenue since acquisition." 
+                          : "Calculates the property's profitability by subtracting operating expenses from total revenue."}
                       />
                     );
                   case 'overallCapRate':

@@ -11,6 +11,203 @@ import { useProperties, useProperty } from "@/context/PropertyContext";
 import { Download, Upload, X, ChevronDown, ChevronUp, Edit2, Save, XCircle } from "lucide-react";
 import * as XLSX from 'xlsx';
 
+// Helper functions for historical data calculations
+function getHistoricalIncome(property, year) {
+  if (!property.tenants || property.tenants.length === 0) return 0;
+  
+  const targetYear = parseInt(year);
+  const calendarYearStart = new Date(targetYear, 0, 1); // January 1st
+  const calendarYearEnd = new Date(targetYear, 11, 31); // December 31st
+  let totalIncome = 0;
+  
+  property.tenants.forEach(tenant => {
+    const leaseStart = new Date(tenant.leaseStart);
+    const leaseEnd = tenant.leaseEnd === 'Active' || tenant.leaseEnd === 'Current' 
+      ? new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())
+      : new Date(tenant.leaseEnd);
+    
+    // Check if tenant was active during any part of the calendar year
+    if (leaseStart <= calendarYearEnd && leaseEnd >= calendarYearStart) {
+      // Calculate the overlap between tenant lease and the calendar year
+      const overlapStart = new Date(Math.max(leaseStart.getTime(), calendarYearStart.getTime()));
+      const overlapEnd = new Date(Math.min(leaseEnd.getTime(), calendarYearEnd.getTime()));
+      
+      if (overlapStart <= overlapEnd) {
+        // Calculate days in overlap for precise calculation
+        const daysInOverlap = Math.max(0, Math.ceil((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1);
+        
+        // Calculate days in the month for proration
+        const overlapStartMonth = overlapStart.getMonth();
+        const overlapEndMonth = overlapEnd.getMonth();
+        
+        let monthlyIncome = 0;
+        
+        // Handle same month
+        if (overlapStartMonth === overlapEndMonth) {
+          const daysInMonth = new Date(overlapStart.getFullYear(), overlapStart.getMonth() + 1, 0).getDate();
+          const prorationFactor = daysInOverlap / daysInMonth;
+          monthlyIncome = tenant.rent * prorationFactor;
+        } else {
+          // Handle multiple months
+          for (let month = overlapStartMonth; month <= overlapEndMonth; month++) {
+            const monthStart = new Date(overlapStart.getFullYear(), month, 1);
+            const monthEnd = new Date(overlapStart.getFullYear(), month + 1, 0);
+            
+            const monthOverlapStart = new Date(Math.max(overlapStart.getTime(), monthStart.getTime()));
+            const monthOverlapEnd = new Date(Math.min(overlapEnd.getTime(), monthEnd.getTime()));
+            
+            const daysInMonth = monthEnd.getDate();
+            const daysInOverlap = Math.max(0, Math.ceil((monthOverlapEnd - monthOverlapStart) / (1000 * 60 * 60 * 24)) + 1);
+            const prorationFactor = daysInOverlap / daysInMonth;
+            
+            monthlyIncome += tenant.rent * prorationFactor;
+          }
+        }
+        
+        totalIncome += monthlyIncome;
+      }
+    }
+  });
+  
+  return totalIncome;
+}
+
+function getHistoricalExpenses(property, year) {
+  if (!property.expenseHistory) return 0;
+  
+  const targetYear = parseInt(year);
+  const yearExpenses = property.expenseHistory.filter(expense => {
+    const expenseYear = new Date(expense.date).getFullYear();
+    return expenseYear === targetYear;
+  });
+  
+  return yearExpenses.reduce((total, expense) => total + expense.amount, 0);
+}
+
+function getAvailableYears(property) {
+  const years = new Set();
+  
+  // Get years from expense history
+  if (property.expenseHistory) {
+    property.expenseHistory.forEach(expense => {
+      const year = new Date(expense.date).getFullYear();
+      years.add(year);
+    });
+  }
+  
+  // Get years from tenant history
+  if (property.tenants) {
+    property.tenants.forEach(tenant => {
+      const leaseStartYear = new Date(tenant.leaseStart).getFullYear();
+      const leaseEndYear = tenant.leaseEnd === 'Active' || tenant.leaseEnd === 'Current' 
+        ? new Date().getFullYear()
+        : new Date(tenant.leaseEnd).getFullYear();
+      
+      for (let year = leaseStartYear; year <= leaseEndYear; year++) {
+        years.add(year);
+      }
+    });
+  }
+  
+  return Array.from(years).sort((a, b) => b - a); // Sort descending (newest first)
+}
+
+// Historical Data Display Component
+function HistoricalDataDisplay({ property, expenseView }) {
+  const availableYears = getAvailableYears(property);
+  const [selectedYear, setSelectedYear] = useState(availableYears[0] || new Date().getFullYear());
+
+  if (availableYears.length === 0) {
+    return (
+      <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+        <div className="text-sm">No historical data available</div>
+      </div>
+    );
+  }
+
+  const historicalIncome = getHistoricalIncome(property, selectedYear);
+  const historicalExpenses = getHistoricalExpenses(property, selectedYear);
+  const netIncome = historicalIncome - historicalExpenses;
+
+  return (
+    <div className="space-y-4">
+      {/* Year Selector */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-gray-600 dark:text-gray-400">Year:</span>
+        <select
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+          className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#205A3E]"
+        >
+          {availableYears.map(year => (
+            <option key={year} value={year}>{year}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Historical Income */}
+      <div className="space-y-1">
+        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Income</div>
+        <DataRow 
+          label={expenseView === 'monthly' ? 'Monthly Rent' : 'Annual Rent'} 
+          value={`$${expenseView === 'monthly' ? (historicalIncome / 12).toLocaleString() : historicalIncome.toLocaleString()}`} 
+        />
+        <DataRow 
+          label={expenseView === 'monthly' ? 'Total Monthly Revenue' : 'Total Annual Revenue'} 
+          value={`$${expenseView === 'monthly' ? (historicalIncome / 12).toLocaleString() : historicalIncome.toLocaleString()}`} 
+          isBold={true}
+        />
+      </div>
+
+      {/* Separator */}
+      <div className="py-2"></div>
+
+      {/* Historical Expenses */}
+      <div className="space-y-1">
+        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Expenses</div>
+        {property.expenseHistory && property.expenseHistory.length > 0 ? (
+          <>
+            {Object.entries(
+              property.expenseHistory
+                .filter(expense => new Date(expense.date).getFullYear() === selectedYear)
+                .reduce((acc, expense) => {
+                  const category = expense.category;
+                  if (!acc[category]) {
+                    acc[category] = 0;
+                  }
+                  acc[category] += expense.amount;
+                  return acc;
+                }, {})
+            ).map(([category, amount]) => (
+              <DataRow 
+                key={category}
+                label={category} 
+                value={`$${expenseView === 'monthly' ? (amount / 12).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              />
+            ))}
+            <DataRow 
+              label={expenseView === 'monthly' ? 'Total Monthly Expenses' : 'Total Annual Expenses'} 
+              value={`$${expenseView === 'monthly' ? (historicalExpenses / 12).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : historicalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              isBold={true}
+            />
+          </>
+        ) : (
+          <div className="text-sm text-gray-500 dark:text-gray-400">No expense data for {selectedYear}</div>
+        )}
+      </div>
+
+      {/* Net Income */}
+      <div className="py-2 border-t border-gray-200 dark:border-gray-700">
+        <DataRow 
+          label={expenseView === 'monthly' ? 'Monthly Net Income' : 'Annual Net Income'} 
+          value={`$${expenseView === 'monthly' ? (netIncome / 12).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : netIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+          isBold={true}
+        />
+      </div>
+    </div>
+  );
+}
+
 // PropertyCard component with collapsible sections
 function PropertyCard({ property, onUpdate }) {
   const [expandedSections, setExpandedSections] = useState({});
@@ -18,6 +215,7 @@ function PropertyCard({ property, onUpdate }) {
   const [editedData, setEditedData] = useState({});
   const [expenseView, setExpenseView] = useState('monthly');
   const [tenantView, setTenantView] = useState('current');
+  const [historicalView, setHistoricalView] = useState('current');
   const { addToast } = useToast();
 
   const toggleSection = (section) => {
@@ -273,81 +471,119 @@ function PropertyCard({ property, onUpdate }) {
             </div>
           </div>
 
-          {/* Income */}
-          <DataRow 
-            label={expenseView === 'monthly' ? 'Monthly Rent' : 'Annual Rent'} 
-            value={`$${expenseView === 'monthly' ? (property.rent?.monthlyRent || 0).toLocaleString() : (property.rent?.annualRent || 0).toLocaleString()}`} 
-            editable 
-            field={expenseView === 'monthly' ? 'monthlyRent' : 'annualRent'} 
-            type="number" 
-          />
-          <DataRow 
-            label={expenseView === 'monthly' ? 'Total Monthly Revenue' : 'Total Annual Revenue'} 
-            value={`$${expenseView === 'monthly' ? (property.rent?.monthlyRent || 0).toLocaleString() : (property.rent?.annualRent || 0).toLocaleString()}`} 
-            isBold={true}
-          />
+          {/* Historical Data Toggle */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-sm text-gray-600 dark:text-gray-400">Data:</span>
+            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+              <button
+                onClick={() => setHistoricalView('current')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  historicalView === 'current'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Current
+              </button>
+              <button
+                onClick={() => setHistoricalView('historical')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  historicalView === 'historical'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Historical
+              </button>
+            </div>
+          </div>
 
-          {/* Separator */}
-          <div className="py-2"></div>
+          {historicalView === 'current' ? (
+            /* Current Data Display */
+            <>
+              {/* Income */}
+              <DataRow 
+                label={expenseView === 'monthly' ? 'Monthly Rent' : 'Annual Rent'} 
+                value={`$${expenseView === 'monthly' ? (property.rent?.monthlyRent || 0).toLocaleString() : (property.rent?.annualRent || 0).toLocaleString()}`} 
+                editable 
+                field={expenseView === 'monthly' ? 'monthlyRent' : 'annualRent'} 
+                type="number" 
+              />
+              <DataRow 
+                label={expenseView === 'monthly' ? 'Total Monthly Revenue' : 'Total Annual Revenue'} 
+                value={`$${expenseView === 'monthly' ? (property.rent?.monthlyRent || 0).toLocaleString() : (property.rent?.annualRent || 0).toLocaleString()}`} 
+                isBold={true}
+              />
 
-          {/* Expenses */}
-          <DataRow 
-            label="Advertising" 
-            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.advertising || 0) : ((property.monthlyExpenses?.advertising || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-          />
-          <DataRow 
-            label="Insurance" 
-            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.insurance || 0) : ((property.monthlyExpenses?.insurance || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-          />
-          <DataRow 
-            label="Interest & Banking Charges" 
-            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.mortgageInterest || 0) : ((property.monthlyExpenses?.mortgageInterest || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-          />
-          <DataRow 
-            label="Office Expenses" 
-            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.officeExpenses || 0) : ((property.monthlyExpenses?.officeExpenses || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-          />
-          <DataRow 
-            label="Professional Fees" 
-            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.professionalFees || 0) : ((property.monthlyExpenses?.professionalFees || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-          />
-          <DataRow 
-            label="Management & Administration" 
-            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.management || 0) : ((property.monthlyExpenses?.management || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-          />
-          <DataRow 
-            label="Repairs & Maintenance" 
-            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.maintenance || 0) : ((property.monthlyExpenses?.maintenance || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-          />
-          <DataRow 
-            label="Property Taxes" 
-            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.propertyTax || 0) : ((property.monthlyExpenses?.propertyTax || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-          />
-          <DataRow 
-            label="Travel" 
-            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.travel || 0) : ((property.monthlyExpenses?.travel || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-          />
-          <DataRow 
-            label="Utilities" 
-            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.utilities || 0) : ((property.monthlyExpenses?.utilities || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-          />
-          <DataRow 
-            label="Motor Vehicle Expense" 
-            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.motorVehicle || 0) : ((property.monthlyExpenses?.motorVehicle || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-          />
-          <DataRow 
-            label="Other Rental Expense (incl. Condo Fees & Broker Fees)" 
-            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.condoFees || 0) : ((property.monthlyExpenses?.condoFees || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-          />
-          <DataRow 
-            label="Mortgage (Principal)" 
-            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.mortgagePrincipal || 0) : ((property.monthlyExpenses?.mortgagePrincipal || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-          />
-          <DataRow 
-            label={expenseView === 'monthly' ? 'Total Monthly Expenses' : 'Total Annual Expenses'} 
-            value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.total || 0) : ((property.monthlyExpenses?.total || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-            isBold={true}
-          />
+              {/* Separator */}
+              <div className="py-2"></div>
+
+              {/* Expenses */}
+              <DataRow 
+                label="Advertising" 
+                value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.advertising || 0) : ((property.monthlyExpenses?.advertising || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              />
+              <DataRow 
+                label="Insurance" 
+                value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.insurance || 0) : ((property.monthlyExpenses?.insurance || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              />
+              <DataRow 
+                label="Interest & Banking Charges" 
+                value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.mortgageInterest || 0) : ((property.monthlyExpenses?.mortgageInterest || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              />
+              <DataRow 
+                label="Office Expenses" 
+                value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.officeExpenses || 0) : ((property.monthlyExpenses?.officeExpenses || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              />
+              <DataRow 
+                label="Professional Fees" 
+                value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.professionalFees || 0) : ((property.monthlyExpenses?.professionalFees || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              />
+              <DataRow 
+                label="Management & Administration" 
+                value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.management || 0) : ((property.monthlyExpenses?.management || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              />
+              <DataRow 
+                label="Repairs & Maintenance" 
+                value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.maintenance || 0) : ((property.monthlyExpenses?.maintenance || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              />
+              <DataRow 
+                label="Property Taxes" 
+                value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.propertyTax || 0) : ((property.monthlyExpenses?.propertyTax || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              />
+              <DataRow 
+                label="Travel" 
+                value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.travel || 0) : ((property.monthlyExpenses?.travel || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              />
+              <DataRow 
+                label="Utilities" 
+                value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.utilities || 0) : ((property.monthlyExpenses?.utilities || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              />
+              <DataRow 
+                label="Motor Vehicle Expense" 
+                value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.motorVehicle || 0) : ((property.monthlyExpenses?.motorVehicle || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              />
+              <DataRow 
+                label="Other Rental Expense (incl. Condo Fees & Broker Fees)" 
+                value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.condoFees || 0) : ((property.monthlyExpenses?.condoFees || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              />
+              <DataRow 
+                label="Mortgage (Principal)" 
+                value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.mortgagePrincipal || 0) : ((property.monthlyExpenses?.mortgagePrincipal || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              />
+              <DataRow 
+                label={expenseView === 'monthly' ? 'Total Monthly Expenses' : 'Total Annual Expenses'} 
+                value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.total || 0) : ((property.monthlyExpenses?.total || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                isBold={true}
+              />
+            </>
+          ) : (
+            /* Historical Data Display */
+            <HistoricalDataDisplay 
+              property={property} 
+              expenseView={expenseView}
+            />
+          )}
         </div>
       </Section>
 

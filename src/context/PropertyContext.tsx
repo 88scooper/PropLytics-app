@@ -141,49 +141,12 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
   
   // Calculate mortgage payments and update property data in browser environment
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // For now, use simplified calculations to avoid infinite loading
-      properties.forEach(property => {
-        try {
-          // Use estimated mortgage payments based on original amount and interest rate
-          const estimatedMonthlyPayment = (property.mortgage.originalAmount * property.mortgage.interestRate / 12) + 
-                                        (property.mortgage.originalAmount / (property.mortgage.amortizationYears * 12));
-          
-          // Update monthly expenses
-          property.monthlyExpenses.mortgagePayment = estimatedMonthlyPayment;
-          property.monthlyExpenses.mortgageInterest = property.mortgage.originalAmount * property.mortgage.interestRate / 12;
-          property.monthlyExpenses.mortgagePrincipal = property.mortgage.originalAmount / (property.mortgage.amortizationYears * 12);
-          
-          // Use standardized financial calculations
-          const annualOperatingExpenses = calculateAnnualOperatingExpenses(property);
-          const noi = calculateNOI(property);
-          const capRate = calculateCapRate(property);
-          const monthlyCashFlow = calculateMonthlyCashFlow(property);
-          const annualCashFlow = calculateAnnualCashFlow(property);
-          const cashOnCashReturn = calculateCashOnCashReturn(property);
-          
-          // Update property with standardized calculations
-          property.annualOperatingExpenses = annualOperatingExpenses;
-          property.netOperatingIncome = noi;
-          property.capRate = capRate;
-          property.monthlyCashFlow = monthlyCashFlow;
-          property.annualCashFlow = annualCashFlow;
-          property.cashOnCashReturn = cashOnCashReturn;
-          
-          // Recalculate total monthly expenses (including mortgage for cash flow calculation)
-          const monthlyOperatingExpenses = annualOperatingExpenses / 12;
-          property.monthlyExpenses.total = monthlyOperatingExpenses + property.monthlyExpenses.mortgagePayment;
-          
-        } catch (error) {
-          console.warn(`Error calculating mortgage payments for ${property.id}:`, error);
-        }
-      });
-      
-      // Mark calculations as complete to trigger re-render
+    // Use setTimeout to ensure this runs after the component mounts
+    const timeoutId = setTimeout(() => {
       setCalculationsComplete(true);
-    } else {
-      setCalculationsComplete(true); // Server-side rendering
-    }
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, []);
   
   // Get all properties and portfolio metrics
