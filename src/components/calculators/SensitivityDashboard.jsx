@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { formatCurrency, formatPercentage } from '@/utils/formatting';
-import { calculateReturnMetrics, compareScenarios, DEFAULT_ASSUMPTIONS } from '@/lib/sensitivity-analysis';
+import { calculateReturnMetrics, compareScenarios, calculateYoYMetrics, DEFAULT_ASSUMPTIONS } from '@/lib/sensitivity-analysis';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 const SensitivityDashboard = ({ property, assumptions }) => {
@@ -29,6 +29,12 @@ const SensitivityDashboard = ({ property, assumptions }) => {
     if (!baselineMetrics || !newScenarioMetrics) return null;
     return compareScenarios(baselineMetrics, newScenarioMetrics);
   }, [baselineMetrics, newScenarioMetrics]);
+
+  // Calculate YoY metrics
+  const yoyMetrics = useMemo(() => {
+    if (!property) return null;
+    return calculateYoYMetrics(property, assumptions, DEFAULT_ASSUMPTIONS);
+  }, [property, assumptions]);
 
   // Prevent hydration mismatch by showing loading state until client mounts
   if (!isClient) {
@@ -90,6 +96,45 @@ const SensitivityDashboard = ({ property, assumptions }) => {
     }
   ];
 
+  // Add YoY metrics if available
+  const yoyMetricsArray = yoyMetrics ? [
+    {
+      label: 'Next Year Revenue Growth',
+      description: 'Projected year-over-year revenue growth based on rent increase assumptions',
+      baseline: yoyMetrics.baselineProjected.revenue,
+      newScenario: yoyMetrics.projected.revenue,
+      difference: yoyMetrics.projected.revenue - yoyMetrics.baselineProjected.revenue,
+      percentChange: yoyMetrics.baselineProjected.revenue !== 0 ? 
+        ((yoyMetrics.projected.revenue - yoyMetrics.baselineProjected.revenue) / Math.abs(yoyMetrics.baselineProjected.revenue)) * 100 : 0,
+      formatter: (val) => `${val.toFixed(1)}%`,
+      higherIsBetter: true
+    },
+    {
+      label: 'Next Year Expense Growth',
+      description: 'Projected year-over-year expense growth based on inflation assumptions',
+      baseline: yoyMetrics.baselineProjected.expenses,
+      newScenario: yoyMetrics.projected.expenses,
+      difference: yoyMetrics.projected.expenses - yoyMetrics.baselineProjected.expenses,
+      percentChange: yoyMetrics.baselineProjected.expenses !== 0 ? 
+        ((yoyMetrics.projected.expenses - yoyMetrics.baselineProjected.expenses) / Math.abs(yoyMetrics.baselineProjected.expenses)) * 100 : 0,
+      formatter: (val) => `${val.toFixed(1)}%`,
+      higherIsBetter: false // Lower expense growth is better
+    },
+    {
+      label: 'Next Year Cash Flow Growth',
+      description: 'Projected year-over-year cash flow growth based on combined assumptions',
+      baseline: yoyMetrics.baselineProjected.cashFlow,
+      newScenario: yoyMetrics.projected.cashFlow,
+      difference: yoyMetrics.projected.cashFlow - yoyMetrics.baselineProjected.cashFlow,
+      percentChange: yoyMetrics.baselineProjected.cashFlow !== 0 ? 
+        ((yoyMetrics.projected.cashFlow - yoyMetrics.baselineProjected.cashFlow) / Math.abs(yoyMetrics.baselineProjected.cashFlow)) * 100 : 0,
+      formatter: (val) => `${val.toFixed(1)}%`,
+      higherIsBetter: true
+    }
+  ] : [];
+
+  const allMetrics = [...metrics, ...yoyMetricsArray];
+
   const getComparisonIcon = (difference, higherIsBetter) => {
     if (Math.abs(difference) < 0.01) {
       return <Minus className="w-5 h-5 text-gray-400" />;
@@ -130,7 +175,7 @@ const SensitivityDashboard = ({ property, assumptions }) => {
       </p>
 
       <div className="space-y-6">
-        {metrics.map((metric, index) => (
+        {allMetrics.map((metric, index) => (
           <div 
             key={index}
             className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
@@ -227,6 +272,35 @@ const SensitivityDashboard = ({ property, assumptions }) => {
               • If you sell at year 10, your total profit would be <strong>{formatCurrency(Math.abs(comparison.totalProfitAtSale.difference))} 
               {comparison.totalProfitAtSale.difference > 0 ? ' higher' : ' lower'}</strong> than baseline.
             </p>
+          )}
+
+          {/* YoY Insights */}
+          {yoyMetrics && (
+            <>
+              {Math.abs(yoyMetrics.projected.revenue - yoyMetrics.baselineProjected.revenue) > 0.5 && (
+                <p className="text-gray-600 dark:text-gray-400">
+                  • Your rent growth assumptions will impact next year's revenue by <strong>
+                    {Math.abs(yoyMetrics.projected.revenue - yoyMetrics.baselineProjected.revenue).toFixed(1)}%
+                  </strong> {yoyMetrics.projected.revenue > yoyMetrics.baselineProjected.revenue ? 'more' : 'less'} than baseline.
+                </p>
+              )}
+              
+              {Math.abs(yoyMetrics.projected.expenses - yoyMetrics.baselineProjected.expenses) > 0.5 && (
+                <p className="text-gray-600 dark:text-gray-400">
+                  • Your expense inflation assumptions will impact next year's expenses by <strong>
+                    {Math.abs(yoyMetrics.projected.expenses - yoyMetrics.baselineProjected.expenses).toFixed(1)}%
+                  </strong> {yoyMetrics.projected.expenses < yoyMetrics.baselineProjected.expenses ? 'less' : 'more'} than baseline.
+                </p>
+              )}
+              
+              {Math.abs(yoyMetrics.projected.cashFlow - yoyMetrics.baselineProjected.cashFlow) > 1 && (
+                <p className="text-gray-600 dark:text-gray-400">
+                  • Combined assumptions will impact next year's cash flow growth by <strong>
+                    {Math.abs(yoyMetrics.projected.cashFlow - yoyMetrics.baselineProjected.cashFlow).toFixed(1)}%
+                  </strong> {yoyMetrics.projected.cashFlow > yoyMetrics.baselineProjected.cashFlow ? 'more' : 'less'} than baseline.
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>

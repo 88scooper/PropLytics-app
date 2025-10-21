@@ -9,6 +9,7 @@ import AssumptionsPanel from "@/components/calculators/AssumptionsPanel";
 import BaselineForecast from "@/components/calculators/BaselineForecast";
 import SensitivityDashboard from "@/components/calculators/SensitivityDashboard";
 import BreakEvenAnalysis from "@/components/calculators/BreakEvenAnalysis";
+import YoYAnalysis from "@/components/calculators/YoYAnalysis";
 import SaveScenarioModal from "@/components/calculators/SaveScenarioModal";
 import SavedScenariosPanel from "@/components/calculators/SavedScenariosPanel";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/sensitivity-analysis";
@@ -132,6 +133,11 @@ export default function AnalyticsPage() {
                     <SensitivityDashboard 
                       property={selectedProperty}
                       assumptions={assumptions}
+                    />
+                    <YoYAnalysis 
+                      property={selectedProperty}
+                      assumptions={assumptions}
+                      baselineAssumptions={DEFAULT_ASSUMPTIONS}
                     />
                     <BreakEvenAnalysis 
                       property={selectedProperty}

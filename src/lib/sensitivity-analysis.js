@@ -266,3 +266,143 @@ export function formatForecastForChart(forecast) {
   }));
 }
 
+/**
+ * Calculate YoY (Year-over-Year) metrics for property analysis
+ * @param {Object} property - Property object
+ * @param {Object} assumptions - Forecast assumptions
+ * @param {Object} baselineAssumptions - Baseline assumptions for comparison
+ * @returns {Object} YoY metrics including historical and projected changes
+ */
+export function calculateYoYMetrics(property, assumptions = DEFAULT_ASSUMPTIONS, baselineAssumptions = DEFAULT_ASSUMPTIONS) {
+  if (!property) return null;
+
+  // Historical data for YoY calculations
+  const historicalDataMap = {
+    'richmond-st-e-403': [
+      { year: '2023', income: 40200, expenses: 23493.77, cashFlow: 16706.23 },
+      { year: '2024', income: 41323.03, expenses: 17399.9, cashFlow: 23923.13 },
+      { year: '2025', income: 41400, expenses: 17400, cashFlow: 24000 }
+    ],
+    'tretti-way-317': [
+      { year: '2024', income: 36000, expenses: 2567.21, cashFlow: 33432.79 },
+      { year: '2025', income: 36000, expenses: 2537.5, cashFlow: 33462.5 }
+    ],
+    'wilson-ave-415': [
+      { year: '2025', income: 28800, expenses: 10237.2, cashFlow: 18562.8 }
+    ]
+  };
+
+  const historicalData = historicalDataMap[property.id] || [];
+  const currentYear = new Date().getFullYear().toString();
+  const previousYear = (new Date().getFullYear() - 1).toString();
+
+  // Find current and previous year data
+  const currentYearData = historicalData.find(d => d.year === currentYear);
+  const previousYearData = historicalData.find(d => d.year === previousYear);
+
+  // Calculate historical YoY changes
+  const calculateYoYChange = (current, previous) => {
+    if (!current || !previous || previous === 0) return null;
+    return ((current - previous) / previous) * 100;
+  };
+
+  // Calculate historical YoY changes - require minimum 2 years of data
+  const hasMinimumData = historicalData.length >= 2 && currentYearData && previousYearData;
+  
+  const historicalYoY = {
+    revenue: hasMinimumData 
+      ? calculateYoYChange(currentYearData.income, previousYearData.income)
+      : null,
+    expenses: hasMinimumData 
+      ? calculateYoYChange(currentYearData.expenses, previousYearData.expenses)
+      : null,
+    cashFlow: hasMinimumData 
+      ? calculateYoYChange(currentYearData.cashFlow, previousYearData.cashFlow)
+      : null
+  };
+
+  // Calculate current values
+  const currentRent = property.rent.monthlyRent * 12;
+  const currentExpenses = (property.monthlyExpenses.total - property.monthlyExpenses.mortgagePayment) * 12;
+  const currentCashFlow = currentRent - currentExpenses - (property.monthlyExpenses.mortgagePayment * 12);
+  
+  // Project next year's values based on assumptions
+  const projectedRent = currentRent * (1 + assumptions.annualRentIncrease / 100);
+  const projectedExpenses = currentExpenses * (1 + assumptions.annualExpenseInflation / 100);
+  const projectedCashFlow = projectedRent - projectedExpenses - (property.monthlyExpenses.mortgagePayment * 12);
+
+  const projectedYoY = {
+    revenue: ((projectedRent - currentRent) / currentRent) * 100,
+    expenses: ((projectedExpenses - currentExpenses) / currentExpenses) * 100,
+    cashFlow: currentCashFlow !== 0 ? ((projectedCashFlow - currentCashFlow) / Math.abs(currentCashFlow)) * 100 : 0
+  };
+
+  // Calculate baseline projected YoY for comparison
+  const baselineProjectedRent = currentRent * (1 + baselineAssumptions.annualRentIncrease / 100);
+  const baselineProjectedExpenses = currentExpenses * (1 + baselineAssumptions.annualExpenseInflation / 100);
+  const baselineProjectedCashFlow = baselineProjectedRent - baselineProjectedExpenses - (property.monthlyExpenses.mortgagePayment * 12);
+
+  const baselineProjectedYoY = {
+    revenue: ((baselineProjectedRent - currentRent) / currentRent) * 100,
+    expenses: ((baselineProjectedExpenses - currentExpenses) / currentExpenses) * 100,
+    cashFlow: currentCashFlow !== 0 ? ((baselineProjectedCashFlow - currentCashFlow) / Math.abs(currentCashFlow)) * 100 : 0
+  };
+
+  return {
+    historical: historicalYoY,
+    projected: projectedYoY,
+    baselineProjected: baselineProjectedYoY,
+    hasHistoricalData: hasMinimumData,
+    hasMinimumData,
+    dataRequirement: {
+      requiredYears: 2,
+      availableYears: historicalData.length,
+      meetsRequirement: hasMinimumData
+    },
+    currentYearData,
+    previousYearData,
+    currentValues: {
+      rent: currentRent,
+      expenses: currentExpenses,
+      cashFlow: currentCashFlow
+    },
+    projectedValues: {
+      rent: projectedRent,
+      expenses: projectedExpenses,
+      cashFlow: projectedCashFlow
+    }
+  };
+}
+
+/**
+ * Calculate YoY growth rates for multiple years in forecast
+ * @param {Object} forecast - Forecast object from generateForecast
+ * @returns {Array} Array of YoY growth rates for each year
+ */
+export function calculateForecastYoYGrowth(forecast) {
+  const yoyGrowth = [];
+  
+  for (let i = 1; i < forecast.years.length; i++) {
+    const currentYear = i;
+    const previousYear = i - 1;
+    
+    const revenueGrowth = forecast.netCashFlow[previousYear] !== 0 
+      ? ((forecast.netCashFlow[currentYear] - forecast.netCashFlow[previousYear]) / Math.abs(forecast.netCashFlow[previousYear])) * 100
+      : 0;
+    
+    const equityGrowth = forecast.equity[previousYear] !== 0 
+      ? ((forecast.equity[currentYear] - forecast.equity[previousYear]) / forecast.equity[previousYear]) * 100
+      : 0;
+    
+    yoyGrowth.push({
+      year: currentYear + 1, // Year 2, 3, 4, etc.
+      revenueGrowth,
+      equityGrowth,
+      netCashFlow: forecast.netCashFlow[currentYear],
+      equity: forecast.equity[currentYear]
+    });
+  }
+  
+  return yoyGrowth;
+}
+
