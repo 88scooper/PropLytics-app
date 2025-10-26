@@ -74,6 +74,7 @@ export interface Property {
   monthlyCashFlow: number;
   annualCashFlow: number;
   capRate: number;
+  cashOnCashReturn: number;
   occupancy: number;
   name: string;
   type: string;
@@ -141,45 +142,86 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
   
   // Calculate mortgage payments and update property data in browser environment
   useEffect(() => {
-    // Use setTimeout to ensure this runs after the component mounts
-    const timeoutId = setTimeout(() => {
+    if (typeof window !== 'undefined') {
+      // Ensure calculations are completed before setting calculationsComplete to true
+      const timeoutId = setTimeout(() => {
+        // Verify that calculations have been applied
+        const hasCalculations = allProperties.some(property => 
+          property.cashOnCashReturn !== undefined && 
+          property.monthlyCashFlow !== undefined &&
+          property.capRate !== undefined
+        );
+        
+        if (hasCalculations) {
+          setCalculationsComplete(true);
+        } else {
+          // If calculations aren't ready, try again in a bit
+          setTimeout(() => setCalculationsComplete(true), 200);
+        }
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
+    } else {
       setCalculationsComplete(true);
-    }, 100);
-    
-    return () => clearTimeout(timeoutId);
-  }, []);
+    }
+  }, [allProperties]);
   
   // Get all properties and portfolio metrics
   const allProperties = getAllProperties();
+  
+  // Ensure all properties have calculated financial metrics
+  const propertiesWithCalculations = allProperties.map(property => {
+    // If calculations are missing, calculate them on the fly
+    if (property.cashOnCashReturn === undefined || property.monthlyCashFlow === undefined) {
+      const annualOperatingExpenses = calculateAnnualOperatingExpenses(property);
+      const noi = calculateNOI(property);
+      const capRate = calculateCapRate(property);
+      const monthlyCashFlow = calculateMonthlyCashFlow(property);
+      const annualCashFlow = calculateAnnualCashFlow(property);
+      const cashOnCashReturn = calculateCashOnCashReturn(property);
+      
+      return {
+        ...property,
+        annualOperatingExpenses,
+        netOperatingIncome: noi,
+        capRate,
+        monthlyCashFlow,
+        annualCashFlow,
+        cashOnCashReturn
+      };
+    }
+    return property;
+  });
+  
   const metrics = getPortfolioMetrics();
 
   // Memoized helper functions for performance
   const contextValue = useMemo(() => ({
-    properties: allProperties,
+    properties: propertiesWithCalculations,
     portfolioMetrics: metrics,
     calculationsComplete,
     
     // Helper functions
-    getPropertyById: (id: string) => getPropertyById(id),
+    getPropertyById: (id: string) => propertiesWithCalculations.find(p => p.id === id),
     getPropertiesByType: (type: string) => 
-      allProperties.filter(property => property.propertyType.toLowerCase() === type.toLowerCase()),
+      propertiesWithCalculations.filter(property => property.propertyType.toLowerCase() === type.toLowerCase()),
     getPropertiesByLocation: (location: string) => 
-      allProperties.filter(property => 
+      propertiesWithCalculations.filter(property => 
         property.address.toLowerCase().includes(location.toLowerCase())
       ),
     getPropertiesWithTenants: () => 
-      allProperties.filter(property => 
+      propertiesWithCalculations.filter(property => 
         property.tenant && property.tenant.name && property.tenant.name.trim() !== ''
       ),
     getVacantProperties: () => 
-      allProperties.filter(property => 
+      propertiesWithCalculations.filter(property => 
         !property.tenant || !property.tenant.name || property.tenant.name.trim() === ''
       ),
     
     // Loading and error states (currently static, can be enhanced later)
     loading: false,
     error: null,
-  }), [allProperties, metrics, calculationsComplete]);
+  }), [propertiesWithCalculations, metrics, calculationsComplete]);
 
   return (
     <PropertyContext.Provider value={contextValue}>

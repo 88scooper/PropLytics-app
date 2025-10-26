@@ -21,12 +21,6 @@ export default function PropertyDetailPage({ params }) {
     setIsHydrated(true);
   }, []);
 
-  // Debug logging for capRate and cashOnCashReturn
-  if (property) {
-    console.log('DEBUG - Cap Rate:', property.capRate, 'Type:', typeof property.capRate);
-    console.log('DEBUG - Cash on Cash:', property.cashOnCashReturn, 'Type:', typeof property.cashOnCashReturn);
-  }
-
   // Calculate mortgage schedule and current balance
   const mortgageData = useMemo(() => {
     if (!property?.mortgage) return null;
