@@ -75,6 +75,7 @@ export interface Property {
   annualCashFlow: number;
   capRate: number;
   cashOnCashReturn: number;
+  pricePerSquareFoot: number;
   occupancy: number;
   name: string;
   type: string;
@@ -140,6 +141,9 @@ const PropertyContext = createContext<PropertyContextType | undefined>(undefined
 export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [calculationsComplete, setCalculationsComplete] = useState(false);
   
+  // Get all properties and portfolio metrics
+  const allProperties = getAllProperties();
+  
   // Calculate mortgage payments and update property data in browser environment
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -166,11 +170,13 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [allProperties]);
   
-  // Get all properties and portfolio metrics
-  const allProperties = getAllProperties();
-  
   // Ensure all properties have calculated financial metrics
   const propertiesWithCalculations = allProperties.map(property => {
+    // Calculate price per square foot
+    const pricePerSquareFoot = property.squareFootage > 0 
+      ? property.purchasePrice / property.squareFootage 
+      : 0;
+    
     // If calculations are missing, calculate them on the fly
     if (property.cashOnCashReturn === undefined || property.monthlyCashFlow === undefined) {
       const annualOperatingExpenses = calculateAnnualOperatingExpenses(property);
@@ -187,10 +193,16 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
         capRate,
         monthlyCashFlow,
         annualCashFlow,
-        cashOnCashReturn
+        cashOnCashReturn,
+        pricePerSquareFoot
       };
     }
-    return property;
+    
+    // Always ensure pricePerSquareFoot is calculated
+    return {
+      ...property,
+      pricePerSquareFoot
+    };
   });
   
   const metrics = getPortfolioMetrics();

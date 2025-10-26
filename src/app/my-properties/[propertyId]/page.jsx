@@ -225,6 +225,10 @@ export default function PropertyDetailPage({ params }) {
                       <span className="font-medium">{property.yearBuilt}</span>
                     </div>
                     <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Purchase Price Per Square Foot</span>
+                      <span className="font-medium">{formatCurrency(property.pricePerSquareFoot)}</span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Current Value</span>
                       <span className="font-medium">{formatCurrency(property.currentValue)}</span>
                     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Layout from "@/components/Layout";
@@ -247,6 +248,7 @@ export default function MyPropertiesPage() {
 }
 
 function PropertyCard({ property }) {
+  const [irrYears, setIrrYears] = useState(5); // Default to 5 years
   const monthlyCashFlow = property.monthlyCashFlow;
   const capRate = property.capRate;
   const squareFeet = property.size || property.squareFootage || 0;
@@ -262,14 +264,25 @@ function PropertyCard({ property }) {
   // Cash on Cash Return = Annual Cash Flow / Total Initial Cash Invested
   const cashOnCashReturn = totalInitialCashInvested > 0 ? (annualCashFlow / totalInitialCashInvested) * 100 : 0;
   
-  // Internal Rate of Return (simplified calculation)
+  // Internal Rate of Return (simplified calculation with adjustable years)
   // This is a simplified IRR calculation - in practice, IRR would require more complex calculations
   const currentValue = property.currentMarketValue || property.currentValue || 0;
   const totalReturn = currentValue - property.purchasePrice;
   const yearsHeld = new Date().getFullYear() - new Date(property.purchaseDate).getFullYear();
-  const irr = yearsHeld > 0 && totalInitialCashInvested > 0 
-    ? Math.pow((currentValue + (annualCashFlow * yearsHeld)) / totalInitialCashInvested, 1/yearsHeld) - 1 
-    : 0;
+  
+  // Calculate IRR based on selected years
+  const calculateIRR = (years) => {
+    if (years <= 0 || totalInitialCashInvested <= 0) return 0;
+    
+    // Simplified IRR: assumes property value grows and cash flow continues for the specified years
+    const projectedValue = currentValue * Math.pow(1.03, years); // Assume 3% annual appreciation
+    const totalCashFlow = annualCashFlow * years;
+    const totalReturn = projectedValue + totalCashFlow - totalInitialCashInvested;
+    
+    return Math.pow((totalReturn + totalInitialCashInvested) / totalInitialCashInvested, 1/years) - 1;
+  };
+  
+  const irr = calculateIRR(irrYears);
   
   // Calculate YoY changes dynamically from property data
   const yoyData = calculateYoYChanges(property);
@@ -308,21 +321,33 @@ function PropertyCard({ property }) {
         
         <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
           <div>
-            <div className="text-gray-500 dark:text-gray-400">Type</div>
-            <div className="font-medium">{property.propertyType || property.type}</div>
+            <div className="text-gray-500 dark:text-gray-400">Purchase Price</div>
+            <div className="font-medium">{formatCurrency(property.purchasePrice)}</div>
           </div>
           <div>
             <div className="text-gray-500 dark:text-gray-400">Units</div>
             <div className="font-medium">{property.units || 1}</div>
           </div>
           <div>
-            <div className="text-gray-500 dark:text-gray-400">Purchase Price</div>
-            <div className="font-medium">{formatCurrency(property.purchasePrice)}</div>
-          </div>
-          <div>
             <div className="text-gray-500 dark:text-gray-400">Monthly Rent</div>
             <div className="font-medium text-emerald-600 dark:text-emerald-400">
               {formatCurrency(property.rent.monthlyRent)}
+            </div>
+          </div>
+          <div>
+            <div className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              Monthly Expenses
+              <div className="group relative">
+                <svg className="w-3 h-3 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                </svg>
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-48 text-center leading-relaxed">
+                  This includes expense incurred monthly and annually. Annual expense are divided evenly across 12 months
+                </div>
+              </div>
+            </div>
+            <div className="font-medium text-red-600 dark:text-red-400">
+              {formatCurrency(property.monthlyExpenses?.total || 0)}
             </div>
           </div>
           <div>
@@ -349,7 +374,7 @@ function PropertyCard({ property }) {
                 <svg className="w-3 h-3 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                 </svg>
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-48 text-center leading-relaxed">
                   Year-over-year revenue change ({comparisonPeriod} {new Date().getFullYear()} vs {comparisonPeriod} {new Date().getFullYear() - 1}). {dataCompletenessWarning}. Green = increase, Red = decrease.
                 </div>
               </div>
@@ -379,7 +404,7 @@ function PropertyCard({ property }) {
                 <svg className="w-3 h-3 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                 </svg>
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-48 text-center leading-relaxed">
                   Year-over-year expense change ({comparisonPeriod} {new Date().getFullYear()} vs {comparisonPeriod} {new Date().getFullYear() - 1}). {dataCompletenessWarning}. Green = decrease (good), Red = increase (bad).
                 </div>
               </div>
@@ -416,9 +441,33 @@ function PropertyCard({ property }) {
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-gray-500 dark:text-gray-400">IRR</div>
+                <div className="text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1">
+                  IRR
+                  <div className="group relative">
+                    <svg className="w-3 h-3 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                    </svg>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-48 text-center leading-relaxed">
+                      Internal Rate of Return projected over {irrYears} years. Assumes 3% annual property appreciation and continued cash flow.
+                    </div>
+                  </div>
+                </div>
                 <div className="font-medium text-[#205A3E] dark:text-[#4ade80]">
                   {formatPercentage(irr * 100)}
+                </div>
+                <div className="mt-1">
+                  <select 
+                    value={irrYears} 
+                    onChange={(e) => setIrrYears(parseInt(e.target.value))}
+                    className="text-xs bg-transparent border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 text-gray-600 dark:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#205A3E] dark:focus:ring-[#4ade80]"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <option value={3}>3Y</option>
+                    <option value={5}>5Y</option>
+                    <option value={10}>10Y</option>
+                    <option value={15}>15Y</option>
+                    <option value={20}>20Y</option>
+                  </select>
                 </div>
               </div>
             </div>
