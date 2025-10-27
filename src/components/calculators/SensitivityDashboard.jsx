@@ -6,12 +6,6 @@ import { calculateReturnMetrics, compareScenarios, calculateYoYMetrics, DEFAULT_
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 const SensitivityDashboard = ({ property, assumptions }) => {
-  const [isClient, setIsClient] = useState(false);
-
-  // Prevent hydration mismatch by only rendering after client mount
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
   // Calculate baseline metrics (using default assumptions)
   const baselineMetrics = useMemo(() => {
     if (!property) return null;
@@ -36,19 +30,6 @@ const SensitivityDashboard = ({ property, assumptions }) => {
     return calculateYoYMetrics(property, assumptions, DEFAULT_ASSUMPTIONS);
   }, [property, assumptions]);
 
-  // Prevent hydration mismatch by showing loading state until client mounts
-  if (!isClient) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-          🎯 Sensitivity Analysis Dashboard
-        </h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Loading analysis...
-        </p>
-      </div>
-    );
-  }
 
   if (!property || !baselineMetrics || !newScenarioMetrics || !comparison) {
     return (

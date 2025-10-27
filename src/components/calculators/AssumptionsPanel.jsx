@@ -5,12 +5,6 @@ import { HelpCircle, Save } from 'lucide-react';
 
 const AssumptionsPanel = ({ assumptions, onAssumptionsChange, onSaveClick }) => {
   const [showTooltip, setShowTooltip] = useState(null);
-  const [isClient, setIsClient] = useState(false);
-
-  // Prevent hydration mismatch by only rendering after client mount
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const handleInputChange = (field, value) => {
     const numValue = parseFloat(value);
@@ -66,20 +60,6 @@ const AssumptionsPanel = ({ assumptions, onAssumptionsChange, onSaveClick }) => 
       step: '0.1'
     }
   ];
-
-  // Prevent hydration mismatch by showing loading state until client mounts
-  if (!isClient) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          📊 Assumptions Panel
-        </h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-          Loading assumptions...
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">

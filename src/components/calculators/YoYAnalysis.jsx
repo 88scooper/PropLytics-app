@@ -59,6 +59,7 @@ export default function YoYAnalysis({ property, assumptions, baselineAssumptions
     // Calculate projected YoY changes based on assumptions
     const currentRent = property.rent.monthlyRent * 12;
     const currentExpenses = (property.monthlyExpenses.total - property.monthlyExpenses.mortgagePayment) * 12;
+    const currentCashFlow = currentRent - currentExpenses - (property.monthlyExpenses.mortgagePayment * 12);
     
     // Project next year's values based on assumptions
     const projectedRent = currentRent * (1 + assumptions.annualRentIncrease / 100);
