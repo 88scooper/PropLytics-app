@@ -422,7 +422,7 @@ export default function PortfolioSummaryPage() {
                     return (
                       <MetricCard
                         key={metric.id}
-                        title="Total Estimated Portfolio Value"
+                        title="Total Estimated Portfolio Value :)"
                         value={formatCurrency(totalPortfolioValue)}
                         showInfoIcon={true}
                         tooltipText="The estimated current market value of all properties in your portfolio."
