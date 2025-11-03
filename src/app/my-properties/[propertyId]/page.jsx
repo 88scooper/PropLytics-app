@@ -9,10 +9,21 @@ import { formatCurrency, formatPercentage, formatNumber } from "@/utils/formatti
 import { calculateAmortizationSchedule } from "@/utils/mortgageCalculator";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import AnnualExpenseChart from '@/components/charts/AnnualExpenseChart';
+import { useToast } from "@/context/ToastContext";
+import MortgageFormUpgraded from "@/components/mortgages/MortgageFormUpgraded";
+import { X } from "lucide-react";
+import YoYAnalysis from "@/components/calculators/YoYAnalysis";
+import { DEFAULT_ASSUMPTIONS } from "@/lib/sensitivity-analysis";
 
 export default function PropertyDetailPage({ params }) {
   const { propertyId } = use(params) || {};
   const [isHydrated, setIsHydrated] = useState(false);
+  const { addToast } = useToast();
+  
+  // Modal state management
+  const [showEditPropertyModal, setShowEditPropertyModal] = useState(false);
+  const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
+  const [showEditMortgageModal, setShowEditMortgageModal] = useState(false);
   
   // Get property data using propertyId from PropertyContext
   const property = useProperty(propertyId);
@@ -78,17 +89,18 @@ export default function PropertyDetailPage({ params }) {
     
     // Define historical data for each property based on available CSV data
     const historicalDataMap = {
-      'richmond-st-e-403': [
-        { year: '2023', income: 40200, expenses: 23493.77, cashFlow: 16706.23 },
-        { year: '2024', income: 41323.03, expenses: 17399.9, cashFlow: 23923.13 },
-        { year: '2025', income: 41400, expenses: 17400, cashFlow: 24000 }
+      'first-st-1': [
+        { year: '2021', income: 31200, expenses: 32368, cashFlow: -1168 }, // 2600 * 12
+        { year: '2022', income: 31944, expenses: 35721, cashFlow: -3777 }, // 2662 * 12
+        { year: '2023', income: 31920, expenses: 33305, cashFlow: -1385 }, // 2660 * 12
+        { year: '2024', income: 32688, expenses: 33799, cashFlow: -1111 }, // 2724 * 12
+        { year: '2025', income: 33468, expenses: 33799, cashFlow: -331 } // 2789 * 12 (projected)
       ],
-      'tretti-way-317': [
-        { year: '2024', income: 36000, expenses: 2567.21, cashFlow: 33432.79 },
-        { year: '2025', income: 36000, expenses: 2537.5, cashFlow: 33462.5 }
-      ],
-      'wilson-ave-415': [
-        { year: '2025', income: 28800, expenses: 10237.2, cashFlow: 18562.8 }
+      'second-dr-1': [
+        { year: '2021', income: 31200, expenses: 39389, cashFlow: -8189 },
+        { year: '2022', income: 31944, expenses: 42905, cashFlow: -10961 },
+        { year: '2023', income: 32100, expenses: 40393, cashFlow: -8293 },
+        { year: '2024', income: 32868, expenses: 40923, cashFlow: -8055 }
       ]
     };
     
@@ -153,8 +165,8 @@ export default function PropertyDetailPage({ params }) {
               </div>
             </div>
             <div className="flex gap-3">
-              <Button variant="secondary">Edit Property</Button>
-              <Button>Add Expense</Button>
+              <Button variant="secondary" onClick={() => setShowEditPropertyModal(true)}>Edit Property</Button>
+              <Button onClick={() => setShowAddExpenseModal(true)}>Add Expense</Button>
             </div>
           </div>
 
@@ -477,12 +489,15 @@ export default function PropertyDetailPage({ params }) {
                 </div>
               </div>
 
+              {/* Year-over-Year Analysis */}
+              <YoYAnalysis property={property} assumptions={DEFAULT_ASSUMPTIONS} baselineAssumptions={DEFAULT_ASSUMPTIONS} />
+
               {/* Enhanced Mortgage Details */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold">Mortgage Details</h2>
                   <div className="flex gap-2">
-                    <Button variant="secondary" size="sm">
+                    <Button variant="secondary" size="sm" onClick={() => setShowEditMortgageModal(true)}>
                       Edit Mortgage
                     </Button>
                   </div>
@@ -649,8 +664,396 @@ export default function PropertyDetailPage({ params }) {
             </div>
           </div>
         </div>
+
+        {/* Edit Property Modal */}
+        {showEditPropertyModal && (
+          <EditPropertyModal
+            property={property}
+            onClose={() => setShowEditPropertyModal(false)}
+            onSave={(updatedData) => {
+              // In a real app, this would save to the database
+              console.log('Property updated:', updatedData);
+              addToast('Property updated successfully!', { type: 'success' });
+              setShowEditPropertyModal(false);
+            }}
+          />
+        )}
+
+        {/* Add Expense Modal */}
+        {showAddExpenseModal && (
+          <AddExpenseModal
+            property={property}
+            onClose={() => setShowAddExpenseModal(false)}
+            onSave={(expenseData) => {
+              // In a real app, this would save to the database
+              console.log('Expense added:', expenseData);
+              addToast('Expense added successfully!', { type: 'success' });
+              setShowAddExpenseModal(false);
+            }}
+          />
+        )}
+
+        {/* Edit Mortgage Modal */}
+        {showEditMortgageModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <button
+                onClick={() => setShowEditMortgageModal(false)}
+                className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors z-10"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+              <div className="p-6">
+                <MortgageFormUpgraded
+                  mortgage={property?.mortgage ? {
+                    id: propertyId,
+                    ...property.mortgage,
+                    lenderName: property.mortgage.lender,
+                    propertyId: propertyId
+                  } : null}
+                  onClose={() => setShowEditMortgageModal(false)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </Layout>
     </RequireAuth>
+  );
+}
+
+// Edit Property Modal Component
+function EditPropertyModal({ property, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    name: property?.name || '',
+    address: property?.address || '',
+    type: property?.type || '',
+    units: property?.units || 1,
+    squareFootage: property?.squareFootage || 0,
+    purchasePrice: property?.purchasePrice || 0,
+    purchaseDate: property?.purchaseDate || '',
+    currentValue: property?.currentValue || 0,
+    yearBuilt: property?.yearBuilt || 0,
+    monthlyRent: property?.rent?.monthlyRent || 0,
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  const updateField = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Edit Property</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Property Name
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => updateField('name', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Address
+              </label>
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(e) => updateField('address', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Property Type
+              </label>
+              <select
+                value={formData.type}
+                onChange={(e) => updateField('type', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                required
+              >
+                <option value="">Select type</option>
+                <option value="Condo">Condo</option>
+                <option value="House">House</option>
+                <option value="Townhouse">Townhouse</option>
+                <option value="Apartment">Apartment</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Units
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={formData.units}
+                onChange={(e) => updateField('units', parseInt(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Square Footage
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={formData.squareFootage}
+                onChange={(e) => updateField('squareFootage', parseFloat(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Purchase Price
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.purchasePrice}
+                onChange={(e) => updateField('purchasePrice', parseFloat(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Purchase Date
+              </label>
+              <input
+                type="date"
+                value={formData.purchaseDate ? new Date(formData.purchaseDate).toISOString().split('T')[0] : ''}
+                onChange={(e) => updateField('purchaseDate', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Current Value
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.currentValue}
+                onChange={(e) => updateField('currentValue', parseFloat(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Year Built
+              </label>
+              <input
+                type="number"
+                min="1800"
+                max={new Date().getFullYear()}
+                value={formData.yearBuilt}
+                onChange={(e) => updateField('yearBuilt', parseInt(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Monthly Rent
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.monthlyRent}
+                onChange={(e) => updateField('monthlyRent', parseFloat(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <Button variant="secondary" type="button" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Add Expense Modal Component
+function AddExpenseModal({ property, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    category: 'Property Tax',
+    amount: 0,
+    date: new Date().toISOString().split('T')[0],
+    description: '',
+    frequency: 'monthly'
+  });
+
+  const expenseCategories = [
+    'Property Tax',
+    'Insurance',
+    'Condo Fees',
+    'Maintenance',
+    'Professional Fees',
+    'Utilities',
+    'Other'
+  ];
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave({
+      ...formData,
+      propertyId: property?.id,
+      amount: parseFloat(formData.amount)
+    });
+  };
+
+  const updateField = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-lg w-full">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Add Expense</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Category
+            </label>
+            <select
+              value={formData.category}
+              onChange={(e) => updateField('category', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              required
+            >
+              {expenseCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Amount
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.amount}
+              onChange={(e) => updateField('amount', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              placeholder="0.00"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Date
+            </label>
+            <input
+              type="date"
+              value={formData.date}
+              onChange={(e) => updateField('date', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Frequency
+            </label>
+            <select
+              value={formData.frequency}
+              onChange={(e) => updateField('frequency', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              required
+            >
+              <option value="one-time">One-time</option>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="annually">Annually</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Description (Optional)
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => updateField('description', e.target.value)}
+              rows="3"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              placeholder="Add any notes about this expense..."
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <Button variant="secondary" type="button" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              Add Expense
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 

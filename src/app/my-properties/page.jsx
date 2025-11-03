@@ -284,10 +284,6 @@ function PropertyCard({ property }) {
   
   const irr = calculateIRR(irrYears);
   
-  // Calculate YoY changes dynamically from property data
-  const yoyData = calculateYoYChanges(property);
-  const { yoyRevenueChange, yoyExpenseChange, hasData, comparisonPeriod, isIncompleteData, dataCompletenessWarning } = yoyData;
-
   return (
     <Link 
       href={`/my-properties/${property.id}`}
@@ -360,66 +356,6 @@ function PropertyCard({ property }) {
             <div className="text-gray-500 dark:text-gray-400">Rent/Sq Ft</div>
             <div className="font-medium">
               {formatCurrency(rentPerSqFt)}
-            </div>
-          </div>
-          <div>
-            <div className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-              YoY Revenue
-              {isIncompleteData && (
-                <svg className="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-              )}
-              <div className="group relative">
-                <svg className="w-3 h-3 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                </svg>
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-48 text-center leading-relaxed">
-                  Year-over-year revenue change ({comparisonPeriod} {new Date().getFullYear()} vs {comparisonPeriod} {new Date().getFullYear() - 1}). {dataCompletenessWarning}. Green = increase, Red = decrease.
-                </div>
-              </div>
-            </div>
-            <div className={`font-medium ${
-              !hasData || yoyRevenueChange === null 
-                ? 'text-gray-400' 
-                : yoyRevenueChange >= 0 
-                  ? 'text-emerald-600 dark:text-emerald-400' 
-                  : 'text-red-600 dark:text-red-400'
-            }`}>
-              {!hasData || yoyRevenueChange === null 
-                ? 'N/A' 
-                : `${yoyRevenueChange >= 0 ? '+' : ''}${yoyRevenueChange.toFixed(1)}%`
-              }
-            </div>
-          </div>
-          <div>
-            <div className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-              YoY Expenses
-              {isIncompleteData && (
-                <svg className="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-              )}
-              <div className="group relative">
-                <svg className="w-3 h-3 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                </svg>
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-48 text-center leading-relaxed">
-                  Year-over-year expense change ({comparisonPeriod} {new Date().getFullYear()} vs {comparisonPeriod} {new Date().getFullYear() - 1}). {dataCompletenessWarning}. Green = decrease (good), Red = increase (bad).
-                </div>
-              </div>
-            </div>
-            <div className={`font-medium ${
-              !hasData || yoyExpenseChange === null 
-                ? 'text-gray-400' 
-                : yoyExpenseChange >= 0 
-                  ? 'text-red-600 dark:text-red-400' 
-                  : 'text-emerald-600 dark:text-emerald-400'
-            }`}>
-              {!hasData || yoyExpenseChange === null 
-                ? 'N/A' 
-                : `${yoyExpenseChange >= 0 ? '+' : ''}${yoyExpenseChange.toFixed(1)}%`
-              }
             </div>
           </div>
         </div>

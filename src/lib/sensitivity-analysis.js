@@ -267,6 +267,142 @@ export function formatForecastForChart(forecast) {
 }
 
 /**
+ * Calculate current year values from expenseHistory
+ * Sums all expenses for the current calendar year from expenseHistory
+ * @param {Object} property - Property object with expenseHistory
+ * @param {number} year - Year to calculate for (defaults to current year)
+ * @returns {Object} Current year income, expenses, and cashFlow
+ */
+function calculateCurrentYearValues(property, year = null) {
+  if (!property) return { income: 0, operatingExpenses: 0, totalExpenses: 0, cashFlow: 0 };
+  
+  const currentYear = year || new Date().getFullYear();
+  const yearStart = new Date(currentYear, 0, 1);
+  const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59);
+  
+  // Calculate annual income (prefer annualRent if available)
+  const annualIncome = property.rent?.annualRent || (property.rent?.monthlyRent ? property.rent.monthlyRent * 12 : 0);
+  
+  // Sum expenses from expenseHistory for the current year
+  let annualOperatingExpenses = 0;
+  if (property.expenseHistory && Array.isArray(property.expenseHistory)) {
+    annualOperatingExpenses = property.expenseHistory
+      .filter(expense => {
+        const expenseDate = new Date(expense.date);
+        return expenseDate >= yearStart && expenseDate <= yearEnd;
+      })
+      .reduce((sum, expense) => sum + (expense.amount || 0), 0);
+  }
+  
+  // If no expenseHistory data, fall back to monthlyExpenses calculation
+  if (annualOperatingExpenses === 0 && property.monthlyExpenses) {
+    const monthlyOperatingExpenses = 
+      (property.monthlyExpenses.propertyTax || 0) +
+      (property.monthlyExpenses.condoFees || 0) +
+      (property.monthlyExpenses.insurance || 0) +
+      (property.monthlyExpenses.maintenance || 0) +
+      (property.monthlyExpenses.professionalFees || 0) +
+      (property.monthlyExpenses.utilities || 0);
+    annualOperatingExpenses = monthlyOperatingExpenses * 12;
+    
+    // Add mortgage interest if available
+    if (property.monthlyExpenses.mortgageInterest) {
+      annualOperatingExpenses += property.monthlyExpenses.mortgageInterest * 12;
+    }
+  }
+  
+  // Add annual mortgage payment
+  const annualMortgagePayment = property.monthlyExpenses?.mortgagePayment 
+    ? property.monthlyExpenses.mortgagePayment * 12 
+    : 0;
+  
+  const totalExpenses = annualOperatingExpenses + annualMortgagePayment;
+  const cashFlow = annualIncome - totalExpenses;
+  
+  return {
+    income: annualIncome,
+    operatingExpenses: annualOperatingExpenses,
+    totalExpenses: totalExpenses,
+    cashFlow
+  };
+}
+
+/**
+ * Check if a year has complete data (full calendar year)
+ * @param {Object} property - Property object
+ * @param {string} year - Year to check
+ * @param {Array} historicalData - Historical data array
+ * @returns {Object} Validation result with isComplete flag and reason
+ */
+function validateYearCompleteness(property, year, historicalData) {
+  const currentYear = new Date().getFullYear();
+  const yearNum = parseInt(year);
+  
+  // Future years are always projections
+  if (yearNum > currentYear) {
+    return {
+      isComplete: false,
+      isProjected: true,
+      reason: 'future_year',
+      message: `Year ${year} is in the future and contains projected data`
+    };
+  }
+  
+  // Current year: check if we have data for all 12 months
+  if (yearNum === currentYear) {
+    const now = new Date();
+    const monthsElapsed = now.getMonth() + 1; // 1-12
+    const isYearEnd = now.getMonth() === 11 && now.getDate() >= 31;
+    
+    if (!isYearEnd && monthsElapsed < 12) {
+      // Check expenseHistory for data across months
+      const yearStart = new Date(yearNum, 0, 1);
+      const yearEnd = new Date(yearNum, now.getMonth(), now.getDate());
+      const expenseMonths = new Set();
+      
+      if (property.expenseHistory && Array.isArray(property.expenseHistory)) {
+        property.expenseHistory.forEach(expense => {
+          const expenseDate = new Date(expense.date);
+          if (expenseDate >= yearStart && expenseDate <= yearEnd) {
+            expenseMonths.add(expenseDate.getMonth());
+          }
+        });
+      }
+      
+      return {
+        isComplete: false,
+        isProjected: false,
+        isPartial: true,
+        monthsElapsed,
+        expenseMonthsFound: expenseMonths.size,
+        reason: 'incomplete_current_year',
+        message: `Year ${year} is incomplete (${monthsElapsed}/12 months elapsed, ${expenseMonths.size} months of expense data)`
+      };
+    }
+  }
+  
+  // Past years: check if we have historical data entry
+  if (yearNum < currentYear) {
+    const hasHistoricalEntry = historicalData.some(d => d.year === year);
+    if (!hasHistoricalEntry) {
+      return {
+        isComplete: false,
+        isProjected: false,
+        reason: 'missing_data',
+        message: `No historical data available for year ${year}`
+      };
+    }
+  }
+  
+  return {
+    isComplete: true,
+    isProjected: false,
+    reason: 'complete',
+    message: `Year ${year} has complete data`
+  };
+}
+
+/**
  * Calculate YoY (Year-over-Year) metrics for property analysis
  * @param {Object} property - Property object
  * @param {Object} assumptions - Forecast assumptions
@@ -278,17 +414,18 @@ export function calculateYoYMetrics(property, assumptions = DEFAULT_ASSUMPTIONS,
 
   // Historical data for YoY calculations
   const historicalDataMap = {
-    'richmond-st-e-403': [
-      { year: '2023', income: 40200, expenses: 23493.77, cashFlow: 16706.23 },
-      { year: '2024', income: 41323.03, expenses: 17399.9, cashFlow: 23923.13 },
-      { year: '2025', income: 41400, expenses: 17400, cashFlow: 24000 }
+    'first-st-1': [
+      { year: '2021', income: 31200, expenses: 32368, cashFlow: -1168 }, // 2600 * 12
+      { year: '2022', income: 31944, expenses: 35721, cashFlow: -3777 }, // 2662 * 12
+      { year: '2023', income: 31920, expenses: 33305, cashFlow: -1385 }, // 2660 * 12
+      { year: '2024', income: 32688, expenses: 33799, cashFlow: -1111 }, // 2724 * 12
+      { year: '2025', income: 33468, expenses: 33799, cashFlow: -331 } // 2789 * 12 (projected)
     ],
-    'tretti-way-317': [
-      { year: '2024', income: 36000, expenses: 2567.21, cashFlow: 33432.79 },
-      { year: '2025', income: 36000, expenses: 2537.5, cashFlow: 33462.5 }
-    ],
-    'wilson-ave-415': [
-      { year: '2025', income: 28800, expenses: 10237.2, cashFlow: 18562.8 }
+    'second-dr-1': [
+      { year: '2021', income: 31200, expenses: 39389, cashFlow: -8189 },
+      { year: '2022', income: 31944, expenses: 42905, cashFlow: -10961 },
+      { year: '2023', income: 32100, expenses: 40393, cashFlow: -8293 },
+      { year: '2024', income: 32868, expenses: 40923, cashFlow: -8055 }
     ]
   };
 
@@ -296,9 +433,25 @@ export function calculateYoYMetrics(property, assumptions = DEFAULT_ASSUMPTIONS,
   const currentYear = new Date().getFullYear().toString();
   const previousYear = (new Date().getFullYear() - 1).toString();
 
-  // Find current and previous year data
-  const currentYearData = historicalData.find(d => d.year === currentYear);
+  // Calculate current year values from actual property data (expenseHistory)
+  const currentYearCalculated = calculateCurrentYearValues(property, parseInt(currentYear));
+  
+  // Find previous year data from historicalDataMap
   const previousYearData = historicalData.find(d => d.year === previousYear);
+  
+  // Use calculated current year or fall back to historicalDataMap
+  const currentYearData = currentYearCalculated.income > 0 
+    ? {
+        year: currentYear,
+        income: currentYearCalculated.income,
+        expenses: currentYearCalculated.totalExpenses,
+        cashFlow: currentYearCalculated.cashFlow
+      }
+    : historicalData.find(d => d.year === currentYear);
+
+  // Validate year completeness
+  const previousYearValidation = validateYearCompleteness(property, previousYear, historicalData);
+  const currentYearValidation = validateYearCompleteness(property, currentYear, historicalData);
 
   // Calculate historical YoY changes
   const calculateYoYChange = (current, previous) => {
@@ -306,69 +459,145 @@ export function calculateYoYMetrics(property, assumptions = DEFAULT_ASSUMPTIONS,
     return ((current - previous) / previous) * 100;
   };
 
-  // Calculate historical YoY changes - require minimum 2 years of data
-  const hasMinimumData = historicalData.length >= 2 && currentYearData && previousYearData;
+  // Require FULL prior year (not just 2 years of data, but complete prior year)
+  const hasFullPriorYear = previousYearData && previousYearValidation.isComplete && !previousYearValidation.isProjected;
+  const hasCurrentYearData = currentYearData && (currentYearValidation.isComplete || currentYearValidation.isPartial);
+  
+  // For YoY analysis, we need a complete prior year AND current year data
+  const hasValidYoYData = hasFullPriorYear && hasCurrentYearData;
   
   const historicalYoY = {
-    revenue: hasMinimumData 
+    revenue: hasValidYoYData && currentYearData.income && previousYearData.income
       ? calculateYoYChange(currentYearData.income, previousYearData.income)
       : null,
-    expenses: hasMinimumData 
+    expenses: hasValidYoYData && currentYearData.expenses && previousYearData.expenses
       ? calculateYoYChange(currentYearData.expenses, previousYearData.expenses)
       : null,
-    cashFlow: hasMinimumData 
+    cashFlow: hasValidYoYData && currentYearData.cashFlow !== undefined && previousYearData.cashFlow !== undefined
       ? calculateYoYChange(currentYearData.cashFlow, previousYearData.cashFlow)
       : null
   };
 
-  // Calculate current values
-  const currentRent = property.rent.monthlyRent * 12;
-  const currentExpenses = (property.monthlyExpenses.total - property.monthlyExpenses.mortgagePayment) * 12;
-  const currentCashFlow = currentRent - currentExpenses - (property.monthlyExpenses.mortgagePayment * 12);
+  // Calculate current values for projections (use calculated or property data)
+  const currentRent = currentYearData?.income || property.rent?.annualRent || (property.rent?.monthlyRent ? property.rent.monthlyRent * 12 : 0);
+  
+  // Get operating expenses separately from calculated values
+  const currentExpensesOperating = currentYearCalculated.income > 0 
+    ? currentYearCalculated.operatingExpenses
+    : (property.monthlyExpenses ? 
+        ((property.monthlyExpenses.propertyTax || 0) +
+         (property.monthlyExpenses.condoFees || 0) +
+         (property.monthlyExpenses.insurance || 0) +
+         (property.monthlyExpenses.maintenance || 0) +
+         (property.monthlyExpenses.professionalFees || 0) +
+         (property.monthlyExpenses.utilities || 0)) * 12
+      : 0);
+  
+  const annualMortgagePayment = property.monthlyExpenses?.mortgagePayment 
+    ? property.monthlyExpenses.mortgagePayment * 12 
+    : 0;
+  const currentExpensesTotal = currentExpensesOperating + annualMortgagePayment;
+  const currentCashFlow = currentYearData?.cashFlow !== undefined 
+    ? currentYearData.cashFlow 
+    : currentRent - currentExpensesTotal;
   
   // Project next year's values based on assumptions
   const projectedRent = currentRent * (1 + assumptions.annualRentIncrease / 100);
-  const projectedExpenses = currentExpenses * (1 + assumptions.annualExpenseInflation / 100);
-  const projectedCashFlow = projectedRent - projectedExpenses - (property.monthlyExpenses.mortgagePayment * 12);
+  const projectedExpensesOperating = currentExpensesOperating * (1 + assumptions.annualExpenseInflation / 100);
+  const projectedExpensesTotal = projectedExpensesOperating + annualMortgagePayment;
+  const projectedCashFlow = projectedRent - projectedExpensesTotal;
 
   const projectedYoY = {
     revenue: ((projectedRent - currentRent) / currentRent) * 100,
-    expenses: ((projectedExpenses - currentExpenses) / currentExpenses) * 100,
+    expenses: ((projectedExpensesTotal - currentExpensesTotal) / currentExpensesTotal) * 100,
     cashFlow: currentCashFlow !== 0 ? ((projectedCashFlow - currentCashFlow) / Math.abs(currentCashFlow)) * 100 : 0
   };
 
   // Calculate baseline projected YoY for comparison
   const baselineProjectedRent = currentRent * (1 + baselineAssumptions.annualRentIncrease / 100);
-  const baselineProjectedExpenses = currentExpenses * (1 + baselineAssumptions.annualExpenseInflation / 100);
-  const baselineProjectedCashFlow = baselineProjectedRent - baselineProjectedExpenses - (property.monthlyExpenses.mortgagePayment * 12);
+  const baselineProjectedExpensesOperating = currentExpensesOperating * (1 + baselineAssumptions.annualExpenseInflation / 100);
+  const baselineProjectedExpensesTotal = baselineProjectedExpensesOperating + annualMortgagePayment;
+  const baselineProjectedCashFlow = baselineProjectedRent - baselineProjectedExpensesTotal;
 
   const baselineProjectedYoY = {
     revenue: ((baselineProjectedRent - currentRent) / currentRent) * 100,
-    expenses: ((baselineProjectedExpenses - currentExpenses) / currentExpenses) * 100,
+    expenses: ((baselineProjectedExpensesTotal - currentExpensesTotal) / currentExpensesTotal) * 100,
     cashFlow: currentCashFlow !== 0 ? ((baselineProjectedCashFlow - currentCashFlow) / Math.abs(currentCashFlow)) * 100 : 0
   };
+
+  // Determine warning messages
+  let warningMessage = null;
+  let reasonInsufficient = null;
+  let dataQuality = 'complete'; // 'complete', 'partial', 'insufficient', 'projected'
+
+  if (!hasFullPriorYear) {
+    if (!previousYearData) {
+      warningMessage = `No complete data for prior year (${previousYear}).`;
+      reasonInsufficient = 'missing_prior_year';
+      dataQuality = 'insufficient';
+    } else if (previousYearValidation.isProjected) {
+      warningMessage = `Prior year (${previousYear}) contains projected data, not actual results.`;
+      reasonInsufficient = 'projected_prior_year';
+      dataQuality = 'projected';
+    } else if (!previousYearValidation.isComplete) {
+      warningMessage = `Prior year (${previousYear}) data is incomplete: ${previousYearValidation.message}`;
+      reasonInsufficient = 'incomplete_prior_year';
+      dataQuality = 'partial';
+    }
+  }
+
+  if (!hasCurrentYearData) {
+    warningMessage = warningMessage 
+      ? `${warningMessage} Current year data also unavailable.`
+      : `Current year (${currentYear}) data is unavailable.`;
+    reasonInsufficient = reasonInsufficient || 'missing_current_year';
+    dataQuality = 'insufficient';
+  } else if (currentYearValidation.isPartial) {
+    const partialMsg = `Current year (${currentYear}) is incomplete (${currentYearValidation.monthsElapsed}/12 months).`;
+    warningMessage = warningMessage 
+      ? `${warningMessage} ${partialMsg}`
+      : partialMsg;
+    reasonInsufficient = reasonInsufficient || 'incomplete_current_year';
+    if (dataQuality === 'complete') dataQuality = 'partial';
+  } else if (currentYearValidation.isProjected) {
+    const projectedMsg = `Current year (${currentYear}) contains projected values.`;
+    warningMessage = warningMessage 
+      ? `${warningMessage} ${projectedMsg}`
+      : projectedMsg;
+    reasonInsufficient = reasonInsufficient || 'projected_current_year';
+    if (dataQuality === 'complete') dataQuality = 'projected';
+  }
 
   return {
     historical: historicalYoY,
     projected: projectedYoY,
     baselineProjected: baselineProjectedYoY,
-    hasHistoricalData: hasMinimumData,
-    hasMinimumData,
+    hasHistoricalData: hasValidYoYData,
+    hasMinimumData: hasValidYoYData,
+    hasFullPriorYear,
+    hasCurrentYearData,
     dataRequirement: {
       requiredYears: 2,
+      requiredFullPriorYear: true, // Changed: require full prior year
       availableYears: historicalData.length,
-      meetsRequirement: hasMinimumData
+      meetsRequirement: hasValidYoYData,
+      meetsFullPriorYearRequirement: hasFullPriorYear
     },
     currentYearData,
     previousYearData,
+    currentYearValidation,
+    previousYearValidation,
+    warningMessage,
+    reasonInsufficient,
+    dataQuality,
     currentValues: {
       rent: currentRent,
-      expenses: currentExpenses,
+      expenses: currentExpensesTotal,
       cashFlow: currentCashFlow
     },
     projectedValues: {
       rent: projectedRent,
-      expenses: projectedExpenses,
+      expenses: projectedExpensesTotal,
       cashFlow: projectedCashFlow
     }
   };
