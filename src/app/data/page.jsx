@@ -112,10 +112,24 @@ function getAvailableYears(property) {
   return Array.from(years).sort((a, b) => b - a); // Sort descending (newest first)
 }
 
+// Shared DataRow component for displaying data rows
+function DataRow({ label, value, isBold = false }) {
+  return (
+    <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
+      <span className={`text-sm font-medium text-gray-600 dark:text-gray-400 ${isBold ? 'font-bold' : ''}`}>{label}</span>
+      <span className={`text-sm text-gray-900 dark:text-gray-100 ${isBold ? 'font-bold' : ''}`}>{value || "N/A"}</span>
+    </div>
+  );
+}
+
 // Historical Data Display Component
-function HistoricalDataDisplay({ property, expenseView }) {
+function HistoricalDataDisplay({ property, expenseView, selectedYear: externalSelectedYear, onYearChange }) {
   const availableYears = getAvailableYears(property);
-  const [selectedYear, setSelectedYear] = useState(availableYears[0] || new Date().getFullYear());
+  const [internalSelectedYear, setInternalSelectedYear] = useState(availableYears[0] || new Date().getFullYear());
+  
+  // Use external year if provided, otherwise use internal state
+  const selectedYear = externalSelectedYear !== undefined ? externalSelectedYear : internalSelectedYear;
+  const setSelectedYear = onYearChange || setInternalSelectedYear;
 
   if (availableYears.length === 0) {
     return (
@@ -131,19 +145,7 @@ function HistoricalDataDisplay({ property, expenseView }) {
 
   return (
     <div className="space-y-4">
-      {/* Year Selector */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-600 dark:text-gray-400">Year:</span>
-        <select
-          value={selectedYear}
-          onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-          className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#205A3E]"
-        >
-          {availableYears.map(year => (
-            <option key={year} value={year}>{year}</option>
-          ))}
-        </select>
-      </div>
+      {/* Year Selector is now handled at the section level */}
 
       {/* Historical Income */}
       <div className="space-y-1">
@@ -216,6 +218,8 @@ function PropertyCard({ property, onUpdate }) {
   const [expenseView, setExpenseView] = useState('monthly');
   const [tenantView, setTenantView] = useState('current');
   const [historicalView, setHistoricalView] = useState('current');
+  const availableYears = getAvailableYears(property);
+  const [selectedYear, setSelectedYear] = useState(availableYears[0] || new Date().getFullYear());
   const { addToast } = useToast();
 
   const toggleSection = (section) => {
@@ -288,7 +292,8 @@ function PropertyCard({ property, onUpdate }) {
     );
   };
 
-  const DataRow = ({ label, value, editable = false, field = "", type = "text", isBold = false }) => (
+  // Editable DataRow component for PropertyCard (with editing capabilities)
+  const EditableDataRow = ({ label, value, editable = false, field = "", type = "text", isBold = false }) => (
     <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
       <span className={`text-sm font-medium text-gray-600 dark:text-gray-400 ${isBold ? 'font-bold' : ''}`}>{label}</span>
       {isEditing && editable ? (
@@ -347,64 +352,64 @@ function PropertyCard({ property, onUpdate }) {
       {/* Collapsible Sections */}
       <Section title="Property Details" sectionKey="propertyDetails">
         <div className="space-y-1">
-          <DataRow label="Property Name" value={property.name || property.nickname} editable field="name" />
-          <DataRow label="Address" value={property.address} editable field="address" />
-          <DataRow label="Property Type" value={property.propertyType || property.type} editable field="propertyType" />
-          <DataRow label="Year Built" value={property.yearBuilt} editable field="yearBuilt" type="number" />
-          <DataRow label="Square Footage" value={property.size || property.squareFootage} editable field="size" type="number" />
-          <DataRow label="Bedrooms" value={property.bedrooms?.[0] || property.bedrooms} editable field="bedrooms" type="number" />
-          <DataRow label="Bathrooms" value={property.bathrooms?.[0] || property.bathrooms} editable field="bathrooms" type="number" />
-          <DataRow label="Unit Config" value={property.unitConfig} />
+          <EditableDataRow label="Property Name" value={property.name || property.nickname} editable field="name" />
+          <EditableDataRow label="Address" value={property.address} editable field="address" />
+          <EditableDataRow label="Property Type" value={property.propertyType || property.type} editable field="propertyType" />
+          <EditableDataRow label="Year Built" value={property.yearBuilt} editable field="yearBuilt" type="number" />
+          <EditableDataRow label="Square Footage" value={property.size || property.squareFootage} editable field="size" type="number" />
+          <EditableDataRow label="Bedrooms" value={property.bedrooms?.[0] || property.bedrooms} editable field="bedrooms" type="number" />
+          <EditableDataRow label="Bathrooms" value={property.bathrooms?.[0] || property.bathrooms} editable field="bathrooms" type="number" />
+          <EditableDataRow label="Unit Config" value={property.unitConfig} />
         </div>
       </Section>
 
       <Section title="Purchase Information" sectionKey="purchaseInfo">
         <div className="space-y-1">
-          <DataRow label="Purchase Date" value={property.purchaseDate} editable field="purchaseDate" type="date" />
-          <DataRow 
+          <EditableDataRow label="Purchase Date" value={property.purchaseDate} editable field="purchaseDate" type="date" />
+          <EditableDataRow 
             label="Purchase Price" 
             value={`$${(property.purchasePrice || 0).toLocaleString()}`} 
             editable 
             field="purchasePrice" 
             type="number" 
           />
-          <DataRow 
+          <EditableDataRow 
             label="Original Mortgage" 
             value={`$${(property.mortgage?.originalAmount || 0).toLocaleString()}`} 
             editable 
             field="originalAmount" 
             type="number" 
           />
-          <DataRow 
+          <EditableDataRow 
             label="Down Payment" 
             value={`$${((property.purchasePrice || 0) - (property.mortgage?.originalAmount || 0)).toLocaleString()}`} 
           />
-          <DataRow 
+          <EditableDataRow 
             label="Closing Costs" 
             value={`$${(property.closingCosts || 0).toLocaleString()}`} 
             editable 
             field="closingCosts" 
             type="number" 
           />
-          <DataRow 
+          <EditableDataRow 
             label="Initial Renovations" 
             value={`$${(property.initialRenovations || 0).toLocaleString()}`} 
             editable 
             field="initialRenovations" 
             type="number" 
           />
-          <DataRow 
+          <EditableDataRow 
             label="Total Investment (Cash)" 
             value={`$${(((property.purchasePrice || 0) - (property.mortgage?.originalAmount || 0)) + (property.closingCosts || 0) + (property.initialRenovations || 0)).toLocaleString()}`} 
           />
-          <DataRow 
+          <EditableDataRow 
             label="Current Market Value" 
             value={`$${(property.currentMarketValue || property.currentValue || 0).toLocaleString()}`} 
             editable 
             field="currentMarketValue" 
             type="number" 
           />
-          <DataRow 
+          <EditableDataRow 
             label="Appreciation" 
             value={`$${(property.appreciation || 0).toLocaleString()}`} 
           />
@@ -413,32 +418,32 @@ function PropertyCard({ property, onUpdate }) {
 
       <Section title="Mortgage Details" sectionKey="mortgageDetails">
         <div className="space-y-1">
-          <DataRow label="Lender" value={property.mortgage?.lender} editable field="lender" />
-          <DataRow 
+          <EditableDataRow label="Lender" value={property.mortgage?.lender} editable field="lender" />
+          <EditableDataRow 
             label="Original Amount" 
             value={`$${(property.mortgage?.originalAmount || 0).toLocaleString()}`} 
             editable 
             field="loanAmount" 
             type="number" 
           />
-          <DataRow 
+          <EditableDataRow 
             label="Interest Rate" 
             value={`${((property.mortgage?.interestRate || 0) * 100).toFixed(2)}%`} 
             editable 
             field="interestRate" 
             type="number" 
           />
-          <DataRow label="Rate Type" value={property.mortgage?.rateType} />
-          <DataRow 
+          <EditableDataRow label="Rate Type" value={property.mortgage?.rateType} />
+          <EditableDataRow 
             label="Amortization (Years)" 
             value={property.mortgage?.amortizationYears?.toFixed(1)} 
             editable 
             field="loanTerm" 
             type="number" 
           />
-          <DataRow label="Term (Months)" value={property.mortgage?.termMonths} />
-          <DataRow label="Payment Frequency" value={property.mortgage?.paymentFrequency} />
-          <DataRow label="Start Date" value={property.mortgage?.startDate} />
+          <EditableDataRow label="Term (Months)" value={property.mortgage?.termMonths} />
+          <EditableDataRow label="Payment Frequency" value={property.mortgage?.paymentFrequency} />
+          <EditableDataRow label="Start Date" value={property.mortgage?.startDate} />
         </div>
       </Section>
 
@@ -498,18 +503,34 @@ function PropertyCard({ property, onUpdate }) {
             </div>
           </div>
 
+          {/* Year Selector - shown when Historical view is selected */}
+          {historicalView === 'historical' && availableYears.length > 0 && (
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Year:</span>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#205A3E]"
+              >
+                {availableYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {historicalView === 'current' ? (
             /* Current Data Display */
             <>
               {/* Income */}
-              <DataRow 
+              <EditableDataRow 
                 label={expenseView === 'monthly' ? 'Monthly Rent' : 'Annual Rent'} 
                 value={`$${expenseView === 'monthly' ? (property.rent?.monthlyRent || 0).toLocaleString() : (property.rent?.annualRent || 0).toLocaleString()}`} 
                 editable 
                 field={expenseView === 'monthly' ? 'monthlyRent' : 'annualRent'} 
                 type="number" 
               />
-              <DataRow 
+              <EditableDataRow 
                 label={expenseView === 'monthly' ? 'Total Monthly Revenue' : 'Total Annual Revenue'} 
                 value={`$${expenseView === 'monthly' ? (property.rent?.monthlyRent || 0).toLocaleString() : (property.rent?.annualRent || 0).toLocaleString()}`} 
                 isBold={true}
@@ -519,59 +540,59 @@ function PropertyCard({ property, onUpdate }) {
               <div className="py-2"></div>
 
               {/* Expenses */}
-              <DataRow 
+              <EditableDataRow 
                 label="Advertising" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.advertising || 0) : ((property.monthlyExpenses?.advertising || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               />
-              <DataRow 
+              <EditableDataRow 
                 label="Insurance" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.insurance || 0) : ((property.monthlyExpenses?.insurance || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               />
-              <DataRow 
+              <EditableDataRow 
                 label="Interest & Banking Charges" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.mortgageInterest || 0) : ((property.monthlyExpenses?.mortgageInterest || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               />
-              <DataRow 
+              <EditableDataRow 
                 label="Office Expenses" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.officeExpenses || 0) : ((property.monthlyExpenses?.officeExpenses || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               />
-              <DataRow 
+              <EditableDataRow 
                 label="Professional Fees" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.professionalFees || 0) : ((property.monthlyExpenses?.professionalFees || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               />
-              <DataRow 
+              <EditableDataRow 
                 label="Management & Administration" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.management || 0) : ((property.monthlyExpenses?.management || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               />
-              <DataRow 
+              <EditableDataRow 
                 label="Repairs & Maintenance" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.maintenance || 0) : ((property.monthlyExpenses?.maintenance || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               />
-              <DataRow 
+              <EditableDataRow 
                 label="Property Taxes" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.propertyTax || 0) : ((property.monthlyExpenses?.propertyTax || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               />
-              <DataRow 
+              <EditableDataRow 
                 label="Travel" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.travel || 0) : ((property.monthlyExpenses?.travel || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               />
-              <DataRow 
+              <EditableDataRow 
                 label="Utilities" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.utilities || 0) : ((property.monthlyExpenses?.utilities || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               />
-              <DataRow 
+              <EditableDataRow 
                 label="Motor Vehicle Expense" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.motorVehicle || 0) : ((property.monthlyExpenses?.motorVehicle || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               />
-              <DataRow 
+              <EditableDataRow 
                 label="Other Rental Expense (incl. Condo Fees & Broker Fees)" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.condoFees || 0) : ((property.monthlyExpenses?.condoFees || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               />
-              <DataRow 
+              <EditableDataRow 
                 label="Mortgage (Principal)" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.mortgagePrincipal || 0) : ((property.monthlyExpenses?.mortgagePrincipal || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               />
-              <DataRow 
+              <EditableDataRow 
                 label={expenseView === 'monthly' ? 'Total Monthly Expenses' : 'Total Annual Expenses'} 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.total || 0) : ((property.monthlyExpenses?.total || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
                 isBold={true}
@@ -582,6 +603,8 @@ function PropertyCard({ property, onUpdate }) {
             <HistoricalDataDisplay 
               property={property} 
               expenseView={expenseView}
+              selectedYear={selectedYear}
+              onYearChange={setSelectedYear}
             />
           )}
         </div>
@@ -619,16 +642,16 @@ function PropertyCard({ property, onUpdate }) {
           {tenantView === 'current' ? (
             /* Current Tenant */
             <>
-              <DataRow label="Tenant Name" value={property.tenant?.name || property.tenants?.find(t => t.status === 'Current')?.name || 'N/A'} />
-              <DataRow label="Unit" value={property.tenants?.find(t => t.status === 'Current')?.unit || 'N/A'} />
-              <DataRow label="Lease Start Date" value={property.tenant?.leaseStartDate || property.tenants?.find(t => t.status === 'Current')?.leaseStart || 'N/A'} />
-              <DataRow label="Lease End Date" value={property.tenant?.leaseEndDate || property.tenants?.find(t => t.status === 'Current')?.leaseEnd || 'N/A'} />
-              <DataRow 
+              <EditableDataRow label="Tenant Name" value={property.tenant?.name || property.tenants?.find(t => t.status === 'Current')?.name || 'N/A'} />
+              <EditableDataRow label="Unit" value={property.tenants?.find(t => t.status === 'Current')?.unit || 'N/A'} />
+              <EditableDataRow label="Lease Start Date" value={property.tenant?.leaseStartDate || property.tenants?.find(t => t.status === 'Current')?.leaseStart || 'N/A'} />
+              <EditableDataRow label="Lease End Date" value={property.tenant?.leaseEndDate || property.tenants?.find(t => t.status === 'Current')?.leaseEnd || 'N/A'} />
+              <EditableDataRow 
                 label="Monthly Rent" 
                 value={`$${(property.tenant?.rent || property.tenants?.find(t => t.status === 'Current')?.rent || 0).toLocaleString()}`} 
               />
-              <DataRow label="Key Deposit" value="" />
-              <DataRow label="Status" value={property.tenant?.status || property.tenants?.find(t => t.status === 'Current')?.status || 'N/A'} />
+              <EditableDataRow label="Key Deposit" value="" />
+              <EditableDataRow label="Status" value={property.tenant?.status || property.tenants?.find(t => t.status === 'Current')?.status || 'N/A'} />
             </>
           ) : (
             /* All Tenants */
@@ -647,15 +670,15 @@ function PropertyCard({ property, onUpdate }) {
                           {tenant.status}
                         </span>
                       </div>
-                      <DataRow label="Name" value={tenant.name} />
-                      <DataRow label="Unit" value={tenant.unit} />
-                      <DataRow label="Lease Start" value={tenant.leaseStart} />
-                      <DataRow label="Lease End" value={tenant.leaseEnd} />
-                      <DataRow 
+                      <EditableDataRow label="Name" value={tenant.name} />
+                      <EditableDataRow label="Unit" value={tenant.unit} />
+                      <EditableDataRow label="Lease Start" value={tenant.leaseStart} />
+                      <EditableDataRow label="Lease End" value={tenant.leaseEnd} />
+                      <EditableDataRow 
                         label="Monthly Rent" 
                         value={`$${(tenant.rent || 0).toLocaleString()}`} 
                       />
-                      <DataRow label="Key Deposit" value="" />
+                      <EditableDataRow label="Key Deposit" value="" />
                     </div>
                   </div>
                 ))
@@ -671,15 +694,15 @@ function PropertyCard({ property, onUpdate }) {
 
       <Section title="Property Notes" sectionKey="propertyNotes">
         <div className="space-y-1">
-          <DataRow label="Appliance Details" value="" editable field="applianceDetails" type="text" />
-          <DataRow label="Paint Details" value="" editable field="paintDetails" type="text" />
-          <DataRow label="Flooring Details" value="" editable field="flooringDetails" type="text" />
-          <DataRow label="Kitchen Features" value="" editable field="kitchenFeatures" type="text" />
-          <DataRow label="Bathroom Features" value="" editable field="bathroomFeatures" type="text" />
-          <DataRow label="Special Features" value="" editable field="specialFeatures" type="text" />
-          <DataRow label="Maintenance Notes" value="" editable field="maintenanceNotes" type="text" />
-          <DataRow label="Upgrade History" value="" editable field="upgradeHistory" type="text" />
-          <DataRow label="General Notes" value="" editable field="generalNotes" type="text" />
+          <EditableDataRow label="Appliance Details" value="" editable field="applianceDetails" type="text" />
+          <EditableDataRow label="Paint Details" value="" editable field="paintDetails" type="text" />
+          <EditableDataRow label="Flooring Details" value="" editable field="flooringDetails" type="text" />
+          <EditableDataRow label="Kitchen Features" value="" editable field="kitchenFeatures" type="text" />
+          <EditableDataRow label="Bathroom Features" value="" editable field="bathroomFeatures" type="text" />
+          <EditableDataRow label="Special Features" value="" editable field="specialFeatures" type="text" />
+          <EditableDataRow label="Maintenance Notes" value="" editable field="maintenanceNotes" type="text" />
+          <EditableDataRow label="Upgrade History" value="" editable field="upgradeHistory" type="text" />
+          <EditableDataRow label="General Notes" value="" editable field="generalNotes" type="text" />
         </div>
       </Section>
     </div>

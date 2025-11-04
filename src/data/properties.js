@@ -69,8 +69,8 @@ export const properties = [
     },
 
     rent: {
-      monthlyRent: 2650, // Current tenant rent from CSV row 23
-      annualRent: 31800, // 2650 * 12 (current tenant)
+      monthlyRent: 2789, // Current tenant rent from CSV 2025 data
+      annualRent: 33468, // 2789 * 12 (current tenant)
     },
 
     expenseHistory: [
@@ -81,6 +81,7 @@ export const properties = [
       { id: 'first-2021-maintenance', date: '2021-08-15', amount: 258, category: 'Maintenance', description: 'Repairs & maintenance' },
       { id: 'first-2021-tax', date: '2021-01-15', amount: 2415, category: 'Property Tax', description: 'Property taxes' },
       { id: 'first-2021-motor', date: '2021-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
+      { id: 'first-2021-other', date: '2021-01-15', amount: 20000, category: 'Other', description: 'Other rental expenses' },
       { id: 'first-2021-condo', date: '2021-01-15', amount: 10197, category: 'Condo Fees', description: 'Condo maintenance fees' },
       
       // 2022 Expenses from CSV
@@ -114,8 +115,8 @@ export const properties = [
     tenant: {
       name: 'Jane Doe',
       leaseStartDate: '2023-01-01',
-      leaseEndDate: '2024-12-31',
-      rent: 2650,
+      leaseEndDate: '2024-12-31', // Active lease
+      rent: 2789, // Updated to 2025 rent from CSV
       status: 'Active'
     },
 
@@ -156,11 +157,19 @@ export const properties = [
     imageUrl: '/images/1 First St.png',
     tenants: [
       {
+        name: 'Jon Doe',
+        unit: 'Unit 1',
+        rent: 2600,
+        leaseStart: '2021-01-01',
+        leaseEnd: '2022-12-22',
+        status: 'Past'
+      },
+      {
         name: 'Jane Doe',
         unit: 'Unit 1',
-        rent: 2650,
+        rent: 2789, // Updated to 2025 rent
         leaseStart: '2023-01-01',
-        leaseEnd: '2024-12-31',
+        leaseEnd: 'Active',
         status: 'Current'
       }
     ]
@@ -193,8 +202,8 @@ export const properties = [
     },
 
     rent: {
-      monthlyRent: 2600,
-      annualRent: 31200, // 2600 * 12
+      monthlyRent: 2805, // Current tenant rent from CSV 2025 data
+      annualRent: 33660, // 2805 * 12 (current tenant)
     },
 
     expenseHistory: [
@@ -205,6 +214,7 @@ export const properties = [
       { id: 'second-2021-maintenance', date: '2021-08-15', amount: 386, category: 'Maintenance', description: 'Repairs & maintenance' },
       { id: 'second-2021-tax', date: '2021-01-15', amount: 2573, category: 'Property Tax', description: 'Property taxes' },
       { id: 'second-2021-motor', date: '2021-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
+      { id: 'second-2021-other', date: '2021-01-15', amount: 25000, category: 'Other', description: 'Other rental expenses' },
       { id: 'second-2021-condo', date: '2021-01-15', amount: 10815, category: 'Condo Fees', description: 'Condo maintenance fees' },
       
       // 2022 Expenses from CSV
@@ -238,8 +248,8 @@ export const properties = [
     tenant: {
       name: 'Jane Doe',
       leaseStartDate: '2023-01-01',
-      leaseEndDate: '2024-12-31',
-      rent: 2650,
+      leaseEndDate: '2024-12-31', // Active lease
+      rent: 2805, // Updated to 2025 rent from CSV
       status: 'Active'
     },
 
@@ -280,11 +290,19 @@ export const properties = [
     imageUrl: '/images/1 Second Dr.png',
     tenants: [
       {
+        name: 'Jon Doe',
+        unit: 'Unit 1',
+        rent: 2600,
+        leaseStart: '2021-01-01',
+        leaseEnd: '2022-12-22',
+        status: 'Past'
+      },
+      {
         name: 'Jane Doe',
         unit: 'Unit 1',
-        rent: 2650,
+        rent: 2805, // Updated to 2025 rent
         leaseStart: '2023-01-01',
-        leaseEnd: '2024-12-31',
+        leaseEnd: 'Active',
         status: 'Current'
       }
     ]
