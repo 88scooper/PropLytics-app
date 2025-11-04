@@ -1,16 +1,20 @@
 // Import mortgage calculator utilities (conditional import for Next.js environment)
-let getMonthlyMortgagePayment, getMonthlyMortgageInterest, getMonthlyMortgagePrincipal;
+let getMonthlyMortgagePayment, getMonthlyMortgageInterest, getMonthlyMortgagePrincipal, getCurrentMortgageBalance, getAnnualMortgageInterest;
 
 try {
   const mortgageUtils = require('@/utils/mortgageCalculator');
   getMonthlyMortgagePayment = mortgageUtils.getMonthlyMortgagePayment;
   getMonthlyMortgageInterest = mortgageUtils.getMonthlyMortgageInterest;
   getMonthlyMortgagePrincipal = mortgageUtils.getMonthlyMortgagePrincipal;
+  getCurrentMortgageBalance = mortgageUtils.getCurrentMortgageBalance;
+  getAnnualMortgageInterest = mortgageUtils.getAnnualMortgageInterest;
 } catch (error) {
   // Fallback functions for non-Next.js environments
   getMonthlyMortgagePayment = () => 0;
   getMonthlyMortgageInterest = () => 0;
   getMonthlyMortgagePrincipal = () => 0;
+  getCurrentMortgageBalance = (mortgage) => mortgage?.originalAmount || 0;
+  getAnnualMortgageInterest = (mortgage) => (mortgage?.originalAmount || 0) * (mortgage?.interestRate || 0);
 }
 
 // Import financial calculation utilities
@@ -39,322 +43,248 @@ try {
 // Centralized property data source parsed from CSV files
 export const properties = [
   {
-    id: 'richmond-st-e-403',
-    nickname: 'Richmond St E',
-    address: '403-311 Richmond St E, Toronto, ON M5A4S8',
-    purchasePrice: 615000,
-    purchaseDate: '2019-02-04',
-    closingCosts: 12300, // ~2% of purchase price
-    initialRenovations: 100000, // Initial renovation investment
-    renovationCosts: 100000, // Keep existing field for backward compatibility
-    currentMarketValue: 800000,
-    yearBuilt: 2001,
+    id: 'first-st-1',
+    nickname: 'First St',
+    address: '1-1 First St, Toronto, ON 1A1 A1A',
+    purchasePrice: 500000,
+    purchaseDate: '2021-01-01',
+    closingCosts: 50000,
+    initialRenovations: 0,
+    renovationCosts: 0,
+    currentMarketValue: 600000,
+    yearBuilt: 2021,
     propertyType: 'Condo',
-    size: 946, // square feet
-    unitConfig: '2 Bed+Den, 2 Bath',
-    
-    mortgage: {
-      lender: 'RMG',
-      originalAmount: 443146.14, // Current mortgage amount from CSV
-      interestRate: 0.0269, // 2.69% as decimal
-      rateType: 'Fixed',
-      termMonths: 60,
-      amortizationYears: 19.92, // 239 months / 12
-      paymentFrequency: 'Bi-weekly',
-      startDate: '2022-02-03', // Start date of current mortgage
-    },
-
-    rent: {
-      monthlyRent: 3450,
-      annualRent: 41400, // 3450 * 12
-    },
-
-    expenseHistory: [
-      // 2023 Expenses
-      { id: 'richmond-2023-tax', date: '2023-01-15', amount: 524.39, category: 'Property Tax', description: 'Annual property tax payment' },
-      { id: 'richmond-2023-condo', date: '2023-01-15', amount: 1580.58, category: 'Condo Fees', description: 'Monthly condo fees' },
-      { id: 'richmond-2023-utilities', date: '2023-02-01', amount: 54, category: 'Other', description: 'Utility charges' },
-      { id: 'richmond-2023-professional', date: '2023-03-15', amount: 3785.59, category: 'Other', description: 'Professional fees' },
-      { id: 'richmond-2023-interest', date: '2023-06-01', amount: 1696.05, category: 'Other', description: 'Interest & bank charges' },
-      
-      // 2024 Expenses
-      { id: 'richmond-2024-tax', date: '2024-01-15', amount: 3218.8, category: 'Property Tax', description: 'Annual property tax payment' },
-      { id: 'richmond-2024-condo', date: '2024-01-15', amount: 9562.04, category: 'Condo Fees', description: 'Monthly condo fees' },
-      { id: 'richmond-2024-insurance', date: '2024-02-01', amount: 310.14, category: 'Insurance', description: 'Property insurance' },
-      { id: 'richmond-2024-interest', date: '2024-06-01', amount: 10343.11, category: 'Other', description: 'Interest & bank charges' },
-      { id: 'richmond-2024-maintenance', date: '2024-08-15', amount: 59.68, category: 'Maintenance', description: 'Minor repairs' },
-      
-      // 2025 Expenses
-      { id: 'richmond-2025-tax', date: '2025-01-15', amount: 2205.39, category: 'Property Tax', description: 'Annual property tax payment' },
-      { id: 'richmond-2025-condo', date: '2025-01-15', amount: 9954.84, category: 'Condo Fees', description: 'Monthly condo fees' },
-      { id: 'richmond-2025-insurance', date: '2025-02-01', amount: 512, category: 'Insurance', description: 'Property insurance' },
-      { id: 'richmond-2025-maintenance', date: '2025-03-15', amount: 829.17, category: 'Maintenance', description: 'Maintenance and repairs' },
-      { id: 'richmond-2025-professional', date: '2025-04-01', amount: 3898.5, category: 'Other', description: 'Professional fees' },
-    ],
-
-    tenant: {
-      name: 'Steve MacNeil, Kate St John',
-      leaseStartDate: '2025-02-16',
-      leaseEndDate: '2026-02-28',
-      rent: 3450,
-      status: 'Active'
-    },
-
-    // Calculated fields
-    totalInvestment: 733150, // purchasePrice + closingCosts + renovationCosts
-    appreciation: 185000, // currentMarketValue - purchasePrice
-    monthlyPropertyTax: 183.78, // propertyTax / 12
-    monthlyCondoFees: 829.57, // condoFees / 12
-    monthlyInsurance: 42.67, // insurance / 12
-    monthlyMaintenance: 69.10, // maintenance / 12
-    monthlyProfessionalFees: 324.88, // professionalFees / 12
-    
-    monthlyExpenses: {
-      propertyTax: 183.78,
-      condoFees: 829.57,
-      insurance: 42.67,
-      maintenance: 69.10,
-      professionalFees: 324.88,
-      mortgagePayment: 0, // Will be calculated below
-      mortgageInterest: 0, // Will be calculated below
-      mortgagePrincipal: 0, // Will be calculated below
-      total: 1450.00 // Will be recalculated below
-    },
-    
-    monthlyCashFlow: 2000.00, // monthlyRent - monthlyExpenses.total
-    annualCashFlow: 24000.00, // monthlyCashFlow * 12
-    capRate: 5.18, // (annualRent / currentMarketValue) * 100
-    occupancy: 100,
-    
-    // Additional fields for compatibility
-    name: 'Richmond St E',
-    type: 'Condo',
-    units: 1,
-    bedrooms: [2],
-    bathrooms: [2],
-    squareFootage: 946,
-    currentValue: 800000,
-    imageUrl: '/images/311 Richmond St E.png',
-    tenants: [
-      {
-        name: 'Marci Graore',
-        unit: 'Unit 403',
-        rent: 3200,
-        leaseStart: '2023-03-01',
-        leaseEnd: '2025-01-31',
-        status: 'Past'
-      },
-      {
-        name: 'Steve MacNeil, Kate St John',
-        unit: 'Unit 403',
-        rent: 3450,
-        leaseStart: '2025-02-16',
-        leaseEnd: '2026-02-28',
-        status: 'Current'
-      }
-    ]
-  },
-  
-  {
-    id: 'tretti-way-317',
-    nickname: 'Tretti Way',
-    address: '317-30 Tretti Way, Toronto, ON M3H0E3',
-    purchasePrice: 448618,
-    purchaseDate: '2023-10-04',
-    closingCosts: 8972, // ~2% of purchase price
-    initialRenovations: 5000, // Initial renovation investment
-    renovationCosts: 0, // Keep existing field for backward compatibility
-    currentMarketValue: 550000,
-    yearBuilt: 2023,
-    propertyType: 'Condo',
-    size: 553, // square feet
+    size: 700, // square feet
     unitConfig: '2 Bed, 2 Bath',
     
     mortgage: {
-      lender: 'RBC', // Current lender from CSV
-      originalAmount: 358000, // Current mortgage amount from CSV
-      interestRate: 0.0445, // 4.45% as decimal (Prime 5.20% - 0.75% discount)
-      rateType: 'Variable',
-      termMonths: 60,
-      amortizationYears: 30.08, // 361 months / 12
-      paymentFrequency: 'Monthly',
-      startDate: '2024-03-21', // Start date of current mortgage
-    },
-
-    rent: {
-      monthlyRent: 2300,
-      annualRent: 27600, // 2300 * 12
-    },
-
-    expenseHistory: [
-      // 2024 Expenses (purchased in Oct 2023, but expenses start from 2024)
-      { id: 'tretti-2024-tax', date: '2024-01-15', amount: 2294.1, category: 'Property Tax', description: 'Annual property tax payment' },
-      { id: 'tretti-2024-condo', date: '2024-01-15', amount: 5204.88, category: 'Condo Fees', description: 'Monthly condo fees' },
-      { id: 'tretti-2024-insurance', date: '2024-02-01', amount: 552.96, category: 'Insurance', description: 'Property insurance' },
-      { id: 'tretti-2024-professional', date: '2024-03-01', amount: 2712, category: 'Other', description: 'Professional fees' },
-      { id: 'tretti-2024-advertising', date: '2024-06-15', amount: 467, category: 'Other', description: 'Advertising costs' },
-      
-      // 2025 Expenses
-      { id: 'tretti-2025-tax', date: '2025-01-15', amount: 2294.1, category: 'Property Tax', description: 'Annual property tax payment' },
-      { id: 'tretti-2025-condo', date: '2025-01-15', amount: 5204.88, category: 'Condo Fees', description: 'Monthly condo fees' },
-      { id: 'tretti-2025-insurance', date: '2025-02-01', amount: 552.96, category: 'Insurance', description: 'Property insurance' },
-      { id: 'tretti-2025-advertising', date: '2025-06-15', amount: 527, category: 'Other', description: 'Advertising costs' },
-    ],
-
-    tenant: {
-      name: 'Pratikkumar Chaudary',
-      leaseStartDate: '2024-07-01',
-      leaseEndDate: 'Active', // Currently active tenant
-      rent: 2300,
-      status: 'Active'
-    },
-
-    // Calculated fields
-    totalInvestment: 516704, // purchasePrice + closingCosts
-    appreciation: 101382, // currentMarketValue - purchasePrice
-    monthlyPropertyTax: 191.18, // propertyTax / 12
-    monthlyCondoFees: 433.74, // condoFees / 12
-    monthlyInsurance: 46.08, // insurance / 12
-    monthlyProfessionalFees: 226.00, // professionalFees / 12
-    
-    monthlyExpenses: {
-      propertyTax: 191.18,
-      condoFees: 433.74,
-      insurance: 46.08,
-      professionalFees: 226.00,
-      mortgagePayment: 0, // Will be calculated below
-      mortgageInterest: 0, // Will be calculated below
-      mortgagePrincipal: 0, // Will be calculated below
-      total: 897.00 // Will be recalculated below
-    },
-    
-    monthlyCashFlow: 1403.00, // monthlyRent - monthlyExpenses.total
-    annualCashFlow: 16836.00, // monthlyCashFlow * 12
-    capRate: 5.02, // (annualRent / currentMarketValue) * 100
-    occupancy: 100,
-    
-    // Additional fields for compatibility
-    name: 'Tretti Way',
-    type: 'Condo',
-    units: 1,
-    bedrooms: [2],
-    bathrooms: [2],
-    squareFootage: 553,
-    currentValue: 550000,
-    imageUrl: '/images/30 Tretti Way.png',
-    tenants: [
-      {
-        name: 'Honey Goyal',
-        unit: 'Unit 317',
-        rent: 2500,
-        leaseStart: '2023-10-01',
-        leaseEnd: '2024-06-30',
-        status: 'Past'
-      },
-      {
-        name: 'Pratikkumar Chaudary',
-        unit: 'Unit 317',
-        rent: 2300,
-        leaseStart: '2024-07-01',
-        leaseEnd: 'Active',
-        status: 'Current'
-      }
-    ]
-  },
-  
-  {
-    id: 'wilson-ave-415',
-    nickname: 'Wilson Ave',
-    address: '415-500 Wilson Ave, Toronto, ON M3H0E5',
-    purchasePrice: 533379.47,
-    purchaseDate: '2025-01-20',
-    closingCosts: 10668, // ~2% of purchase price
-    initialRenovations: 8000, // Initial renovation investment
-    renovationCosts: 0, // Keep existing field for backward compatibility
-    currentMarketValue: 550000, // Estimated based on similar properties
-    yearBuilt: 2025,
-    propertyType: 'Condo',
-    size: 557, // square feet
-    unitConfig: '2 Bed, 2 Bath',
-    
-    mortgage: {
-      lender: 'RBC',
-      originalAmount: 426382.1, // From CSV
-      interestRate: 0.0445, // 4.45% as decimal
+      lender: 'Lender 1',
+      originalAmount: 400000,
+      interestRate: 0.025, // 2.5% as decimal
       rateType: 'Fixed',
-      termMonths: 36, // 3 years
+      termMonths: 60, // 5 years
       amortizationYears: 30, // 360 months
       paymentFrequency: 'Monthly',
-      startDate: '2024-01-22',
+      startDate: '2021-01-01',
     },
 
     rent: {
-      monthlyRent: 2400,
-      annualRent: 28800, // 2400 * 12
+      monthlyRent: 2650, // Current tenant rent from CSV row 23
+      annualRent: 31800, // 2650 * 12 (current tenant)
     },
 
     expenseHistory: [
-      // 2025 Expenses (purchased in Jan 2025)
-      { id: 'wilson-2025-insurance', date: '2025-02-01', amount: 710, category: 'Insurance', description: 'Property insurance' },
-      { id: 'wilson-2025-maintenance', date: '2025-03-15', amount: 253.9, category: 'Maintenance', description: 'Maintenance and repairs' },
-      { id: 'wilson-2025-professional', date: '2025-04-01', amount: 2712, category: 'Other', description: 'Professional fees' },
-      { id: 'wilson-2025-utilities', date: '2025-05-01', amount: 175.96, category: 'Other', description: 'Utility charges' },
-      { id: 'wilson-2025-advertising', date: '2025-06-15', amount: 527, category: 'Other', description: 'Advertising costs' },
-      { id: 'wilson-2025-condo', date: '2025-01-15', amount: 2300, category: 'Condo Fees', description: 'Monthly condo fees' },
+      // 2021 Expenses from CSV
+      { id: 'first-2021-insurance', date: '2021-01-15', amount: 515, category: 'Insurance', description: 'Property insurance' },
+      { id: 'first-2021-interest', date: '2021-06-01', amount: 9617, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'first-2021-professional', date: '2021-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'first-2021-maintenance', date: '2021-08-15', amount: 258, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'first-2021-tax', date: '2021-01-15', amount: 2415, category: 'Property Tax', description: 'Property taxes' },
+      { id: 'first-2021-motor', date: '2021-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
+      { id: 'first-2021-condo', date: '2021-01-15', amount: 10197, category: 'Condo Fees', description: 'Condo maintenance fees' },
+      
+      // 2022 Expenses from CSV
+      { id: 'first-2022-insurance', date: '2022-01-15', amount: 541, category: 'Insurance', description: 'Property insurance' },
+      { id: 'first-2022-interest', date: '2022-06-01', amount: 9382, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'first-2022-professional', date: '2022-03-15', amount: 2893, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'first-2022-maintenance', date: '2022-08-15', amount: 265, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'first-2022-tax', date: '2022-01-15', amount: 2536, category: 'Property Tax', description: 'Property taxes' },
+      { id: 'first-2022-motor', date: '2022-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
+      { id: 'first-2022-condo', date: '2022-01-15', amount: 10503, category: 'Condo Fees', description: 'Condo maintenance fees' },
+      
+      // 2023 Expenses from CSV
+      { id: 'first-2023-insurance', date: '2023-01-15', amount: 568, category: 'Insurance', description: 'Property insurance' },
+      { id: 'first-2023-interest', date: '2023-06-01', amount: 9142, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'first-2023-professional', date: '2023-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'first-2023-maintenance', date: '2023-08-15', amount: 273, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'first-2023-tax', date: '2023-01-15', amount: 2663, category: 'Property Tax', description: 'Property taxes' },
+      { id: 'first-2023-motor', date: '2023-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
+      { id: 'first-2023-condo', date: '2023-01-15', amount: 10818, category: 'Condo Fees', description: 'Condo maintenance fees' },
+      
+      // 2024 Expenses from CSV
+      { id: 'first-2024-insurance', date: '2024-01-15', amount: 596, category: 'Insurance', description: 'Property insurance' },
+      { id: 'first-2024-interest', date: '2024-06-01', amount: 8896, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'first-2024-professional', date: '2024-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'first-2024-maintenance', date: '2024-08-15', amount: 281, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'first-2024-tax', date: '2024-01-15', amount: 2796, category: 'Property Tax', description: 'Property taxes' },
+      { id: 'first-2024-motor', date: '2024-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
+      { id: 'first-2024-condo', date: '2024-01-15', amount: 11143, category: 'Condo Fees', description: 'Condo maintenance fees' },
     ],
 
     tenant: {
-      name: 'Aanal Shah, Kavya Gandhi, Parth Patel',
-      leaseStartDate: '2025-07-01',
-      leaseEndDate: '2025-08-31',
-      rent: 2400,
+      name: 'Jane Doe',
+      leaseStartDate: '2023-01-01',
+      leaseEndDate: '2024-12-31',
+      rent: 2650,
       status: 'Active'
     },
 
     // Calculated fields
-    totalInvestment: 586621.37, // purchasePrice + closingCosts
-    appreciation: 16620.53, // currentMarketValue - purchasePrice
-    monthlyPropertyTax: 0, // Not specified
-    monthlyCondoFees: 0, // Not specified
-    monthlyInsurance: 59.17, // insurance / 12
-    monthlyMaintenance: 21.16, // maintenance / 12
-    monthlyProfessionalFees: 226.00, // professionalFees / 12
-    monthlyUtilities: 14.66, // utilities / 12
+    totalInvestment: 550000, // purchasePrice + closingCosts + renovationCosts
+    appreciation: 100000, // currentMarketValue - purchasePrice
+    monthlyPropertyTax: 233, // 2796 / 12 (using 2024 data)
+    monthlyCondoFees: 928.58, // 11143 / 12 (using 2024 data)
+    monthlyInsurance: 49.67, // 596 / 12 (using 2024 data)
+    monthlyMaintenance: 23.42, // 281 / 12 (using 2024 data)
+    monthlyProfessionalFees: 0,
     
     monthlyExpenses: {
-      propertyTax: 0,
-      condoFees: 0,
-      insurance: 59.17,
-      maintenance: 21.16,
-      professionalFees: 226.00,
-      utilities: 14.66,
+      propertyTax: 233,
+      condoFees: 928.58,
+      insurance: 49.67,
+      maintenance: 23.42,
+      professionalFees: 0,
       mortgagePayment: 0, // Will be calculated below
       mortgageInterest: 0, // Will be calculated below
       mortgagePrincipal: 0, // Will be calculated below
-      total: 320.99 // Will be recalculated below
+      total: 1234.67 // Will be recalculated below
     },
     
-    monthlyCashFlow: 2079.01, // monthlyRent - monthlyExpenses.total
-    annualCashFlow: 24948.12, // monthlyCashFlow * 12
-    capRate: 5.24, // (annualRent / currentMarketValue) * 100
+    monthlyCashFlow: 1415.33, // monthlyRent - monthlyExpenses.total (will be recalculated)
+    annualCashFlow: 16984, // monthlyCashFlow * 12
+    capRate: 5.3, // (annualRent / currentMarketValue) * 100 = (31800 / 600000) * 100
     occupancy: 100,
     
     // Additional fields for compatibility
-    name: 'Wilson Ave',
+    name: 'First St',
     type: 'Condo',
     units: 1,
     bedrooms: [2],
     bathrooms: [2],
-    squareFootage: 557,
-    currentValue: 550000,
-    imageUrl: '/images/500 Wilson Ave.png',
+    squareFootage: 700,
+    currentValue: 600000,
+    imageUrl: '/images/1 First St.png',
     tenants: [
       {
-        name: 'Aanal Shah, Kavya Gandhi, Parth Patel',
-        unit: 'Unit 415',
-        rent: 2400,
-        leaseStart: '2025-07-01',
-        leaseEnd: '2025-08-31',
+        name: 'Jane Doe',
+        unit: 'Unit 1',
+        rent: 2650,
+        leaseStart: '2023-01-01',
+        leaseEnd: '2024-12-31',
+        status: 'Current'
+      }
+    ]
+  },
+  
+  {
+    id: 'second-dr-1',
+    nickname: 'Second Dr',
+    address: '1-1 Second Dr, Toronto, ON 1A1 A1A',
+    purchasePrice: 600000,
+    purchaseDate: '2021-01-01',
+    closingCosts: 60000,
+    initialRenovations: 0,
+    renovationCosts: 0,
+    currentMarketValue: 650000,
+    yearBuilt: 2021,
+    propertyType: 'Condo',
+    size: 700, // square feet
+    unitConfig: '2 Bed, 2 Bath',
+    
+    mortgage: {
+      lender: 'Lender 2',
+      originalAmount: 400000,
+      interestRate: 0.025, // 2.5% as decimal
+      rateType: 'Fixed',
+      termMonths: 60, // 5 years
+      amortizationYears: 30, // 360 months
+      paymentFrequency: 'Monthly',
+      startDate: '2021-01-01',
+    },
+
+    rent: {
+      monthlyRent: 2600,
+      annualRent: 31200, // 2600 * 12
+    },
+
+    expenseHistory: [
+      // 2021 Expenses from CSV
+      { id: 'second-2021-insurance', date: '2021-01-15', amount: 567, category: 'Insurance', description: 'Property insurance' },
+      { id: 'second-2021-interest', date: '2021-06-01', amount: 15038, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'second-2021-professional', date: '2021-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'second-2021-maintenance', date: '2021-08-15', amount: 386, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'second-2021-tax', date: '2021-01-15', amount: 2573, category: 'Property Tax', description: 'Property taxes' },
+      { id: 'second-2021-motor', date: '2021-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
+      { id: 'second-2021-condo', date: '2021-01-15', amount: 10815, category: 'Condo Fees', description: 'Condo maintenance fees' },
+      
+      // 2022 Expenses from CSV
+      { id: 'second-2022-insurance', date: '2022-01-15', amount: 595, category: 'Insurance', description: 'Property insurance' },
+      { id: 'second-2022-interest', date: '2022-06-01', amount: 14711, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'second-2022-professional', date: '2022-03-15', amount: 3022.75, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'second-2022-maintenance', date: '2022-08-15', amount: 398, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'second-2022-tax', date: '2022-01-15', amount: 2701, category: 'Property Tax', description: 'Property taxes' },
+      { id: 'second-2022-motor', date: '2022-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
+      { id: 'second-2022-condo', date: '2022-01-15', amount: 11139, category: 'Condo Fees', description: 'Condo maintenance fees' },
+      
+      // 2023 Expenses from CSV
+      { id: 'second-2023-insurance', date: '2023-01-15', amount: 625, category: 'Insurance', description: 'Property insurance' },
+      { id: 'second-2023-interest', date: '2023-06-01', amount: 14374, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'second-2023-professional', date: '2023-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'second-2023-maintenance', date: '2023-08-15', amount: 410, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'second-2023-tax', date: '2023-01-15', amount: 2836, category: 'Property Tax', description: 'Property taxes' },
+      { id: 'second-2023-motor', date: '2023-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
+      { id: 'second-2023-condo', date: '2023-01-15', amount: 11474, category: 'Condo Fees', description: 'Condo maintenance fees' },
+      
+      // 2024 Expenses from CSV
+      { id: 'second-2024-insurance', date: '2024-01-15', amount: 656, category: 'Insurance', description: 'Property insurance' },
+      { id: 'second-2024-interest', date: '2024-06-01', amount: 14026, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'second-2024-professional', date: '2024-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'second-2024-maintenance', date: '2024-08-15', amount: 422, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'second-2024-tax', date: '2024-01-15', amount: 2978, category: 'Property Tax', description: 'Property taxes' },
+      { id: 'second-2024-motor', date: '2024-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
+      { id: 'second-2024-condo', date: '2024-01-15', amount: 11818, category: 'Condo Fees', description: 'Condo maintenance fees' },
+    ],
+
+    tenant: {
+      name: 'Jane Doe',
+      leaseStartDate: '2023-01-01',
+      leaseEndDate: '2024-12-31',
+      rent: 2650,
+      status: 'Active'
+    },
+
+    // Calculated fields
+    totalInvestment: 660000, // purchasePrice + closingCosts + renovationCosts
+    appreciation: 50000, // currentMarketValue - purchasePrice
+    monthlyPropertyTax: 248.17, // 2978 / 12 (using 2024 data)
+    monthlyCondoFees: 985.17, // 11818 / 12 (using 2024 data)
+    monthlyInsurance: 54.67, // 656 / 12 (using 2024 data)
+    monthlyMaintenance: 35.17, // 422 / 12 (using 2024 data)
+    monthlyProfessionalFees: 0,
+    
+    monthlyExpenses: {
+      propertyTax: 248.17,
+      condoFees: 985.17,
+      insurance: 54.67,
+      maintenance: 35.17,
+      professionalFees: 0,
+      mortgagePayment: 0, // Will be calculated below
+      mortgageInterest: 0, // Will be calculated below
+      mortgagePrincipal: 0, // Will be calculated below
+      total: 1323.18 // Will be recalculated below
+    },
+    
+    monthlyCashFlow: 1276.82, // monthlyRent - monthlyExpenses.total (will be recalculated)
+    annualCashFlow: 15322, // monthlyCashFlow * 12
+    capRate: 4.8, // (annualRent / currentMarketValue) * 100
+    occupancy: 100,
+    
+    // Additional fields for compatibility
+    name: 'Second Dr',
+    type: 'Condo',
+    units: 1,
+    bedrooms: [2],
+    bathrooms: [2],
+    squareFootage: 700,
+    currentValue: 650000,
+    imageUrl: '/images/1 Second Dr.png',
+    tenants: [
+      {
+        name: 'Jane Doe',
+        unit: 'Unit 1',
+        rent: 2650,
+        leaseStart: '2023-01-01',
+        leaseEnd: '2024-12-31',
         status: 'Current'
       }
     ]
@@ -421,17 +351,25 @@ export const getPortfolioMetrics = () => {
   const totalMonthlyExpenses = properties.reduce((sum, property) => sum + property.monthlyExpenses.total, 0);
   const totalMonthlyCashFlow = properties.reduce((sum, property) => sum + property.monthlyCashFlow, 0);
   
-  // Calculate current mortgage balance - simplified for now
-  // TODO: Implement proper mortgage balance calculation based on payments made
+  // Calculate current mortgage balance using accurate calculation
   let totalMortgageBalance = 0;
   
-  // Use simplified calculation for browser environment
-  totalMortgageBalance = properties.reduce((sum, property) => {
-    // Estimate current balances based on time since start
-    const monthsSinceStart = Math.max(0, (new Date() - new Date(property.mortgage.startDate)) / (1000 * 60 * 60 * 24 * 30));
-    const estimatedPaidOff = (property.mortgage.originalAmount * 0.1 * Math.min(monthsSinceStart / 12, 1)); // Assume 10% paid off per year
-    return sum + Math.max(0, property.mortgage.originalAmount - estimatedPaidOff);
-  }, 0);
+  // Use accurate calculation for browser environment
+  if (typeof window !== 'undefined' && getCurrentMortgageBalance) {
+    totalMortgageBalance = properties.reduce((sum, property) => {
+      try {
+        return sum + getCurrentMortgageBalance(property.mortgage);
+      } catch (error) {
+        console.warn(`Error calculating mortgage balance for ${property.id}:`, error);
+        return sum + (property.mortgage?.originalAmount || 0);
+      }
+    }, 0);
+  } else {
+    // Fallback: use original amount if calculation not available
+    totalMortgageBalance = properties.reduce((sum, property) => {
+      return sum + (property.mortgage?.originalAmount || 0);
+    }, 0);
+  }
   
   
   const totalEquity = totalValue - totalMortgageBalance;
@@ -447,22 +385,45 @@ export const getPortfolioMetrics = () => {
   // Calculate total annual deductible expenses (operating expenses + mortgage interest)
   let totalAnnualDeductibleExpenses = 0;
   
-  // Use simplified calculation for browser environment
-  totalAnnualDeductibleExpenses = properties.reduce((sum, property) => {
-    // Calculate annual operating expenses (excluding mortgage principal)
-    const annualOperatingExpenses = 
-      (property.monthlyExpenses.propertyTax || 0) * 12 +
-      (property.monthlyExpenses.condoFees || 0) * 12 +
-      (property.monthlyExpenses.insurance || 0) * 12 +
-      (property.monthlyExpenses.maintenance || 0) * 12 +
-      (property.monthlyExpenses.professionalFees || 0) * 12 +
-      (property.monthlyExpenses.utilities || 0) * 12;
-    
-    // Estimate annual mortgage interest (simplified calculation)
-    const estimatedAnnualMortgageInterest = property.mortgage.originalAmount * property.mortgage.interestRate;
-    
-    return sum + annualOperatingExpenses + estimatedAnnualMortgageInterest;
-  }, 0);
+  // Use accurate calculation for browser environment
+  if (typeof window !== 'undefined' && getAnnualMortgageInterest && calculateAnnualOperatingExpenses) {
+    totalAnnualDeductibleExpenses = properties.reduce((sum, property) => {
+      try {
+        // Calculate annual operating expenses (excluding mortgage principal)
+        const annualOperatingExpenses = calculateAnnualOperatingExpenses(property);
+        
+        // Calculate accurate annual mortgage interest from schedule
+        const annualMortgageInterest = getAnnualMortgageInterest(property.mortgage);
+        
+        return sum + annualOperatingExpenses + annualMortgageInterest;
+      } catch (error) {
+        console.warn(`Error calculating deductible expenses for ${property.id}:`, error);
+        // Fallback to simplified calculation
+        const annualOperatingExpenses = 
+          (property.monthlyExpenses?.propertyTax || 0) * 12 +
+          (property.monthlyExpenses?.condoFees || 0) * 12 +
+          (property.monthlyExpenses?.insurance || 0) * 12 +
+          (property.monthlyExpenses?.maintenance || 0) * 12 +
+          (property.monthlyExpenses?.professionalFees || 0) * 12 +
+          (property.monthlyExpenses?.utilities || 0) * 12;
+        const estimatedAnnualMortgageInterest = (property.mortgage?.originalAmount || 0) * (property.mortgage?.interestRate || 0);
+        return sum + annualOperatingExpenses + estimatedAnnualMortgageInterest;
+      }
+    }, 0);
+  } else {
+    // Fallback: use simplified calculation if utilities not available
+    totalAnnualDeductibleExpenses = properties.reduce((sum, property) => {
+      const annualOperatingExpenses = 
+        (property.monthlyExpenses?.propertyTax || 0) * 12 +
+        (property.monthlyExpenses?.condoFees || 0) * 12 +
+        (property.monthlyExpenses?.insurance || 0) * 12 +
+        (property.monthlyExpenses?.maintenance || 0) * 12 +
+        (property.monthlyExpenses?.professionalFees || 0) * 12 +
+        (property.monthlyExpenses?.utilities || 0) * 12;
+      const estimatedAnnualMortgageInterest = (property.mortgage?.originalAmount || 0) * (property.mortgage?.interestRate || 0);
+      return sum + annualOperatingExpenses + estimatedAnnualMortgageInterest;
+    }, 0);
+  }
   
   return {
     totalValue,

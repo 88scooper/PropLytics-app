@@ -1,0 +1,62 @@
+﻿Property Summary,,,,,
+,,,,,
+Address,,,,,
+Street,First St,,,,
+Number,1,,,,
+Unit,1,,,,
+City,Toronto ,,,,
+Postal Code,1A1 A1A,,,,
+,,,,,
+Property Details,,,,,
+Purchase Price,600000,,,,
+Closing Costs,60000,,,,
+Closing Date,01-Jan-21,,,,
+Renovation Costs,0,,,,
+Current Estimated Market Value,650000,,,,
+Year Built,2021,,,,
+Property Type,Condo,,,,
+Size (SF),700,,,,
+Unit Type,"2 Bed, 2 Bath",,,,
+,,,,,
+Current Tenant Details,,,,,
+Name,Jane Doe,,,,
+Rent,"2,650",,,,
+,,,,,
+Tenant History,,,,,
+Tenant Names,Jon Doe,Jane Doe,,,
+Tenancy Start Date,01-Jan-21,01-Jan-23,,,
+Tenancy End Date,22-Dec,,,,
+,,,,,
+Annual Income,2021,2022,2023,2024,2025
+Rent,2600,2662,2675,2739,2805
+,,,,,
+Annual Expenses,2020,2021,2022,2023,2024
+Advertising,0,,,,
+Insurance,550,567,595,625,656
+Interest & Bank Charges,15354,15038,14711,14374,14026
+Office Expenses,0,0,0,0,0
+Professional Fees,2938,0,3022.75,0,0
+Management & Administration,0,0,0,0,0
+Repairs & Maintenance,375,386,398,410,422
+Property Taxes,2450,2573,2701,2836,2978
+Travel,0,0,0,0,0
+Utilities,0,0,0,0,0
+Motor Vehicle Expenses,50,50,50,50,50
+Other Rental Expenses,25000,0,0,0,0
+Condo Maintenance Fees,10500,10815,11139,11474,11818
+Mortgage (Principal),9645,9961,10288,10625,10973
+TOTAL,"66,862","39,389","42,905","40,393","40,923"
+,,,,,
+,,,,,
+,,,,,
+Mortgage Details,,,,,
+Lender Name,Lender 2,,,,
+Original Loan Amount,400000,,,,
+Interest Rate,2.5,,,,
+Rate Type,Fixed,,,,
+Amortization Period,360 months,,,,
+Term,60 months,,,,
+Start Date ,01-Jan-21,,,,
+Payment Frequency,Monthly,,,,
+Type,Closed,,,,
+Fixed Payments,Fixed,,,,

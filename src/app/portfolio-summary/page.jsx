@@ -669,10 +669,7 @@ export default function PortfolioSummaryPage() {
                   <div key={property.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div>
                       <h4 className="font-medium text-gray-900 dark:text-gray-100">
-                        {property.id === 'richmond-st-e-403' ? '403-311 Richmond St E' :
-                         property.id === 'tretti-way-317' ? '317-30 Tretti Way' :
-                         property.id === 'wilson-ave-415' ? '415 500 Wilson Ave' :
-                         property.nickname}
+                        {property.nickname || property.name}
                       </h4>
                     </div>
                     <div className="text-right">
@@ -802,10 +799,7 @@ export default function PortfolioSummaryPage() {
                       <div key={property.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                         <div>
                           <h4 className="font-medium text-gray-900 dark:text-gray-100">
-                            {property.id === 'richmond-st-e-403' ? '403-311 Richmond St E' :
-                             property.id === 'tretti-way-317' ? '317-30 Tretti Way' :
-                             property.id === 'wilson-ave-415' ? '415 500 Wilson Ave' :
-                             property.nickname}
+                            {property.nickname || property.name}
                           </h4>
                         </div>
                         <div className="text-right">

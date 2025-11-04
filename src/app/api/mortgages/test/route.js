@@ -15,7 +15,7 @@ export async function GET() {
           },
           body: {
             lenderName: 'TD Bank',
-            propertyId: 'richmond-st-e-403',
+            propertyId: 'first-st-1',
             originalAmount: 500000,
             interestRate: 5.25,
             rateType: 'FIXED',
@@ -37,11 +37,11 @@ export async function GET() {
           }
         }
       },
-      'GET /api/mortgages?propertyId=richmond-st-e-403': {
+      'GET /api/mortgages?propertyId=first-st-1': {
         description: 'Get mortgages for a specific property',
         example: {
           method: 'GET',
-          url: '/api/mortgages?propertyId=richmond-st-e-403',
+          url: '/api/mortgages?propertyId=first-st-1',
           headers: {
             'Authorization': 'Bearer <token>'
           }

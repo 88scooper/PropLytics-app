@@ -55,9 +55,13 @@ function getTotalPayments(amortizationYears: number, paymentFrequency: string): 
   switch (paymentFrequency.toLowerCase()) {
     case 'monthly':
       return amortizationYears * 12;
+    case 'semi-monthly':
+      return amortizationYears * 24;
     case 'bi-weekly':
+    case 'accelerated bi-weekly':
       return amortizationYears * 26;
     case 'weekly':
+    case 'accelerated weekly':
       return amortizationYears * 52;
     default:
       return amortizationYears * 12; // Default to monthly
@@ -79,10 +83,13 @@ function getPeriodicRate(annualRate: number, paymentFrequency: string): number {
   
   switch (paymentFrequency.toLowerCase()) {
     case 'monthly':
+    case 'semi-monthly':
       return Math.pow(1 + semiAnnualRate, 1/6) - 1;
     case 'bi-weekly':
+    case 'accelerated bi-weekly':
       return Math.pow(1 + semiAnnualRate, 1/13) - 1;
     case 'weekly':
+    case 'accelerated weekly':
       return Math.pow(1 + semiAnnualRate, 1/26) - 1;
     default:
       return Math.pow(1 + semiAnnualRate, 1/6) - 1; // Default to monthly
@@ -96,9 +103,13 @@ function getPaymentIntervalDays(paymentFrequency: string): number {
   switch (paymentFrequency.toLowerCase()) {
     case 'monthly':
       return 30; // Approximate
+    case 'semi-monthly':
+      return 15; // Approximate
     case 'bi-weekly':
+    case 'accelerated bi-weekly':
       return 14;
     case 'weekly':
+    case 'accelerated weekly':
       return 7;
     default:
       return 30;
@@ -225,23 +236,50 @@ export function getCurrentMortgagePayment(mortgage: MortgageData): {
  * Get monthly mortgage payment amount (converted to monthly equivalent for bi-weekly payments)
  */
 export function getMonthlyMortgagePayment(mortgage: MortgageData): number {
-  const paymentAmount = calculatePaymentAmount(
+  // For accelerated payments, calculate based on monthly payment
+  const monthlyPayment = calculatePaymentAmount(
     mortgage.originalAmount,
     mortgage.interestRate,
     mortgage.amortizationYears,
-    mortgage.paymentFrequency
+    'monthly'
   );
 
-  // Convert to monthly equivalent
+  // Convert to monthly equivalent based on payment frequency
   switch (mortgage.paymentFrequency.toLowerCase()) {
     case 'monthly':
-      return paymentAmount;
+      return calculatePaymentAmount(
+        mortgage.originalAmount,
+        mortgage.interestRate,
+        mortgage.amortizationYears,
+        'monthly'
+      );
+    case 'semi-monthly':
+      return calculatePaymentAmount(
+        mortgage.originalAmount,
+        mortgage.interestRate,
+        mortgage.amortizationYears,
+        'monthly'
+      );
     case 'bi-weekly':
-      return paymentAmount * 26 / 12; // 26 bi-weekly payments per year / 12 months
+      return calculatePaymentAmount(
+        mortgage.originalAmount,
+        mortgage.interestRate,
+        mortgage.amortizationYears,
+        'bi-weekly'
+      ) * 26 / 12; // 26 bi-weekly payments per year / 12 months
+    case 'accelerated bi-weekly':
+      return (monthlyPayment / 2) * 26 / 12; // Monthly payment / 2, paid 26 times per year
     case 'weekly':
-      return paymentAmount * 52 / 12; // 52 weekly payments per year / 12 months
+      return calculatePaymentAmount(
+        mortgage.originalAmount,
+        mortgage.interestRate,
+        mortgage.amortizationYears,
+        'weekly'
+      ) * 52 / 12; // 52 weekly payments per year / 12 months
+    case 'accelerated weekly':
+      return (monthlyPayment / 4) * 52 / 12; // Monthly payment / 4, paid 52 times per year
     default:
-      return paymentAmount;
+      return monthlyPayment;
   }
 }
 
@@ -255,10 +293,22 @@ export function getMonthlyMortgageInterest(mortgage: MortgageData): number {
   switch (mortgage.paymentFrequency.toLowerCase()) {
     case 'monthly':
       return currentPayment.interest;
+    case 'semi-monthly':
+      return currentPayment.interest * 24 / 12; // 24 semi-monthly payments per year / 12 months
     case 'bi-weekly':
       return currentPayment.interest * 26 / 12; // 26 bi-weekly payments per year / 12 months
+    case 'accelerated bi-weekly':
+      // For accelerated, use monthly payment interest equivalent
+      const monthlyMortgage = { ...mortgage, paymentFrequency: 'monthly' };
+      const monthlyPayment = getCurrentMortgagePayment(monthlyMortgage);
+      return (monthlyPayment.interest / 2) * 26 / 12;
     case 'weekly':
       return currentPayment.interest * 52 / 12; // 52 weekly payments per year / 12 months
+    case 'accelerated weekly':
+      // For accelerated, use monthly payment interest equivalent
+      const monthlyMortgageWeekly = { ...mortgage, paymentFrequency: 'monthly' };
+      const monthlyPaymentWeekly = getCurrentMortgagePayment(monthlyMortgageWeekly);
+      return (monthlyPaymentWeekly.interest / 4) * 52 / 12;
     default:
       return currentPayment.interest;
   }
@@ -274,10 +324,22 @@ export function getMonthlyMortgagePrincipal(mortgage: MortgageData): number {
   switch (mortgage.paymentFrequency.toLowerCase()) {
     case 'monthly':
       return currentPayment.principal;
+    case 'semi-monthly':
+      return currentPayment.principal * 24 / 12; // 24 semi-monthly payments per year / 12 months
     case 'bi-weekly':
       return currentPayment.principal * 26 / 12; // 26 bi-weekly payments per year / 12 months
+    case 'accelerated bi-weekly':
+      // For accelerated, use monthly payment principal equivalent
+      const monthlyMortgage = { ...mortgage, paymentFrequency: 'monthly' };
+      const monthlyPayment = getCurrentMortgagePayment(monthlyMortgage);
+      return (monthlyPayment.principal / 2) * 26 / 12;
     case 'weekly':
       return currentPayment.principal * 52 / 12; // 52 weekly payments per year / 12 months
+    case 'accelerated weekly':
+      // For accelerated, use monthly payment principal equivalent
+      const monthlyMortgageWeekly = { ...mortgage, paymentFrequency: 'monthly' };
+      const monthlyPaymentWeekly = getCurrentMortgagePayment(monthlyMortgageWeekly);
+      return (monthlyPaymentWeekly.principal / 4) * 52 / 12;
     default:
       return currentPayment.principal;
   }

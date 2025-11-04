@@ -25,7 +25,12 @@ export function ToastProvider({ children }) {
     return id;
   }, [removeToast]);
 
-  const value = useMemo(() => ({ addToast, removeToast }), [addToast, removeToast]);
+  // Alias for backward compatibility with components that use showToast(message, type)
+  const showToast = useCallback((message, type = "success") => {
+    return addToast(message, { type, duration: 3500 });
+  }, [addToast]);
+
+  const value = useMemo(() => ({ addToast, showToast, removeToast }), [addToast, showToast, removeToast]);
 
   return (
     <ToastContext.Provider value={value}>

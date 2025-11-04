@@ -41,11 +41,12 @@ export function calculateAnnualOperatingExpenses(property) {
  * @returns {number} Annual NOI
  */
 export function calculateNOI(property) {
-  if (!property || !property.rent || !property.rent.monthlyRent) {
+  if (!property || !property.rent) {
     return 0;
   }
 
-  const annualRentalIncome = property.rent.monthlyRent * 12;
+  // Prefer annualRent if available, otherwise calculate from monthlyRent
+  const annualRentalIncome = property.rent.annualRent || (property.rent.monthlyRent ? property.rent.monthlyRent * 12 : 0);
   const annualOperatingExpenses = calculateAnnualOperatingExpenses(property);
   
   return annualRentalIncome - annualOperatingExpenses;

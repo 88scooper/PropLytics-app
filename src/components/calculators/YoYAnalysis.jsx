@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { formatCurrency, formatPercentage } from '@/utils/formatting';
+import { calculateYoYMetrics } from '@/lib/sensitivity-analysis';
 
 /**
  * YoY Analysis Component
@@ -10,87 +11,10 @@ import { formatCurrency, formatPercentage } from '@/utils/formatting';
  * Shows historical trends and projected YoY changes based on sensitivity assumptions
  */
 export default function YoYAnalysis({ property, assumptions, baselineAssumptions }) {
-  // Calculate YoY metrics
+  // Calculate YoY metrics using the improved function
   const yoyMetrics = useMemo(() => {
     if (!property) return null;
-
-    // Historical data for YoY calculations
-    const historicalDataMap = {
-      'richmond-st-e-403': [
-        { year: '2023', income: 40200, expenses: 23493.77, cashFlow: 16706.23 },
-        { year: '2024', income: 41323.03, expenses: 17399.9, cashFlow: 23923.13 },
-        { year: '2025', income: 41400, expenses: 17400, cashFlow: 24000 }
-      ],
-      'tretti-way-317': [
-        { year: '2024', income: 36000, expenses: 2567.21, cashFlow: 33432.79 },
-        { year: '2025', income: 36000, expenses: 2537.5, cashFlow: 33462.5 }
-      ],
-      'wilson-ave-415': [
-        { year: '2025', income: 28800, expenses: 10237.2, cashFlow: 18562.8 }
-      ]
-    };
-
-    const historicalData = historicalDataMap[property.id] || [];
-    const currentYear = new Date().getFullYear().toString();
-    const previousYear = (new Date().getFullYear() - 1).toString();
-
-    // Find current and previous year data
-    const currentYearData = historicalData.find(d => d.year === currentYear);
-    const previousYearData = historicalData.find(d => d.year === previousYear);
-
-    // Calculate historical YoY changes
-    const calculateYoYChange = (current, previous) => {
-      if (!current || !previous || previous === 0) return null;
-      return ((current - previous) / previous) * 100;
-    };
-
-    const historicalYoY = {
-      revenue: currentYearData && previousYearData 
-        ? calculateYoYChange(currentYearData.income, previousYearData.income)
-        : null,
-      expenses: currentYearData && previousYearData 
-        ? calculateYoYChange(currentYearData.expenses, previousYearData.expenses)
-        : null,
-      cashFlow: currentYearData && previousYearData 
-        ? calculateYoYChange(currentYearData.cashFlow, previousYearData.cashFlow)
-        : null
-    };
-
-    // Calculate projected YoY changes based on assumptions
-    const currentRent = property.rent.monthlyRent * 12;
-    const currentExpenses = (property.monthlyExpenses.total - property.monthlyExpenses.mortgagePayment) * 12;
-    const currentCashFlow = currentRent - currentExpenses - (property.monthlyExpenses.mortgagePayment * 12);
-    
-    // Project next year's values based on assumptions
-    const projectedRent = currentRent * (1 + assumptions.annualRentIncrease / 100);
-    const projectedExpenses = currentExpenses * (1 + assumptions.annualExpenseInflation / 100);
-    const projectedCashFlow = projectedRent - projectedExpenses - (property.monthlyExpenses.mortgagePayment * 12);
-
-    const projectedYoY = {
-      revenue: ((projectedRent - currentRent) / currentRent) * 100,
-      expenses: ((projectedExpenses - currentExpenses) / currentExpenses) * 100,
-      cashFlow: currentCashFlow !== 0 ? ((projectedCashFlow - currentCashFlow) / Math.abs(currentCashFlow)) * 100 : 0
-    };
-
-    // Calculate baseline projected YoY for comparison
-    const baselineProjectedRent = currentRent * (1 + baselineAssumptions.annualRentIncrease / 100);
-    const baselineProjectedExpenses = currentExpenses * (1 + baselineAssumptions.annualExpenseInflation / 100);
-    const baselineProjectedCashFlow = baselineProjectedRent - baselineProjectedExpenses - (property.monthlyExpenses.mortgagePayment * 12);
-
-    const baselineProjectedYoY = {
-      revenue: ((baselineProjectedRent - currentRent) / currentRent) * 100,
-      expenses: ((baselineProjectedExpenses - currentExpenses) / currentExpenses) * 100,
-      cashFlow: currentCashFlow !== 0 ? ((baselineProjectedCashFlow - currentCashFlow) / Math.abs(currentCashFlow)) * 100 : 0
-    };
-
-    return {
-      historical: historicalYoY,
-      projected: projectedYoY,
-      baselineProjected: baselineProjectedYoY,
-      hasHistoricalData: historicalData.length > 1,
-      currentYearData,
-      previousYearData
-    };
+    return calculateYoYMetrics(property, assumptions, baselineAssumptions);
   }, [property, assumptions, baselineAssumptions]);
 
   if (!yoyMetrics) {
@@ -104,24 +28,106 @@ export default function YoYAnalysis({ property, assumptions, baselineAssumptions
     );
   }
 
-  const { historical, projected, baselineProjected, hasHistoricalData, dataRequirement } = yoyMetrics;
+  const { 
+    historical, 
+    projected, 
+    baselineProjected, 
+    hasHistoricalData, 
+    dataRequirement,
+    warningMessage,
+    reasonInsufficient,
+    dataQuality,
+    currentYearValidation,
+    previousYearValidation
+  } = yoyMetrics;
+
+  // Determine warning severity and styling
+  const getWarningStyle = () => {
+    switch (dataQuality) {
+      case 'insufficient':
+        return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200';
+      case 'partial':
+        return 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200';
+      case 'projected':
+        return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200';
+      default:
+        return '';
+    }
+  };
+
+  const getWarningIcon = () => {
+    switch (dataQuality) {
+      case 'insufficient':
+        return (
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+        );
+      case 'partial':
+      case 'projected':
+        return (
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
       <h3 className="text-lg font-semibold mb-4">Year-over-Year Analysis</h3>
       
+      {/* Data Quality Warning */}
+      {warningMessage && (
+        <div className={`mb-4 rounded-lg border p-4 ${getWarningStyle()}`}>
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 mt-0.5">
+              {getWarningIcon()}
+            </div>
+            <div className="flex-1">
+              <div className="font-medium mb-1">
+                {dataQuality === 'insufficient' && 'Insufficient Data'}
+                {dataQuality === 'partial' && 'Incomplete Year Data'}
+                {dataQuality === 'projected' && 'Projected Values'}
+              </div>
+              <div className="text-sm opacity-90">
+                {warningMessage}
+              </div>
+              {reasonInsufficient && (
+                <div className="mt-2 text-xs opacity-75">
+                  {reasonInsufficient === 'missing_prior_year' && 
+                    'Recommendation: Add complete expense history for prior year to enable YoY analysis.'}
+                  {reasonInsufficient === 'incomplete_prior_year' && 
+                    'Recommendation: Complete prior year expense data to ensure accurate comparisons.'}
+                  {reasonInsufficient === 'incomplete_current_year' && 
+                    `Current year progress: ${currentYearValidation?.monthsElapsed || 0}/12 months. Projections will improve as more data becomes available.`}
+                  {reasonInsufficient === 'projected_prior_year' && 
+                    'Historical YoY analysis requires actual results, not projections.'}
+                  {reasonInsufficient === 'projected_current_year' && 
+                    'Current year contains projected values. Historical comparisons may be less reliable.'}
+                  {reasonInsufficient === 'missing_current_year' && 
+                    'Recommendation: Add current year expense history to calculate YoY metrics.'}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Historical YoY Performance */}
       <div className="mb-6">
         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
           Historical Performance
-          {!dataRequirement.meetsRequirement && (
+          {!dataRequirement?.meetsFullPriorYearRequirement && (
             <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
-              (Requires {dataRequirement.requiredYears} years of data - {dataRequirement.availableYears} available)
+              (Requires complete prior year - {previousYearValidation?.isComplete ? 'available' : 'incomplete'})
             </span>
           )}
         </h4>
         
-        {dataRequirement.meetsRequirement ? (
+        {dataRequirement?.meetsRequirement ? (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Revenue Growth</div>
@@ -181,9 +187,26 @@ export default function YoYAnalysis({ property, assumptions, baselineAssumptions
                 Insufficient Historical Data
               </span>
             </div>
-            <p className="text-sm text-amber-700 dark:text-amber-300">
-              Historical YoY analysis requires at least {dataRequirement.requiredYears} years of expense data. 
-              Currently {dataRequirement.availableYears} year{dataRequirement.availableYears !== 1 ? 's' : ''} available. 
+            <p className="text-sm text-amber-700 dark:text-amber-300 mb-2">
+              Historical YoY analysis requires a complete prior year and current year data. 
+              {!dataRequirement?.meetsFullPriorYearRequirement && (
+                <span> Prior year ({previousYearValidation?.reason || 'unknown'}) is incomplete.</span>
+              )}
+              {!yoyMetrics?.hasCurrentYearData && (
+                <span> Current year data is unavailable.</span>
+              )}
+            </p>
+            {previousYearValidation?.message && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                {previousYearValidation.message}
+              </p>
+            )}
+            {currentYearValidation?.message && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                {currentYearValidation.message}
+              </p>
+            )}
+            <p className="text-sm text-amber-700 dark:text-amber-300 mt-2">
               Projected YoY analysis is still available below.
             </p>
           </div>
@@ -293,10 +316,17 @@ export default function YoYAnalysis({ property, assumptions, baselineAssumptions
           {projected.cashFlow > baselineProjected.cashFlow && (
             <div>• Combined assumptions project {Math.abs(projected.cashFlow - baselineProjected.cashFlow).toFixed(1)}% higher cash flow growth than baseline</div>
           )}
-          {!dataRequirement.meetsRequirement && (
-            <div>• Historical YoY analysis requires at least {dataRequirement.requiredYears} years of data. 
-            Currently {dataRequirement.availableYears} year{dataRequirement.availableYears !== 1 ? 's' : ''} available. 
-            Projections based on current assumptions.</div>
+          {!dataRequirement?.meetsRequirement && (
+            <div>
+              • Historical YoY analysis requires a complete prior year and current year data. 
+              {!dataRequirement?.meetsFullPriorYearRequirement && (
+                <span> Prior year validation: {previousYearValidation?.message || 'incomplete'}.</span>
+              )}
+              {currentYearValidation?.isPartial && (
+                <span> Current year: {currentYearValidation.monthsElapsed}/12 months ({currentYearValidation.expenseMonthsFound} months of expense data).</span>
+              )}
+              Projections based on current assumptions.
+            </div>
           )}
         </div>
       </div>

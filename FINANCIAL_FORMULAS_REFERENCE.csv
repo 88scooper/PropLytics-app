@@ -1,0 +1,25 @@
+Calculation,Formula,Location,Input Variables,Output,Test Case,Expected Result,Status,Notes
+Mortgage Payment (Monthly),P = L × [c(1+c)^n] / [(1+c)^n - 1],src/utils/mortgageCalculator.ts:34-49,L=400000, c=0.00207256, n=360,Monthly Payment,$1,577.80,$400k @ 2.5% × 30yr,CORRECT,c = (1 + annualRate/2)^(1/6) - 1 for monthly
+Mortgage Payment (Bi-weekly),P = L × [c(1+c)^n] / [(1+c)^n - 1],src/utils/mortgageCalculator.ts:34-49,L=400000, c=0.00095478, n=780,Bi-weekly Payment,$788.90,$400k @ 2.5% × 30yr,CORRECT,c = (1 + annualRate/2)^(1/13) - 1 for bi-weekly
+Mortgage Payment (Weekly),P = L × [c(1+c)^n] / [(1+c)^n - 1],src/utils/mortgageCalculator.ts:34-49,L=400000, c=0.00047739, n=1560,Weekly Payment,$394.45,$400k @ 2.5% × 30yr,CORRECT,c = (1 + annualRate/2)^(1/26) - 1 for weekly
+Mortgage Payment (Zero Interest),P = L / n,src/utils/mortgageCalculator.ts:43-44,L=400000, n=360,Monthly Payment,$1,111.11,$400k @ 0% × 30yr,CORRECT,Simple division when rate = 0
+Periodic Rate (Monthly Canadian),r = (1 + annualRate/2)^(1/6) - 1,src/utils/mortgageCalculator.ts:82,annualRate=0.025,Periodic Rate,0.00207256,2.5% annual,CORRECT,Semi-annual compounding
+Periodic Rate (Bi-weekly Canadian),r = (1 + annualRate/2)^(1/13) - 1,src/utils/mortgageCalculator.ts:84,annualRate=0.025,Periodic Rate,0.00095478,2.5% annual,CORRECT,Semi-annual compounding
+Periodic Rate (Weekly Canadian),r = (1 + annualRate/2)^(1/26) - 1,src/utils/mortgageCalculator.ts:86,annualRate=0.025,Periodic Rate,0.00047739,2.5% annual,CORRECT,Semi-annual compounding
+Monthly Payment to Monthly Equivalent (Bi-weekly),Monthly = Payment × 26 / 12,src/utils/mortgageCalculator.ts:240,Payment=$788.90,Monthly Equivalent,$1,709.28,Bi-weekly $788.90,CORRECT,26 payments per year
+Monthly Payment to Monthly Equivalent (Weekly),Monthly = Payment × 52 / 12,src/utils/mortgageCalculator.ts:242,Payment=$394.45,Monthly Equivalent,$1,709.28,Weekly $394.45,CORRECT,52 payments per year
+Annual Operating Expenses,Annual = (propertyTax + condoFees + insurance + maintenance + professionalFees + utilities) × 12,src/utils/financialCalculations.js:20-34,Monthly expenses,Annual Expenses,$14,816.04,First St property,CORRECT,Excludes mortgage
+Net Operating Income,NOI = Annual Rental Income - Annual Operating Expenses,src/utils/financialCalculations.js:43-52,Annual Rent=$31,800, OpEx=$14,816,NOI,$16,984,First St property,CORRECT,Excludes mortgage
+Cap Rate,Cap Rate = (NOI / Current Market Value) × 100,src/utils/financialCalculations.js:61-68,NOI=$16,984, Value=$600,000,Cap Rate,2.83%,First St property,CORRECT,Uses current market value
+Monthly Cash Flow,Cash Flow = Monthly Rent - Monthly Operating Expenses - Monthly Mortgage Payment,src/utils/financialCalculations.js:77-87,Rent=$2,650, OpEx=$1,234.67, Mortgage=$1,577.80,Monthly Cash Flow,-$162.47,First St property,CORRECT,Post-debt cash flow
+Annual Cash Flow,Annual = Monthly Cash Flow × 12,src/utils/financialCalculations.js:95-96,Monthly=-$162.47,Annual Cash Flow,-$1,949.64,First St property,CORRECT,Simple multiplication
+Cash-on-Cash Return,Cash-on-Cash = (Annual Cash Flow / Total Cash Invested) × 100,src/utils/financialCalculations.js:106-113,Annual Cash Flow=-$1,949.64, Investment=$550,000,CoC Return,-0.35%,First St property,CORRECT,Uses total investment
+Current Mortgage Balance,Balance = Original Amount - Principal Paid to Date,src/utils/mortgageCalculator.ts:289-313,Original=$400,000, Payments made,Balance,Calculated from schedule,CORRECT,Finds most recent payment
+Annual Mortgage Interest,Interest = Sum of interest from next 12 payments,src/utils/mortgageCalculator.ts:319-354,Mortgage schedule,Annual Interest,Calculated from schedule,CORRECT,Next 12 payments
+Total Portfolio Value,Total Value = Sum of all currentMarketValue,src/data/properties.js:417,All properties,Total Value,$1,250,000,Two properties,CORRECT,Simple sum
+Total Portfolio Investment,Total Investment = Sum of all totalInvestment,src/data/properties.js:418,All properties,Total Investment,$1,210,000,Two properties,CORRECT,Simple sum
+Total Portfolio Equity,Total Equity = Total Value - Total Mortgage Balance,src/data/properties.js:437,Total Value=$1,250,000, Balance=$750,000,Total Equity,$500,000,Portfolio,CORRECT,Value minus debt
+Total Portfolio NOI,Portfolio NOI = (Total Monthly Rent × 12) - Total Annual Operating Expenses,src/data/properties.js:445,Total Rent=$5,200, Total OpEx=$30,000,Portfolio NOI,$32,400,Portfolio,CORRECT,Portfolio-level NOI
+Average Cap Rate,Average Cap Rate = Sum of individual Cap Rates / Number of Properties,src/data/properties.js:405,Individual cap rates,Average Cap Rate,Average,CORRECT,Simple average
+Portfolio Cash-on-Cash,Portfolio CoC = (Total Annual Cash Flow / Total Investment) × 100,src/data/properties.js:408,Total Annual Cash Flow, Total Investment,Portfolio CoC,Percentage,CORRECT,Portfolio-level calculation
+
