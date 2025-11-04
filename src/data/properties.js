@@ -69,80 +69,89 @@ export const properties = [
     },
 
     rent: {
-      monthlyRent: 2789, // Current tenant rent from CSV 2025 data
-      annualRent: 33468, // 2789 * 12 (current tenant)
+      monthlyRent: 2650, // Current tenant rent from CSV 2025.11.03 data
+      annualRent: 31800, // 2650 * 12 (current tenant)
     },
 
     expenseHistory: [
       // 2021 Expenses from CSV
-      { id: 'first-2021-insurance', date: '2021-01-15', amount: 515, category: 'Insurance', description: 'Property insurance' },
-      { id: 'first-2021-interest', date: '2021-06-01', amount: 9617, category: 'Other', description: 'Interest & bank charges' },
-      { id: 'first-2021-professional', date: '2021-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
-      { id: 'first-2021-maintenance', date: '2021-08-15', amount: 258, category: 'Maintenance', description: 'Repairs & maintenance' },
-      { id: 'first-2021-tax', date: '2021-01-15', amount: 2415, category: 'Property Tax', description: 'Property taxes' },
+      { id: 'first-2021-insurance', date: '2021-01-15', amount: 400, category: 'Insurance', description: 'Property insurance' },
+      { id: 'first-2021-interest', date: '2021-06-01', amount: 9845, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'first-2021-professional', date: '2021-03-15', amount: 2938, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'first-2021-maintenance', date: '2021-08-15', amount: 200, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'first-2021-tax', date: '2021-01-15', amount: 2300, category: 'Property Tax', description: 'Property taxes' },
       { id: 'first-2021-motor', date: '2021-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
       { id: 'first-2021-other', date: '2021-01-15', amount: 20000, category: 'Other', description: 'Other rental expenses' },
-      { id: 'first-2021-condo', date: '2021-01-15', amount: 10197, category: 'Condo Fees', description: 'Condo maintenance fees' },
+      { id: 'first-2021-condo', date: '2021-01-15', amount: 9500, category: 'Condo Fees', description: 'Condo maintenance fees' },
       
       // 2022 Expenses from CSV
-      { id: 'first-2022-insurance', date: '2022-01-15', amount: 541, category: 'Insurance', description: 'Property insurance' },
-      { id: 'first-2022-interest', date: '2022-06-01', amount: 9382, category: 'Other', description: 'Interest & bank charges' },
-      { id: 'first-2022-professional', date: '2022-03-15', amount: 2893, category: 'Professional Fees', description: 'Professional fees' },
-      { id: 'first-2022-maintenance', date: '2022-08-15', amount: 265, category: 'Maintenance', description: 'Repairs & maintenance' },
-      { id: 'first-2022-tax', date: '2022-01-15', amount: 2536, category: 'Property Tax', description: 'Property taxes' },
+      { id: 'first-2022-insurance', date: '2022-01-15', amount: 420, category: 'Insurance', description: 'Property insurance' },
+      { id: 'first-2022-interest', date: '2022-06-01', amount: 9617, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'first-2022-professional', date: '2022-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'first-2022-maintenance', date: '2022-08-15', amount: 200, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'first-2022-tax', date: '2022-01-15', amount: 2415, category: 'Property Tax', description: 'Property taxes' },
       { id: 'first-2022-motor', date: '2022-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
-      { id: 'first-2022-condo', date: '2022-01-15', amount: 10503, category: 'Condo Fees', description: 'Condo maintenance fees' },
+      { id: 'first-2022-condo', date: '2022-01-15', amount: 9975, category: 'Condo Fees', description: 'Condo maintenance fees' },
       
       // 2023 Expenses from CSV
-      { id: 'first-2023-insurance', date: '2023-01-15', amount: 568, category: 'Insurance', description: 'Property insurance' },
-      { id: 'first-2023-interest', date: '2023-06-01', amount: 9142, category: 'Other', description: 'Interest & bank charges' },
-      { id: 'first-2023-professional', date: '2023-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
-      { id: 'first-2023-maintenance', date: '2023-08-15', amount: 273, category: 'Maintenance', description: 'Repairs & maintenance' },
-      { id: 'first-2023-tax', date: '2023-01-15', amount: 2663, category: 'Property Tax', description: 'Property taxes' },
+      { id: 'first-2023-insurance', date: '2023-01-15', amount: 441, category: 'Insurance', description: 'Property insurance' },
+      { id: 'first-2023-interest', date: '2023-06-01', amount: 9382, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'first-2023-professional', date: '2023-03-15', amount: 3051, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'first-2023-maintenance', date: '2023-08-15', amount: 200, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'first-2023-tax', date: '2023-01-15', amount: 2536, category: 'Property Tax', description: 'Property taxes' },
       { id: 'first-2023-motor', date: '2023-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
-      { id: 'first-2023-condo', date: '2023-01-15', amount: 10818, category: 'Condo Fees', description: 'Condo maintenance fees' },
+      { id: 'first-2023-condo', date: '2023-01-15', amount: 10474, category: 'Condo Fees', description: 'Condo maintenance fees' },
       
       // 2024 Expenses from CSV
-      { id: 'first-2024-insurance', date: '2024-01-15', amount: 596, category: 'Insurance', description: 'Property insurance' },
-      { id: 'first-2024-interest', date: '2024-06-01', amount: 8896, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'first-2024-insurance', date: '2024-01-15', amount: 463, category: 'Insurance', description: 'Property insurance' },
+      { id: 'first-2024-interest', date: '2024-06-01', amount: 9142, category: 'Other', description: 'Interest & bank charges' },
       { id: 'first-2024-professional', date: '2024-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
-      { id: 'first-2024-maintenance', date: '2024-08-15', amount: 281, category: 'Maintenance', description: 'Repairs & maintenance' },
-      { id: 'first-2024-tax', date: '2024-01-15', amount: 2796, category: 'Property Tax', description: 'Property taxes' },
+      { id: 'first-2024-maintenance', date: '2024-08-15', amount: 200, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'first-2024-tax', date: '2024-01-15', amount: 2663, category: 'Property Tax', description: 'Property taxes' },
       { id: 'first-2024-motor', date: '2024-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
-      { id: 'first-2024-condo', date: '2024-01-15', amount: 11143, category: 'Condo Fees', description: 'Condo maintenance fees' },
+      { id: 'first-2024-condo', date: '2024-01-15', amount: 10997, category: 'Condo Fees', description: 'Condo maintenance fees' },
+      
+      // 2025 Expenses from CSV
+      { id: 'first-2025-insurance', date: '2025-01-15', amount: 486, category: 'Insurance', description: 'Property insurance' },
+      { id: 'first-2025-interest', date: '2025-06-01', amount: 8896, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'first-2025-professional', date: '2025-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'first-2025-maintenance', date: '2025-08-15', amount: 200, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'first-2025-tax', date: '2025-01-15', amount: 2796, category: 'Property Tax', description: 'Property taxes' },
+      { id: 'first-2025-motor', date: '2025-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
+      { id: 'first-2025-condo', date: '2025-01-15', amount: 11547, category: 'Condo Fees', description: 'Condo maintenance fees' },
     ],
 
     tenant: {
       name: 'Jane Doe',
       leaseStartDate: '2023-01-01',
-      leaseEndDate: '2024-12-31', // Active lease
-      rent: 2789, // Updated to 2025 rent from CSV
+      leaseEndDate: 'Active', // Active lease per CSV
+      rent: 2650, // Updated to 2025 rent from CSV 2025.11.03
       status: 'Active'
     },
 
     // Calculated fields
     totalInvestment: 550000, // purchasePrice + closingCosts + renovationCosts
     appreciation: 100000, // currentMarketValue - purchasePrice
-    monthlyPropertyTax: 233, // 2796 / 12 (using 2024 data)
-    monthlyCondoFees: 928.58, // 11143 / 12 (using 2024 data)
-    monthlyInsurance: 49.67, // 596 / 12 (using 2024 data)
-    monthlyMaintenance: 23.42, // 281 / 12 (using 2024 data)
+    monthlyPropertyTax: 233, // 2796 / 12 (using 2025 data)
+    monthlyCondoFees: 962.25, // 11547 / 12 (using 2025 data)
+    monthlyInsurance: 40.5, // 486 / 12 (using 2025 data)
+    monthlyMaintenance: 16.67, // 200 / 12 (using 2025 data)
     monthlyProfessionalFees: 0,
     
     monthlyExpenses: {
       propertyTax: 233,
-      condoFees: 928.58,
-      insurance: 49.67,
-      maintenance: 23.42,
+      condoFees: 962.25,
+      insurance: 40.5,
+      maintenance: 16.67,
       professionalFees: 0,
       mortgagePayment: 0, // Will be calculated below
       mortgageInterest: 0, // Will be calculated below
       mortgagePrincipal: 0, // Will be calculated below
-      total: 1234.67 // Will be recalculated below
+      total: 1252.42 // Will be recalculated below
     },
     
-    monthlyCashFlow: 1415.33, // monthlyRent - monthlyExpenses.total (will be recalculated)
-    annualCashFlow: 16984, // monthlyCashFlow * 12
+    monthlyCashFlow: 1397.58, // monthlyRent - monthlyExpenses.total (will be recalculated)
+    annualCashFlow: 16771, // monthlyCashFlow * 12
     capRate: 5.3, // (annualRent / currentMarketValue) * 100 = (31800 / 600000) * 100
     occupancy: 100,
     
@@ -159,7 +168,7 @@ export const properties = [
       {
         name: 'Jon Doe',
         unit: 'Unit 1',
-        rent: 2600,
+        rent: 2800, // Based on 2021 annual income 33600 / 12
         leaseStart: '2021-01-01',
         leaseEnd: '2022-12-22',
         status: 'Past'
@@ -167,7 +176,7 @@ export const properties = [
       {
         name: 'Jane Doe',
         unit: 'Unit 1',
-        rent: 2789, // Updated to 2025 rent
+        rent: 2650, // Updated to 2025 rent from CSV 2025.11.03
         leaseStart: '2023-01-01',
         leaseEnd: 'Active',
         status: 'Current'
@@ -178,7 +187,7 @@ export const properties = [
   {
     id: 'second-dr-1',
     nickname: 'Second Dr',
-    address: '1-1 Second Dr, Toronto, ON 1A1 A1A',
+    address: '1-1 Second Dr, Toronto, ON 2B2 B2B',
     purchasePrice: 600000,
     purchaseDate: '2021-01-01',
     closingCosts: 60000,
@@ -202,15 +211,15 @@ export const properties = [
     },
 
     rent: {
-      monthlyRent: 2805, // Current tenant rent from CSV 2025 data
-      annualRent: 33660, // 2805 * 12 (current tenant)
+      monthlyRent: 2650, // Current tenant rent from CSV 2025.11.03 data
+      annualRent: 31800, // 2650 * 12 (current tenant)
     },
 
     expenseHistory: [
       // 2021 Expenses from CSV
       { id: 'second-2021-insurance', date: '2021-01-15', amount: 567, category: 'Insurance', description: 'Property insurance' },
       { id: 'second-2021-interest', date: '2021-06-01', amount: 15038, category: 'Other', description: 'Interest & bank charges' },
-      { id: 'second-2021-professional', date: '2021-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'second-2021-professional', date: '2021-03-15', amount: 2938, category: 'Professional Fees', description: 'Professional fees' },
       { id: 'second-2021-maintenance', date: '2021-08-15', amount: 386, category: 'Maintenance', description: 'Repairs & maintenance' },
       { id: 'second-2021-tax', date: '2021-01-15', amount: 2573, category: 'Property Tax', description: 'Property taxes' },
       { id: 'second-2021-motor', date: '2021-12-01', amount: 50, category: 'Other', description: 'Motor vehicle expenses' },
@@ -248,18 +257,18 @@ export const properties = [
     tenant: {
       name: 'Jane Doe',
       leaseStartDate: '2023-01-01',
-      leaseEndDate: '2024-12-31', // Active lease
-      rent: 2805, // Updated to 2025 rent from CSV
+      leaseEndDate: 'Active', // Active lease per CSV
+      rent: 2650, // Updated to 2025 rent from CSV 2025.11.03
       status: 'Active'
     },
 
     // Calculated fields
     totalInvestment: 660000, // purchasePrice + closingCosts + renovationCosts
     appreciation: 50000, // currentMarketValue - purchasePrice
-    monthlyPropertyTax: 248.17, // 2978 / 12 (using 2024 data)
-    monthlyCondoFees: 985.17, // 11818 / 12 (using 2024 data)
-    monthlyInsurance: 54.67, // 656 / 12 (using 2024 data)
-    monthlyMaintenance: 35.17, // 422 / 12 (using 2024 data)
+    monthlyPropertyTax: 248.17, // 2978 / 12 (using 2024 data - no 2025 data available)
+    monthlyCondoFees: 985.17, // 11818 / 12 (using 2024 data - no 2025 data available)
+    monthlyInsurance: 54.67, // 656 / 12 (using 2024 data - no 2025 data available)
+    monthlyMaintenance: 35.17, // 422 / 12 (using 2024 data - no 2025 data available)
     monthlyProfessionalFees: 0,
     
     monthlyExpenses: {
@@ -274,9 +283,9 @@ export const properties = [
       total: 1323.18 // Will be recalculated below
     },
     
-    monthlyCashFlow: 1276.82, // monthlyRent - monthlyExpenses.total (will be recalculated)
-    annualCashFlow: 15322, // monthlyCashFlow * 12
-    capRate: 4.8, // (annualRent / currentMarketValue) * 100
+    monthlyCashFlow: 1326.82, // monthlyRent - monthlyExpenses.total (will be recalculated)
+    annualCashFlow: 15922, // monthlyCashFlow * 12
+    capRate: 4.9, // (annualRent / currentMarketValue) * 100 = (31800 / 650000) * 100
     occupancy: 100,
     
     // Additional fields for compatibility
@@ -292,7 +301,7 @@ export const properties = [
       {
         name: 'Jon Doe',
         unit: 'Unit 1',
-        rent: 2600,
+        rent: 2600, // Based on 2021 annual income 31200 / 12
         leaseStart: '2021-01-01',
         leaseEnd: '2022-12-22',
         status: 'Past'
@@ -300,7 +309,7 @@ export const properties = [
       {
         name: 'Jane Doe',
         unit: 'Unit 1',
-        rent: 2805, // Updated to 2025 rent
+        rent: 2650, // Updated to 2025 rent from CSV 2025.11.03
         leaseStart: '2023-01-01',
         leaseEnd: 'Active',
         status: 'Current'
