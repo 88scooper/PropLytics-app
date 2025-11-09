@@ -17,6 +17,51 @@
  * @param {Object} property - Property object with monthlyExpenses
  * @returns {number} Annual operating expenses
  */
+import { getMonthlyMortgagePayment } from './mortgageCalculator';
+
+const deriveMonthlyMortgagePayment = (property) => {
+  if (!property) {
+    return 0;
+  }
+
+  const precomputed = property.monthlyExpenses?.mortgagePayment;
+  if (typeof precomputed === 'number' && precomputed > 0) {
+    return precomputed;
+  }
+
+  const mortgage = property.mortgage;
+  if (!mortgage) {
+    return 0;
+  }
+
+  try {
+    const payment = getMonthlyMortgagePayment(mortgage);
+    if (Number.isFinite(payment) && payment > 0) {
+      return payment;
+    }
+  } catch (error) {
+    // Fallback to manual calculation below
+  }
+
+  const principal = Number(mortgage.originalAmount) || 0;
+  const annualRate = Number(mortgage.interestRate) || 0;
+  const amortizationYears = Number(mortgage.amortizationYears) || 0;
+
+  if (principal <= 0 || amortizationYears <= 0) {
+    return 0;
+  }
+
+  const totalPayments = amortizationYears * 12;
+  const monthlyRate = annualRate > 0 ? annualRate / 12 : 0;
+
+  if (monthlyRate === 0) {
+    return principal / totalPayments;
+  }
+
+  const factor = Math.pow(1 + monthlyRate, totalPayments);
+  return principal * (monthlyRate * factor) / (factor - 1);
+};
+
 export function calculateAnnualOperatingExpenses(property) {
   if (!property || !property.monthlyExpenses) {
     return 0;
@@ -82,7 +127,7 @@ export function calculateMonthlyCashFlow(property) {
 
   const monthlyRent = property.rent.monthlyRent;
   const monthlyOperatingExpenses = calculateAnnualOperatingExpenses(property) / 12;
-  const monthlyMortgagePayment = property.monthlyExpenses?.mortgagePayment || 0;
+  const monthlyMortgagePayment = deriveMonthlyMortgagePayment(property);
 
   return monthlyRent - monthlyOperatingExpenses - monthlyMortgagePayment;
 }

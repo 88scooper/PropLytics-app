@@ -69,8 +69,8 @@ export const properties = [
     },
 
     rent: {
-      monthlyRent: 2650, // Current tenant rent from CSV 2025.11.03 data
-      annualRent: 31800, // 2650 * 12 (current tenant)
+      monthlyRent: 3000, // Updated 2025 rent
+      annualRent: 36000, // 3000 * 12
     },
 
     expenseHistory: [
@@ -125,7 +125,7 @@ export const properties = [
       name: 'Jane Doe',
       leaseStartDate: '2023-01-01',
       leaseEndDate: 'Active', // Active lease per CSV
-      rent: 2650, // Updated to 2025 rent from CSV 2025.11.03
+      rent: 3000,
       status: 'Active'
     },
 
@@ -150,9 +150,9 @@ export const properties = [
       total: 1252.42 // Will be recalculated below
     },
     
-    monthlyCashFlow: 1397.58, // monthlyRent - monthlyExpenses.total (will be recalculated)
-    annualCashFlow: 16771, // monthlyCashFlow * 12
-    capRate: 5.3, // (annualRent / currentMarketValue) * 100 = (31800 / 600000) * 100
+    monthlyCashFlow: 1747.58, // monthlyRent - monthlyExpenses.total (will be recalculated)
+    annualCashFlow: 20971, // monthlyCashFlow * 12
+    capRate: 6, // (annualRent / currentMarketValue) * 100 = (36000 / 600000) * 100
     occupancy: 100,
     
     // Additional fields for compatibility
@@ -176,7 +176,7 @@ export const properties = [
       {
         name: 'Jane Doe',
         unit: 'Unit 1',
-        rent: 2650, // Updated to 2025 rent from CSV 2025.11.03
+        rent: 3000,
         leaseStart: '2023-01-01',
         leaseEnd: 'Active',
         status: 'Active'
@@ -382,9 +382,12 @@ export const getPortfolioMetrics = (propertyList = properties) => {
       totalEquity: 0,
       totalMortgageBalance: 0,
       totalMonthlyRent: 0,
+      totalMonthlyOperatingExpenses: 0,
+      totalMonthlyDebtService: 0,
       totalMonthlyExpenses: 0,
       totalMonthlyCashFlow: 0,
       totalAnnualOperatingExpenses: 0,
+      totalAnnualDebtService: 0,
       netOperatingIncome: 0,
       totalAnnualDeductibleExpenses: 0,
       totalProperties: 0,
@@ -398,7 +401,15 @@ export const getPortfolioMetrics = (propertyList = properties) => {
   const totalValue = list.reduce((sum, property) => sum + (property.currentMarketValue || 0), 0);
   const totalInvestment = list.reduce((sum, property) => sum + (property.totalInvestment || 0), 0);
   const totalMonthlyRent = list.reduce((sum, property) => sum + (property.rent?.monthlyRent || 0), 0);
-  const totalMonthlyExpenses = list.reduce((sum, property) => sum + (property.monthlyExpenses?.total || 0), 0);
+  const totalAnnualOperatingExpenses = list.reduce((sum, property) => {
+    return sum + calculateAnnualOperatingExpenses(property);
+  }, 0);
+  const totalMonthlyOperatingExpenses = totalAnnualOperatingExpenses / 12;
+  const totalMonthlyDebtService = list.reduce((sum, property) => {
+    return sum + (property.monthlyExpenses?.mortgagePayment || 0);
+  }, 0);
+  const totalMonthlyExpenses = totalMonthlyOperatingExpenses + totalMonthlyDebtService;
+  const totalAnnualDebtService = totalMonthlyDebtService * 12;
   const totalMonthlyCashFlow = list.reduce((sum, property) => sum + (property.monthlyCashFlow || 0), 0);
   
   // Calculate current mortgage balance using accurate calculation
@@ -425,10 +436,6 @@ export const getPortfolioMetrics = (propertyList = properties) => {
   const totalEquity = totalValue - totalMortgageBalance;
   
   // Calculate total annual operating expenses (excluding mortgage payments) using standardized calculation
-  const totalAnnualOperatingExpenses = list.reduce((sum, property) => {
-    return sum + calculateAnnualOperatingExpenses(property);
-  }, 0);
-  
   // Calculate Net Operating Income (NOI) = Total Annual Income - Total Annual Operating Expenses
   const netOperatingIncome = (totalMonthlyRent * 12) - totalAnnualOperatingExpenses;
   
@@ -481,9 +488,12 @@ export const getPortfolioMetrics = (propertyList = properties) => {
     totalEquity,
     totalMortgageBalance,
     totalMonthlyRent,
+    totalMonthlyOperatingExpenses,
+    totalMonthlyDebtService,
     totalMonthlyExpenses,
     totalMonthlyCashFlow,
     totalAnnualOperatingExpenses,
+    totalAnnualDebtService,
     netOperatingIncome,
     totalAnnualDeductibleExpenses,
     totalProperties: list.length,

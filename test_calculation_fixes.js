@@ -8,7 +8,8 @@
  */
 
 let getMonthlyMortgagePayment, getMonthlyMortgageInterest, getMonthlyMortgagePrincipal;
-let getCurrentMortgageBalance, getAnnualMortgageInterest;
+let getCurrentMortgageBalance, getAnnualMortgageInterest, calculateAmortizationSchedule;
+let getMortgageYearlySummary, getMortgageBalanceAtYear;
 let calculateNOI, calculateAnnualOperatingExpenses;
 
 // Try to import (will work if compiled/transpiled)
@@ -19,6 +20,9 @@ try {
   getMonthlyMortgagePrincipal = mortgageUtils.getMonthlyMortgagePrincipal;
   getCurrentMortgageBalance = mortgageUtils.getCurrentMortgageBalance;
   getAnnualMortgageInterest = mortgageUtils.getAnnualMortgageInterest;
+  calculateAmortizationSchedule = mortgageUtils.calculateAmortizationSchedule;
+  getMortgageYearlySummary = mortgageUtils.getMortgageYearlySummary;
+  getMortgageBalanceAtYear = mortgageUtils.getMortgageBalanceAtYear;
 } catch (error) {
   console.warn('Could not load mortgageCalculator. Tests will be skipped.');
   console.warn('Note: This test file requires TypeScript compilation or Next.js build.');
@@ -196,6 +200,73 @@ try {
 } catch (error) {
   console.log(`❌ ERROR in Fix #1 tests: ${error.message}`);
   testsFailed++;
+}
+
+console.log('');
+
+// ============================================================================
+// MORTGAGE SCHEDULE ALIGNMENT TESTS
+// ============================================================================
+console.log('MORTGAGE SCHEDULE ALIGNMENT TESTS');
+console.log('-'.repeat(80));
+
+if (calculateAmortizationSchedule && getMortgageYearlySummary && getMortgageBalanceAtYear) {
+  const paymentsPerYearMap = {
+    monthly: 12,
+    'semi-monthly': 24,
+    'bi-weekly': 26,
+    'accelerated bi-weekly': 26,
+    weekly: 52,
+    'accelerated weekly': 52
+  };
+
+  try {
+    const scheduleMonthly = calculateAmortizationSchedule(monthlyMortgage);
+    const monthlySummaries = getMortgageYearlySummary(monthlyMortgage, 5);
+    const monthlyPaymentsPerYear = paymentsPerYearMap['monthly'];
+    const monthlyTargetIndex = Math.min(scheduleMonthly.payments.length, monthlyPaymentsPerYear * 5) - 1;
+    const expectedMonthlyBalance = monthlyTargetIndex >= 0
+      ? scheduleMonthly.payments[monthlyTargetIndex].remainingBalance
+      : scheduleMonthly.payments[scheduleMonthly.payments.length - 1].remainingBalance;
+    const monthlyYearFive = monthlySummaries.find(summary => summary.year === 5);
+
+    test(
+      'Yearly summary balance matches amortization schedule (monthly, year 5)',
+      Boolean(monthlyYearFive) && Math.abs(monthlyYearFive.endingBalance - expectedMonthlyBalance) < 1,
+      `$${expectedMonthlyBalance.toFixed(2)}`,
+      monthlyYearFive ? `$${monthlyYearFive.endingBalance.toFixed(2)}` : 'No summary available'
+    );
+
+    const scheduleAccelerated = calculateAmortizationSchedule(acceleratedBiWeeklyMortgage);
+    const acceleratedPaymentsPerYear = paymentsPerYearMap['accelerated bi-weekly'];
+    const acceleratedTargetIndex = Math.min(scheduleAccelerated.payments.length, acceleratedPaymentsPerYear * 3) - 1;
+    const expectedAcceleratedBalance = acceleratedTargetIndex >= 0
+      ? scheduleAccelerated.payments[acceleratedTargetIndex].remainingBalance
+      : scheduleAccelerated.payments[scheduleAccelerated.payments.length - 1].remainingBalance;
+    const acceleratedBalanceYearThree = getMortgageBalanceAtYear(acceleratedBiWeeklyMortgage, 3);
+
+    test(
+      'getMortgageBalanceAtYear matches schedule (accelerated bi-weekly, year 3)',
+      Math.abs(acceleratedBalanceYearThree - expectedAcceleratedBalance) < 1,
+      `$${expectedAcceleratedBalance.toFixed(2)}`,
+      `$${acceleratedBalanceYearThree.toFixed(2)}`
+    );
+
+    const acceleratedSummaries = getMortgageYearlySummary(acceleratedBiWeeklyMortgage, 1);
+    const acceleratedYearOne = acceleratedSummaries[0];
+
+    test(
+      'Accelerated bi-weekly payments per forecast year respected',
+      Boolean(acceleratedYearOne) && acceleratedYearOne.payments === acceleratedPaymentsPerYear,
+      `${acceleratedPaymentsPerYear}`,
+      acceleratedYearOne ? `${acceleratedYearOne.payments}` : 'No summary available'
+    );
+  } catch (error) {
+    console.log(`❌ ERROR in mortgage schedule alignment tests: ${error.message}`);
+    testsFailed++;
+  }
+} else {
+  console.log('⚠️  Skipping mortgage schedule alignment tests (helpers unavailable).');
 }
 
 console.log('');

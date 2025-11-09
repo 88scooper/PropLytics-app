@@ -4,7 +4,7 @@
 import Layout from "@/components/Layout.jsx";
 import { RequireAuth } from "@/context/AuthContext";
 import { useState, useRef, useEffect } from "react";
-import { Settings, GripVertical } from "lucide-react";
+import { Settings, GripVertical, Building2, PiggyBank, FileSpreadsheet } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -26,6 +26,51 @@ import { CSS } from '@dnd-kit/utilities';
 import { useProperties, usePortfolioMetrics, usePropertyContext } from "@/context/PropertyContext";
 import { formatCurrency, formatPercentage } from "@/utils/formatting";
 
+
+const highlightedMetricIds = ['portfolioValue', 'equity', 'mortgageDebt'];
+
+const metricPresets = {
+  essentials: {
+    label: "Essential View",
+    description: "Focus on equity, debt, and cash performance",
+    visibleIds: [
+      'portfolioValue',
+      'equity',
+      'mortgageDebt',
+      'monthlyCashFlow',
+      'netOperatingIncome',
+      'overallCapRate'
+    ],
+  },
+  cashFlow: {
+    label: "Cash Flow Focus",
+    description: "Track income, expenses, and NOI together",
+    visibleIds: [
+      'portfolioValue',
+      'equity',
+      'mortgageDebt',
+      'annualRevenue',
+      'annualExpenses',
+      'monthlyCashFlow',
+      'netOperatingIncome',
+      'blendedCashOnCash'
+    ],
+  },
+  taxPrep: {
+    label: "Tax Season",
+    description: "See deductible costs and goals at a glance",
+    visibleIds: [
+      'portfolioValue',
+      'equity',
+      'mortgageDebt',
+      'annualDeductibleExpenses',
+      'annualExpenses',
+      'financialGoals',
+      'portfolioLTV',
+      'blendedCashOnCash'
+    ],
+  },
+};
 
 // Sortable Metric Item Component
 function SortableMetricItem({ metric, onToggleVisibility }) {
@@ -68,6 +113,24 @@ function SortableMetricItem({ metric, onToggleVisibility }) {
   );
 }
 
+const isValidDateValue = (value) => {
+  if (!value) return false;
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime());
+};
+
+const formatDateDisplay = (value, options, fallback) => {
+  if (!value) {
+    return fallback ?? "N/A";
+  }
+
+  if (!isValidDateValue(value)) {
+    return fallback ?? (typeof value === "string" ? value : "N/A");
+  }
+
+  return new Date(value).toLocaleDateString("en-CA", options);
+};
+
 export default function PortfolioSummaryPage() {
   // Get data from PropertyContext
   const { calculationsComplete } = usePropertyContext();
@@ -82,19 +145,18 @@ export default function PortfolioSummaryPage() {
   const [isExpenseSettingsOpen, setIsExpenseSettingsOpen] = useState(false);
   const expenseSettingsRef = useRef(null);
 
+  const [activePreset, setActivePreset] = useState(null);
+
   // Default metrics configuration - Reordered according to new layout
   const defaultMetrics = [
     { id: 'portfolioValue', name: 'Total Estimated Portfolio Value', isVisible: true },
     { id: 'equity', name: 'Total Estimated Equity', isVisible: true },
     { id: 'mortgageDebt', name: 'Total Mortgage Debt', isVisible: true },
-    { id: 'annualEquityBuilt', name: 'Anticipated Annual Equity Built', isVisible: true },
-    { id: 'annualRevenue', name: 'Total Annual Revenue', isVisible: true },
     { id: 'annualExpenses', name: 'Total Annual Expenses', isVisible: true },
     { id: 'annualDeductibleExpenses', name: 'Total Annual Deductible Expenses', isVisible: true },
     { id: 'monthlyCashFlow', name: 'Monthly Net Cash Flow', isVisible: true },
     { id: 'netOperatingIncome', name: 'Annual Net Operating Income', isVisible: true },
     { id: 'overallCapRate', name: 'Overall Cap Rate', isVisible: true },
-    { id: 'portfolioLTV', name: 'Portfolio LTV', isVisible: true },
     { id: 'blendedCashOnCash', name: 'Blended Cash on Cash', isVisible: true },
     { id: 'avgRentPerSqFt', name: 'Average Rent Per Square Foot', isVisible: true },
     { id: 'totalProperties', name: 'Total Properties & Units', isVisible: true },
@@ -210,10 +272,42 @@ export default function PortfolioSummaryPage() {
     }
   };
 
+  const handlePresetSelect = (presetKey) => {
+    const preset = metricPresets[presetKey];
+    if (!preset) return;
+
+    setMetrics((prev) => {
+      const presetOrder = preset.visibleIds;
+      const updated = prev
+        .map((metric) => ({
+          ...metric,
+          isVisible: presetOrder.includes(metric.id),
+        }))
+        .sort((a, b) => {
+          const aIndex = presetOrder.indexOf(a.id);
+          const bIndex = presetOrder.indexOf(b.id);
+          if (aIndex === -1 && bIndex === -1) {
+            return 0;
+          }
+          if (aIndex === -1) return 1;
+          if (bIndex === -1) return -1;
+          return aIndex - bIndex;
+        });
+      return updated;
+    });
+
+    setActivePreset(presetKey);
+    setIsSettingsOpen(false);
+  };
+
   // Data is now coming from PropertyContext
   
   // Calculate total monthly expenses
-  const totalMonthlyExpenses = portfolioMetrics.totalMonthlyExpenses || 0;
+  const totalMonthlyOperatingExpenses = portfolioMetrics.totalMonthlyOperatingExpenses || 0;
+  const totalMonthlyDebtService = portfolioMetrics.totalMonthlyDebtService || 0;
+  const totalMonthlyExpenses = portfolioMetrics.totalMonthlyExpenses || (totalMonthlyOperatingExpenses + totalMonthlyDebtService);
+  const totalAnnualOperatingExpenses = portfolioMetrics.totalAnnualOperatingExpenses || 0;
+  const totalAnnualDebtService = portfolioMetrics.totalAnnualDebtService || (totalMonthlyDebtService * 12);
 
   // Helper function to calculate metrics based on time period
   const getTimePeriodMultiplier = () => {
@@ -232,9 +326,9 @@ export default function PortfolioSummaryPage() {
   const totalMortgageDebt = portfolioMetrics.totalMortgageBalance || 0;
 
   const annualCashFlow = portfolioMetrics.totalAnnualCashFlow || 0;
-
     const totalRevenue = (portfolioMetrics.totalMonthlyRent || 0) * 12;
     const netOperatingIncome = portfolioMetrics.netOperatingIncome || 0;
+  const monthlyCashFlowValue = portfolioMetrics.totalMonthlyCashFlow || 0;
 
   // Calculate portfolio totals from actual data
   const totalPortfolioValue = portfolioMetrics.totalValue || 0;
@@ -245,6 +339,46 @@ export default function PortfolioSummaryPage() {
   const averageRentPerSqFt = totalSquareFeet > 0 ? (portfolioMetrics.totalMonthlyRent || 0) / totalSquareFeet : 0;
   const averageOccupancyRate = portfolioMetrics.averageOccupancy || 0;
   const averageCapRate = portfolioMetrics.averageCapRate || 0;
+
+  const occupiedPropertiesCount = properties.filter((property) => Boolean(property?.tenant?.name)).length;
+  const occupancyRate = properties.length > 0 ? occupiedPropertiesCount / properties.length : 0;
+
+  const expenseAggregates = properties.reduce(
+    (acc, property) => {
+      const monthlyExpenses = property.monthlyExpenses || {};
+
+      acc.propertyTax += (monthlyExpenses.propertyTax || 0) * 12;
+      acc.insurance += (monthlyExpenses.insurance || 0) * 12;
+      acc.maintenance += (monthlyExpenses.maintenance || 0) * 12;
+      acc.utilities += (monthlyExpenses.utilities || 0) * 12;
+      acc.condoFees += (monthlyExpenses.condoFees || 0) * 12;
+      acc.professionalFees += (monthlyExpenses.professionalFees || 0) * 12;
+
+      return acc;
+    },
+    {
+      propertyTax: 0,
+      insurance: 0,
+      maintenance: 0,
+      utilities: 0,
+      condoFees: 0,
+      professionalFees: 0,
+    }
+  );
+
+  const expenseCategoryList = [
+    { id: 'propertyTax', label: 'Property Tax', value: expenseAggregates.propertyTax },
+    { id: 'insurance', label: 'Insurance', value: expenseAggregates.insurance },
+    { id: 'maintenance', label: 'Maintenance', value: expenseAggregates.maintenance },
+    { id: 'utilities', label: 'Utilities', value: expenseAggregates.utilities },
+    { id: 'condoFees', label: 'Condo Fees', value: expenseAggregates.condoFees },
+    { id: 'professionalFees', label: 'Professional Fees', value: expenseAggregates.professionalFees },
+  ]
+    .filter((category) => category.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  const totalTrackedExpenses = expenseCategoryList.reduce((sum, category) => sum + category.value, 0);
 
   // Calculate new KPIs
   // 1. Overall Cap Rate = Total Annual NOI / Total Estimated Portfolio Value
@@ -257,7 +391,13 @@ export default function PortfolioSummaryPage() {
   // 3. Blended Cash on Cash Return = Total Annual Cash Flow Before Tax / Total Initial Cash Invested
   const totalAnnualCashFlowBeforeTax = portfolioMetrics.totalAnnualCashFlow || 0;
   const totalInitialCashInvested = properties.reduce((sum, property) => {
-    return sum + (property.purchasePrice - property.mortgage.originalAmount);
+    const hasTotalInvestment = typeof property.totalInvestment === "number" && !Number.isNaN(property.totalInvestment);
+    const fallbackDownPayment = Math.max(
+      0,
+      (property.purchasePrice || 0) - (property.mortgage?.originalAmount || 0)
+    );
+
+    return sum + (hasTotalInvestment ? property.totalInvestment : fallbackDownPayment);
   }, 0);
   const blendedCashOnCashReturn = totalInitialCashInvested > 0 ? (totalAnnualCashFlowBeforeTax / totalInitialCashInvested) * 100 : 0;
 
@@ -276,6 +416,57 @@ export default function PortfolioSummaryPage() {
     }
     return sum;
   }, 0);
+
+  const capRateTone = overallCapRate >= 5
+    ? 'positive'
+    : overallCapRate >= 3.5
+      ? 'neutral'
+      : 'warning';
+  const capRateMessage = overallCapRate >= 5
+    ? 'Healthy versus GTA benchmark (5–7%).'
+    : overallCapRate >= 3.5
+      ? 'Slightly below target; review rent and operating costs.'
+      : 'Cap rate under 3.5%; prioritize NOI improvements.';
+
+  const ltvTone = portfolioLTV <= 75
+    ? 'positive'
+    : portfolioLTV <= 85
+      ? 'neutral'
+      : 'warning';
+  const ltvMessage = portfolioLTV <= 75
+    ? 'Comfortable cushion under the common 80% lender threshold.'
+    : portfolioLTV <= 85
+      ? 'Above the ideal 80%; plan to deleverage or grow equity.'
+      : 'LTV nearing risk threshold; consider paying down debt.';
+
+  const cashFlowTone = annualCashFlow >= 0 ? 'positive' : 'warning';
+  const cashFlowMessage = annualCashFlow >= 0
+    ? 'Portfolio is generating positive annual cash flow.'
+    : 'Negative cash flow; address vacancy or expense spikes.';
+
+  const cashOnCashTone = blendedCashOnCashReturn >= 8
+    ? 'positive'
+    : blendedCashOnCashReturn >= 5
+      ? 'neutral'
+      : 'warning';
+  const cashOnCashMessage = blendedCashOnCashReturn >= 8
+    ? 'In line with strong cash-on-cash targets (8–12%).'
+    : blendedCashOnCashReturn >= 5
+      ? 'Slightly below optimal range; evaluate rents or financing.'
+      : 'Under 5%; revisit acquisition assumptions or expenses.';
+
+  const periodSummary =
+    timePeriod === 'all'
+      ? 'Showing lifetime performance since each acquisition.'
+      : 'Showing year-to-date performance to help you plan the rest of the year.';
+
+  const highlightedMetrics = metrics.filter(
+    (metric) => metric.isVisible && highlightedMetricIds.includes(metric.id)
+  );
+  const standardMetrics = metrics.filter(
+    (metric) => metric.isVisible && !highlightedMetricIds.includes(metric.id)
+  );
+  const visibleMetricCount = metrics.filter((metric) => metric.isVisible).length;
 
   // Show loading state until calculations are complete to prevent hydration mismatch
   if (!calculationsComplete) {
@@ -299,15 +490,22 @@ export default function PortfolioSummaryPage() {
     <RequireAuth>
       <Layout>
         <div className="space-y-6">
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h1 className="text-3xl font-bold">Portfolio Summary</h1>
               <p className="mt-2 text-gray-600 dark:text-gray-300">
                 Overview of your real estate investment performance and key metrics.
               </p>
+              <div
+                className="mt-4 text-sm text-gray-500 dark:text-gray-400"
+                role="status"
+                aria-live="polite"
+              >
+                {periodSummary}
+              </div>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               {/* Time Period Toggle */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Time Period:</span>
@@ -357,11 +555,37 @@ export default function PortfolioSummaryPage() {
                         </p>
                       </div>
                       <button
-                        onClick={() => setMetrics(defaultMetrics)}
+                        onClick={() => {
+                          setMetrics(defaultMetrics);
+                          setActivePreset(null);
+                        }}
                         className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                       >
                         Reset to Default
                       </button>
+                    </div>
+                  </div>
+                  <div className="px-4 py-3 border-b border-black/10 dark:border-white/10">
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Quick views
+                    </h4>
+                    <div className="mt-3 space-y-2">
+                      {Object.entries(metricPresets).map(([key, preset]) => (
+                        <button
+                          key={key}
+                          onClick={() => handlePresetSelect(key)}
+                          className={`w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+                            activePreset === key
+                              ? 'border-[#205A3E] bg-[#205A3E]/10 text-[#205A3E] dark:border-emerald-400/60 dark:bg-emerald-500/10 dark:text-emerald-200'
+                              : 'border-gray-200 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800'
+                          }`}
+                        >
+                          <span className="block font-medium">{preset.label}</span>
+                          <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+                            {preset.description}
+                          </span>
+                        </button>
+                      ))}
                     </div>
                   </div>
                   
@@ -393,8 +617,64 @@ export default function PortfolioSummaryPage() {
             </div>
           </div>
 
+          {highlightedMetrics.length > 0 && (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {highlightedMetrics.map((metric) => {
+                switch (metric.id) {
+                  case 'portfolioValue':
+                    return (
+                      <TopMetricCard
+                        key={metric.id}
+                        title="Total Estimated Portfolio Value"
+                        value={formatCurrency(totalPortfolioValue)}
+                        icon={Building2}
+                        accent="emerald"
+                        supporting={`${formatCurrency(totalEquity)} equity • ${formatCurrency(totalMortgageDebt)} debt`}
+                      />
+                    );
+                  case 'equity': {
+                    const projectedEquityCopy = `Projected equity added this calendar year: ${formatCurrency(annualEquityBuilt)}`;
+
+                    return (
+                      <TopMetricCard
+                        key={metric.id}
+                        title="Total Estimated Equity"
+                        value={formatCurrency(totalEquity)}
+                        icon={PiggyBank}
+                        accent="teal"
+                        iconBadge="$"
+                        iconBadgePosition="top-center"
+                        supporting={projectedEquityCopy}
+                      />
+                    );
+                  }
+                  case 'mortgageDebt':
+                    return (
+                      <TopMetricCard
+                        key={metric.id}
+                        title="Total Mortgage Debt"
+                        value={formatCurrency(totalMortgageDebt)}
+                        icon={FileSpreadsheet}
+                        accent="amber"
+                        supporting={`Portfolio LTV ${formatPercentage(portfolioLTV)}`}
+                      />
+                    );
+                  default:
+                    return null;
+                }
+              })}
+            </div>
+          )}
+
+          <IncomeWaterfallCard
+            totalRevenue={totalRevenue}
+            operatingExpenses={totalAnnualOperatingExpenses}
+            debtService={totalAnnualDebtService}
+            netCashFlow={annualCashFlow}
+          />
+
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {metrics.filter(metric => metric.isVisible).length === 0 ? (
+            {visibleMetricCount === 0 ? (
               <div className="col-span-full flex flex-col items-center justify-center py-12 px-6 text-center">
                 <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
                   <Settings className="w-8 h-8 text-gray-400" />
@@ -414,21 +694,22 @@ export default function PortfolioSummaryPage() {
                 </button>
               </div>
             ) : (
-              metrics
-                .filter(metric => metric.isVisible)
-                .map(metric => {
+              standardMetrics.map(metric => {
                 switch (metric.id) {
                   case 'portfolioValue':
                     return (
                       <MetricCard
                         key={metric.id}
-                        title="Total Estimated Portfolio Value :)"
+                        title="Total Estimated Portfolio Value"
                         value={formatCurrency(totalPortfolioValue)}
                         showInfoIcon={true}
                         tooltipText="The estimated current market value of all properties in your portfolio."
+                        subtitle={`${formatCurrency(totalEquity)} equity • ${formatCurrency(totalMortgageDebt)} debt`}
                       />
                     );
-                  case 'equity':
+                  case 'equity': {
+                    const projectedEquitySubtitle = `Projected equity added this calendar year: ${formatCurrency(annualEquityBuilt)}`;
+
                     return (
                       <MetricCard
                         key={metric.id}
@@ -436,22 +717,11 @@ export default function PortfolioSummaryPage() {
                         value={formatCurrency(totalEquity)}
                         showInfoIcon={true}
                         tooltipText="The estimated market value of your properties minus the remaining mortgage balances."
+                        subtitle={projectedEquitySubtitle}
                       />
                     );
-                  case 'annualRevenue':
-                    return (
-                      <MetricCard
-                        key={metric.id}
-                        title={getTimePeriodLabel("Total Annual Revenue")}
-                        value={formatCurrency((portfolioMetrics.totalMonthlyRent || 0) * 12)}
-                        showInfoIcon={true}
-                        tooltipText={timePeriod === 'all' 
-                          ? "The total rental income from all properties in your portfolio since acquisition." 
-                          : "The total annual rental income from all properties in your portfolio."}
-                      />
-                    );
+                  }
                   case 'monthlyCashFlow':
-                    const monthlyCashFlowValue = portfolioMetrics.totalMonthlyCashFlow || 0;
                     return (
                       <MetricCard
                         key={metric.id}
@@ -462,18 +732,36 @@ export default function PortfolioSummaryPage() {
                           ? "The average monthly rental income remaining after all operating expenses and mortgage payments since acquisition." 
                           : "The monthly rental income remaining after all operating expenses and mortgage payments."}
                         customColor={monthlyCashFlowValue < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}
+                        statusMessage={cashFlowMessage}
+                        statusTone={cashFlowTone}
                       />
                     );
                   case 'annualExpenses':
                     return (
                       <MetricCard
                         key={metric.id}
-                        title={getTimePeriodLabel("Total Annual Expenses")}
-                        value={formatCurrency(totalMonthlyExpenses * 12)}
+                        title={getTimePeriodLabel("Total Expense Breakdown")}
+                        isMultiMetric={true}
                         showInfoIcon={true}
                         tooltipText={timePeriod === 'all' 
-                          ? "The total recurring costs, including mortgage, taxes, fees, and insurance since acquisition." 
-                          : "The sum of all recurring annual costs, including mortgage, taxes, fees, and insurance."}
+                          ? "Includes both operating expenses (taxes, fees, insurance, maintenance, utilities) and debt service across the full holding period."
+                          : "Annual view of operating expenses and mortgage debt service so you can reconcile to cash flow."}
+                        multiMetrics={[
+                          {
+                            label: getTimePeriodLabel("Annual Operating Expenses"),
+                            value: formatCurrency(totalAnnualOperatingExpenses),
+                          },
+                          {
+                            label: getTimePeriodLabel("Annual Debt Service"),
+                            value: formatCurrency(totalAnnualDebtService),
+                          },
+                          {
+                            label: getTimePeriodLabel("Total Expenses"),
+                            value: formatCurrency(totalAnnualOperatingExpenses + totalAnnualDebtService),
+                          },
+                        ]}
+                        statusMessage="Use this breakdown to spot categories that can be trimmed."
+                        statusTone="neutral"
                       />
                     );
                   case 'annualDeductibleExpenses':
@@ -487,6 +775,8 @@ export default function PortfolioSummaryPage() {
                         tooltipText={timePeriod === 'all' 
                           ? "Total tax-deductible expenses since acquisition, including mortgage interest, property tax, utilities, insurance, maintenance, and professional fees." 
                           : "Tax-deductible expenses including mortgage interest, property tax, utilities, insurance, maintenance, and professional fees. These costs can be written off to reduce your taxable income."}
+                        statusMessage="Track deductible costs ahead of tax filing to maximize write-offs."
+                        statusTone="neutral"
                       />
                     );
                   case 'totalProperties':
@@ -501,6 +791,8 @@ export default function PortfolioSummaryPage() {
                           { label: "Properties", value: totalProperties.toString() },
                           { label: "Units", value: totalUnits.toString() }
                         ]}
+                        statusMessage={`Occupancy: ${formatPercentage(occupancyRate)} of properties filled`}
+                        statusTone={occupancyRate >= 0.9 ? 'positive' : occupancyRate >= 0.75 ? 'neutral' : 'warning'}
                       />
                     );
                   case 'occupancyRate':
@@ -535,6 +827,8 @@ export default function PortfolioSummaryPage() {
                           { label: "Portfolio Value", value: formatCurrency(totalPortfolioValue * 1.1) },
                           { label: "Cash Flow", value: formatCurrency(annualCashFlow * 1.2) }
                         ]}
+                        statusMessage="Stay within 10% of your annual goals to remain on track."
+                        statusTone="neutral"
                       />
                     );
                   case 'mortgageDebt':
@@ -546,18 +840,8 @@ export default function PortfolioSummaryPage() {
                         isExpense={true}
                         showInfoIcon={true}
                         tooltipText="The total remaining mortgage balance across all properties in your portfolio."
-                      />
-                    );
-                  case 'annualEquityBuilt':
-                    return (
-                      <MetricCard
-                        key={metric.id}
-                        title={getTimePeriodLabel("Anticipated Annual Equity Built")}
-                        value={formatCurrency(annualEquityBuilt)}
-                        showInfoIcon={true}
-                        tooltipText={timePeriod === 'all' 
-                          ? "Total equity built through principal payments across all mortgages since acquisition." 
-                          : "The anticipated annual principal payments across all mortgages in your portfolio. This accounts for rent paid to date and anticipated rent for the remainder of the year, representing the equity being built through mortgage payments."}
+                        statusMessage={`Current leverage: ${formatPercentage(portfolioLTV)}`}
+                        statusTone={ltvTone}
                       />
                     );
                   case 'netOperatingIncome':
@@ -570,6 +854,8 @@ export default function PortfolioSummaryPage() {
                         tooltipText={timePeriod === 'all' 
                           ? "Total profitability by subtracting operating expenses from total revenue since acquisition." 
                           : "Calculates the property's profitability by subtracting operating expenses from total revenue."}
+                        statusMessage={netOperatingIncome > 0 ? 'NOI is positive, indicating strong operations.' : 'Negative NOI; inspect operating costs closely.'}
+                        statusTone={netOperatingIncome > 0 ? 'positive' : 'warning'}
                       />
                     );
                   case 'overallCapRate':
@@ -580,16 +866,8 @@ export default function PortfolioSummaryPage() {
                         value={formatPercentage(overallCapRate)}
                         showInfoIcon={true}
                         tooltipText="The portfolio's capitalization rate calculated as total annual NOI divided by total estimated portfolio value. A 'strong' cap rate for a rental property in the Toronto area is typically considered to be in the 5% to 7% range for suburban and high-demand areas, while downtown core properties often have lower cap rates of 3.75% to 4.25% due to higher property values and demand."
-                      />
-                    );
-                  case 'portfolioLTV':
-                    return (
-                      <MetricCard
-                        key={metric.id}
-                        title="Portfolio LTV"
-                        value={formatPercentage(portfolioLTV)}
-                        showInfoIcon={true}
-                        tooltipText="The loan-to-value ratio across your entire portfolio, calculated as total mortgage debt divided by total estimated portfolio value. Many lenders use 80% as the threshold for a good LTV ratio. Anything below this value is even better."
+                        statusMessage={capRateMessage}
+                        statusTone={capRateTone}
                       />
                     );
                   case 'blendedCashOnCash':
@@ -600,6 +878,8 @@ export default function PortfolioSummaryPage() {
                         value={formatPercentage(blendedCashOnCashReturn)}
                         showInfoIcon={true}
                         tooltipText="The blended cash-on-cash return across your portfolio, calculated as total annual cash flow before tax divided by total initial cash invested. A good cash-on-cash return in real estate is generally considered to be between 8% and 12%."
+                        statusMessage={cashOnCashMessage}
+                        statusTone={cashOnCashTone}
                       />
                     );
                   default:
@@ -617,34 +897,110 @@ export default function PortfolioSummaryPage() {
               {/* Current Tenants */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 bg-white dark:bg-neutral-900">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Current Tenants</h3>
-                <div className="space-y-4">
-                  {properties.map((property) => (
-                    <div key={property.id} className="border-b border-gray-100 dark:border-gray-800 pb-3 last:border-b-0 last:pb-0">
-                      <div className="flex justify-between items-start mb-1">
-                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{property.nickname}</h4>
-                        <span className={`text-sm ${property.tenant.name ? 'text-gray-500 dark:text-gray-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {property.tenant.name ? 'Occupied' : 'Vacant'}
-                        </span>
+                {properties.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Add a property to start tracking occupancy, leases, and rent collection.
+                  </p>
+                ) : (
+                  <>
+                    <div className="mb-5">
+                      <div className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <span>{occupiedPropertiesCount} of {properties.length} properties occupied</span>
+                        <span>{formatPercentage(occupancyRate)}</span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">
-                            {property.tenant.name ? property.tenant.name : 'No tenant'}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {property.tenant.leaseStartDate ? 
-                              `Lease: ${new Date(property.tenant.leaseStartDate).toLocaleDateString()} - ${new Date(property.tenant.leaseEndDate).toLocaleDateString()}` :
-                              'No lease'
-                            }
-                          </p>
-                        </div>
-                        <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                          {formatCurrency(property.rent.monthlyRent)}/mo
-                        </span>
+                      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                        <div
+                          className={`h-full rounded-full ${occupancyRate >= 0.75 ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-amber-500 dark:bg-amber-400'}`}
+                          style={{ width: `${Math.min(occupancyRate, 1) * 100}%` }}
+                          role="presentation"
+                        />
                       </div>
                     </div>
-                  ))}
+
+                <div className="space-y-4">
+                      {properties.map((property) => {
+                        const isOccupied = Boolean(property.tenant?.name);
+                        const leaseStart = property.tenant?.leaseStartDate;
+                        const leaseEnd = property.tenant?.leaseEndDate;
+                        const monthlyRent = property.rent?.monthlyRent || 0;
+
+                        let leaseSummary = "No lease details on file";
+                        let leaseTone = "text-xs text-gray-500 dark:text-gray-400";
+
+                        if (leaseStart) {
+                          leaseSummary = `Lease: ${formatDateDisplay(leaseStart)} - ${formatDateDisplay(
+                            leaseEnd,
+                            undefined,
+                            leaseEnd || "No end date"
+                          )}`;
+                        }
+
+                        if (leaseEnd && isValidDateValue(leaseEnd)) {
+                          const endDate = new Date(leaseEnd);
+                          const daysToEnd = Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                          if (daysToEnd < 0) {
+                            leaseTone = "text-xs text-red-600 dark:text-red-400";
+                            leaseSummary = `Lease expired ${Math.abs(daysToEnd)} days ago (${formatDateDisplay(leaseEnd)})`;
+                          } else if (daysToEnd <= 45) {
+                            leaseTone = "text-xs text-amber-600 dark:text-amber-400";
+                            leaseSummary = `Lease ends in ${daysToEnd} days (${formatDateDisplay(leaseEnd)})`;
+                          } else {
+                            leaseTone = "text-xs text-gray-500 dark:text-gray-400";
+                            leaseSummary = `Lease ends ${formatDateDisplay(leaseEnd)}`;
+                          }
+                        }
+
+                        return (
+                          <div
+                            key={property.id}
+                            className={`rounded-lg border p-4 transition-colors ${
+                              isOccupied
+                                ? 'border-gray-200 bg-gray-50/80 hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900/40 dark:hover:border-gray-600'
+                                : 'border-red-200 bg-red-50/60 hover:border-red-300 dark:border-red-800 dark:bg-red-900/20 dark:hover:border-red-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className={`h-2 w-2 rounded-full ${
+                                    isOccupied ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-red-500 dark:bg-red-400'
+                                  }`}
+                                  aria-hidden="true"
+                                />
+                                <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                                  {property.nickname || property.name}
+                                </h4>
+                              </div>
+                              <span
+                                className={`text-xs font-semibold uppercase tracking-wide ${
+                                  isOccupied ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                                }`}
+                              >
+                                {isOccupied ? 'Occupied' : 'Vacant'}
+                        </span>
+                      </div>
+                            <div className="mt-3 flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                                  {isOccupied ? property.tenant?.name : 'No tenant assigned'}
+                                </p>
+                                <p className={leaseTone}>
+                                  {leaseSummary}
+                          </p>
+                        </div>
+                              <div className="text-right">
+                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                  {formatCurrency(monthlyRent)}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">per month</p>
+                      </div>
+                    </div>
                 </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
 
             </div>
@@ -697,7 +1053,7 @@ export default function PortfolioSummaryPage() {
             <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 bg-white dark:bg-neutral-900">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {expenseViewType === 'annual' ? 'Annual Expenses ' : 'Annual Deductible Expenses '}
+                  {expenseViewType === 'annual' ? 'Annual Expenses (Operating + Debt Service)' : 'Annual Deductible Expenses '}
                 </h3>
                 
                 {/* Expense View Settings */}
@@ -770,8 +1126,7 @@ export default function PortfolioSummaryPage() {
               <div className="space-y-3">
                 {properties.length > 0 ? (
                   properties.map((property) => {
-                    // Calculate deductible expenses for this property
-                    const propertyDeductibleExpenses = expenseViewType === 'deductible' 
+                    const propertyExpenseValue = expenseViewType === 'deductible' 
                       ? (() => {
                           try {
                             // Calculate annual operating expenses (excluding mortgage principal)
@@ -804,10 +1159,10 @@ export default function PortfolioSummaryPage() {
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-gray-900 dark:text-gray-100">
-                            {formatCurrency(propertyDeductibleExpenses)}
+                            {formatCurrency(propertyExpenseValue)}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {formatCurrency(propertyDeductibleExpenses / 12)}/mo
+                            {formatCurrency(propertyExpenseValue / 12)}/mo
                           </p>
                         </div>
                       </div>
@@ -822,14 +1177,42 @@ export default function PortfolioSummaryPage() {
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
                     <div className="flex justify-between items-center">
                       <span className="font-semibold text-gray-900 dark:text-gray-100">
-                        {expenseViewType === 'deductible' ? 'Total Annual Deductible Expenses' : 'Total Annual Expenses'}
+                        {expenseViewType === 'deductible' ? 'Total Annual Deductible Expenses' : 'Total Annual Expenses (Operating + Debt Service)'}
                       </span>
                       <span className="font-bold text-lg text-red-600 dark:text-red-400">
                         {expenseViewType === 'deductible' 
                           ? formatCurrency(portfolioMetrics?.totalAnnualDeductibleExpenses || 0)
-                          : formatCurrency((portfolioMetrics?.totalMonthlyExpenses || 0) * 12)
+                          : formatCurrency((portfolioMetrics?.totalAnnualOperatingExpenses || 0) + (portfolioMetrics?.totalAnnualDebtService || 0))
                         }
                       </span>
+                    </div>
+                  </div>
+                )}
+
+                {expenseCategoryList.length > 0 && (
+                  <div className="mt-6 border-t border-gray-200 pt-4 dark:border-gray-700">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      Largest Expense Categories
+                    </h4>
+                    <div className="mt-3 space-y-3">
+                      {expenseCategoryList.map((category) => {
+                        const width = totalTrackedExpenses > 0 ? (category.value / totalTrackedExpenses) * 100 : 0;
+                        return (
+                          <div key={category.id}>
+                            <div className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
+                              <span>{category.label}</span>
+                              <span>{formatCurrency(category.value)}</span>
+                            </div>
+                            <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                              <div
+                                className="h-full bg-amber-500 dark:bg-amber-400"
+                                style={{ width: `${Math.min(width, 100)}%` }}
+                                role="presentation"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -843,7 +1226,198 @@ export default function PortfolioSummaryPage() {
   );
 }
 
-function MetricCard({ title, value, description, trend, trendPositive, isExpense, showInfoIcon, tooltipText, isMultiMetric, multiMetrics, customColor }) {
+function TopMetricCard({
+  title,
+  value,
+  icon: Icon,
+  accent = 'emerald',
+  supporting,
+  iconBadge,
+  iconBadgePosition = 'bottom-right',
+}) {
+  const accentConfig = {
+    emerald: {
+      border: 'border-[#205A3E]/30 dark:border-[#1C4F39]/40',
+      gradient: 'from-[#D9E5DC] via-[#F4F8F5] to-transparent dark:from-[#1A2F25] dark:via-[#101B15] dark:to-transparent',
+      icon: 'text-[#205A3E] dark:text-[#66B894] bg-white/90 dark:bg-[#1D3A2C]/70',
+    },
+    teal: {
+      border: 'border-[#1A4A5A]/25 dark:border-[#123640]/40',
+      gradient: 'from-[#D8E6EA] via-[#F5F9FA] to-transparent dark:from-[#11252B] dark:via-[#0B181D] dark:to-transparent',
+      icon: 'text-[#1A4A5A] dark:text-[#7AC0CF] bg-white/90 dark:bg-[#132E36]/70',
+    },
+    amber: {
+      border: 'border-[#B57A33]/25 dark:border-[#8C5D24]/35',
+      gradient: 'from-[#F3E6D4] via-[#FBF6EE] to-transparent dark:from-[#2A2014] dark:via-[#1B140C] dark:to-transparent',
+      icon: 'text-[#B57A33] dark:text-[#E9C08A] bg-white/90 dark:bg-[#2D2115]/70',
+    },
+  };
+
+  const config = accentConfig[accent] || accentConfig.emerald;
+
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border ${config.border} bg-gradient-to-br ${config.gradient} p-5`}>
+      <div className="flex items-start justify-between gap-3.5">
+        <div>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+            {title}
+          </h3>
+        </div>
+        {Icon && (
+          <div className={`relative rounded-full p-2.5 ${config.icon}`}>
+            <Icon className="h-5 w-5" aria-hidden="true" />
+            {iconBadge && (
+              <span
+                className={`absolute flex h-4 w-4 items-center justify-center rounded-full bg-[#205A3E] text-[10px] font-semibold text-white shadow-sm dark:bg-[#2F7E57] ${
+                  iconBadgePosition === 'top-center'
+                    ? '-top-1 left-1/2 -translate-x-1/2'
+                    : '-bottom-1 -right-1'
+                }`}
+              >
+                {iconBadge}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="mt-5 text-3xl font-bold text-gray-900 dark:text-white">
+        {value}
+      </div>
+      {supporting && (
+        <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
+          {supporting}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function IncomeWaterfallCard({ totalRevenue, operatingExpenses, debtService, netCashFlow }) {
+  const totalOutflows = operatingExpenses + debtService;
+  const netPositive = netCashFlow >= 0;
+  const margin = totalRevenue > 0 ? netCashFlow / totalRevenue : 0;
+  const percentFormatter = new Intl.NumberFormat('en-CA', {
+    style: 'percent',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  });
+  const marginLabel = Number.isFinite(margin) ? percentFormatter.format(margin) : 'N/A';
+  const expenseShare = totalRevenue > 0 ? totalOutflows / totalRevenue : null;
+
+  const scale = totalRevenue > 0
+    ? totalRevenue
+    : Math.max(totalOutflows, Math.abs(netCashFlow), 1);
+
+  const steps = [
+    { label: 'Total Revenue', value: totalRevenue, type: 'base' },
+    { label: 'Total Expenses', value: totalOutflows, type: 'subtract', isAggregate: true },
+    { label: 'Operating Expenses', value: operatingExpenses, type: 'subtract', isSub: true },
+    { label: 'Debt Service', value: debtService, type: 'subtract', isSub: true },
+  ];
+
+  const barWidth = (value) => {
+    if (scale <= 0) return 0;
+    return Math.min(100, (Math.abs(value) / scale) * 100);
+  };
+
+  return (
+    <div className="rounded-lg border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-neutral-900">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Income vs Outflows
+          </h3>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Annualized snapshot of how rent covers operating costs and debt service.
+          </p>
+        </div>
+        <div
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            netPositive
+              ? 'bg-[#D9E5DC] text-[#205A3E] dark:bg-[#1D3A2C] dark:text-[#66B894]'
+              : 'bg-[#F7D9D9] text-[#9F3838] dark:bg-[#2B1111] dark:text-[#F2A5A5]'
+          }`}
+        >
+          {marginLabel === 'N/A' ? 'No revenue' : `${marginLabel} margin`}
+        </div>
+      </div>
+
+      <div className="mt-6 space-y-4">
+        {steps.map((step, index) => (
+          <div key={step.label} className={`relative ${step.isSub ? 'pl-8' : 'pl-3'}`}>
+            {index > 0 && !step.isSub && (
+              <span
+                className="absolute left-0 top-0 h-full border-l border-dashed border-gray-300 dark:border-gray-700"
+                aria-hidden="true"
+              />
+            )}
+            <div className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
+              <span>
+                {step.type === 'subtract'
+                  ? `${step.isSub ? 'Less ' : 'Less '}${step.label}`
+                  : step.label}
+              </span>
+              <span className="text-gray-900 dark:text-gray-100">
+                {step.type === 'subtract' ? `-${formatCurrency(step.value)}` : formatCurrency(step.value)}
+              </span>
+            </div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+              <div
+                className={`h-full rounded-full ${
+                  step.type === 'base'
+                    ? 'bg-[#205A3E] dark:bg-[#2F7E57]'
+                    : step.isAggregate
+                      ? 'bg-[#E16262] dark:bg-[#A12424]'
+                      : 'bg-[#9CA3AF] dark:bg-[#E2E8F0]'
+                }`}
+                style={{ width: `${barWidth(step.value)}%` }}
+                role="presentation"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div
+        className={`mt-6 flex items-start justify-between rounded-md border px-4 py-3 text-sm ${
+          netPositive
+            ? 'border-[#C7D9CB] bg-[#EFF4F0] text-[#205A3E] dark:border-[#244632] dark:bg-[#15251D] dark:text-[#7AC0A1]'
+            : 'border-[#E1B8B8] bg-[#FDF3F3] text-[#9F3838] dark:border-[#4C1F1F] dark:bg-[#1F1111] dark:text-[#F2A5A5]'
+        }`}
+      >
+        <div>
+          <p className="font-semibold">Net Cash Flow</p>
+          <p className="text-xs opacity-80">After operating expenses and debt service</p>
+        </div>
+        <div className="text-right">
+          <p className="text-base font-bold">{formatCurrency(netCashFlow)}</p>
+          {expenseShare !== null && Number.isFinite(expenseShare) && (
+            <p className="text-xs font-medium opacity-80">
+              {percentFormatter.format(expenseShare)} of revenue consumed
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({
+  title,
+  value,
+  description,
+  trend,
+  trendPositive,
+  isExpense,
+  showInfoIcon,
+  tooltipText,
+  isMultiMetric,
+  multiMetrics,
+  customColor,
+  subtitle,
+  statusMessage,
+  statusTone = 'neutral',
+}) {
   const getValueColor = () => {
     if (customColor) {
       return customColor;
@@ -853,6 +1427,26 @@ function MetricCard({ title, value, description, trend, trendPositive, isExpense
     }
     return 'text-gray-900 dark:text-gray-100';
   };
+
+  const statusToneConfig = {
+    positive: {
+      text: 'text-emerald-700 dark:text-emerald-300',
+      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+      border: 'border-emerald-100 dark:border-emerald-800/60',
+    },
+    neutral: {
+      text: 'text-gray-600 dark:text-gray-300',
+      bg: 'bg-gray-50 dark:bg-gray-900/40',
+      border: 'border-gray-100 dark:border-gray-700',
+    },
+    warning: {
+      text: 'text-amber-700 dark:text-amber-300',
+      bg: 'bg-amber-50 dark:bg-amber-900/20',
+      border: 'border-amber-200 dark:border-amber-800/60',
+    },
+  };
+
+  const statusStyles = statusToneConfig[statusTone] || statusToneConfig.neutral;
 
   return (
     <div className="rounded-lg border border-black/10 dark:border-white/10 p-6 hover:bg-black/5 dark:hover:bg-white/5 transition">
@@ -885,9 +1479,23 @@ function MetricCard({ title, value, description, trend, trendPositive, isExpense
           ) : (
             <p className={`text-3xl font-bold ${getValueColor()}`}>{value}</p>
           )}
+
+          {subtitle && (
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              {subtitle}
+            </p>
+          )}
+
+          {statusMessage && (
+            <div
+              className={`mt-4 rounded-md border px-3 py-2 text-xs leading-5 ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text}`}
+            >
+              {statusMessage}
+            </div>
+          )}
         </div>
         
-        {!isMultiMetric && (
+        {!isMultiMetric && trend && (
           <div className={`text-sm font-medium ${trendPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
             {trend}
           </div>
@@ -900,19 +1508,17 @@ function MetricCard({ title, value, description, trend, trendPositive, isExpense
 function ScheduleEvents({ properties = [] }) {
   const [dateRange, setDateRange] = useState(30);
   
-  // Generate upcoming events from real property data
   const upcomingEvents = properties.flatMap(property => {
     const events = [
-      { propertyName: property.nickname, eventType: "Mortgage Payment", date: property.mortgage.nextPayment },
-      { propertyName: property.nickname, eventType: "Insurance Renewal", date: "2025-02-15" }, // Estimated
-      { propertyName: property.nickname, eventType: "Property Tax", date: "2025-03-01" }, // Estimated
-      { propertyName: property.nickname, eventType: "Maintenance", date: "2025-01-20" }, // Estimated
+      { propertyName: property.nickname || property.name, eventType: "Mortgage Payment", date: property.mortgage?.nextPayment },
+      { propertyName: property.nickname || property.name, eventType: "Insurance Renewal", date: "2025-02-15" }, // Estimated
+      { propertyName: property.nickname || property.name, eventType: "Property Tax", date: "2025-03-01" }, // Estimated
+      { propertyName: property.nickname || property.name, eventType: "Maintenance", date: "2025-01-20" }, // Estimated
     ];
     
-    // Add lease-related events if tenant exists
-    if (property.tenant.name && property.tenant.leaseEndDate) {
+    if (property.tenant?.name && property.tenant?.leaseEndDate) {
       events.push({
-        propertyName: property.nickname,
+        propertyName: property.nickname || property.name,
         eventType: "Lease Renewal",
         date: property.tenant.leaseEndDate
       });
@@ -921,40 +1527,23 @@ function ScheduleEvents({ properties = [] }) {
     return events;
   });
 
-  // Filter events based on selected date range
   const today = new Date();
   const endDate = new Date(today.getTime() + dateRange * 24 * 60 * 60 * 1000);
-  const filteredEvents = upcomingEvents.filter(event => {
-    const eventDate = new Date(event.date);
-    return eventDate >= today && eventDate <= endDate;
-  });
 
-  // Sort events by date
-  filteredEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+  const upcomingWithinRange = upcomingEvents
+    .filter(event => isValidDateValue(event.date))
+    .map(event => ({
+      ...event,
+      eventDate: new Date(event.date),
+    }))
+    .filter(event => event.eventDate >= today && event.eventDate <= endDate)
+    .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime());
 
-  // Group events by property
-  const eventsByProperty = {};
-  filteredEvents.forEach(event => {
-    if (!eventsByProperty[event.propertyName]) {
-      eventsByProperty[event.propertyName] = [];
+  const formatEventDate = (date) => {
+    if (!isValidDateValue(date)) {
+      return typeof date === "string" ? date : "Date TBD";
     }
-    eventsByProperty[event.propertyName].push(event);
-  });
 
-  // Get next week date for urgency highlighting
-  const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-  const getUrgencyClass = (date) => {
-    const eventDate = new Date(date);
-    const isWithinWeek = eventDate <= nextWeek && eventDate >= today;
-    
-    if (isWithinWeek) {
-      return 'bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-l-yellow-500';
-    }
-    return 'bg-gray-50 dark:bg-gray-900/20 border-l-4 border-l-gray-200 dark:border-l-gray-700';
-  };
-
-  const formatDate = (date) => {
     const eventDate = new Date(date);
     const isToday = eventDate.toDateString() === today.toDateString();
     const isTomorrow = eventDate.toDateString() === new Date(today.getTime() + 24 * 60 * 60 * 1000).toDateString();
@@ -971,14 +1560,54 @@ function ScheduleEvents({ properties = [] }) {
     }
   };
 
+  const getUrgencyMeta = (eventDate) => {
+    const diffDays = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return {
+        dot: 'border-red-500 bg-red-100 dark:bg-red-900/40',
+        card: 'border-red-100 bg-red-50 dark:border-red-800/60 dark:bg-red-900/20',
+        badge: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300',
+        label: 'Past due',
+      };
+    }
+
+    if (diffDays <= 7) {
+      return {
+        dot: 'border-amber-500 bg-amber-100 dark:bg-amber-900/40',
+        card: 'border-amber-100 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20',
+        badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+        label: 'This week',
+      };
+    }
+
+    if (diffDays <= 30) {
+      return {
+        dot: 'border-blue-500 bg-blue-100 dark:bg-blue-900/40',
+        card: 'border-blue-100 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-900/20',
+        badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+        label: `In ${diffDays} days`,
+      };
+    }
+
+    return {
+      dot: 'border-gray-300 bg-gray-100 dark:bg-gray-800',
+      card: 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/30',
+      badge: '',
+      label: '',
+    };
+  };
+
   return (
     <div>
-      {/* Date Range Filter */}
-      <div className="flex justify-end mb-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Upcoming mortgage, tax, maintenance, and lease milestones.
+        </p>
         <select
           value={dateRange}
           onChange={(e) => setDateRange(Number(e.target.value))}
-          className="text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#205A3E]"
         >
           <option value={30}>Next 30 days</option>
           <option value={60}>Next 60 days</option>
@@ -986,39 +1615,55 @@ function ScheduleEvents({ properties = [] }) {
         </select>
       </div>
 
-      {/* Events by Property */}
-      <div className="space-y-4">
-        {Object.entries(eventsByProperty).map(([propertyName, events]) => (
-          <div key={propertyName} className="space-y-2">
-            {/* Property Header */}
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-1">
-              {propertyName}
-            </h4>
-            
-            {/* Events for this property */}
-            <div className="space-y-1">
-              {events.map((event, index) => (
-                <div 
-                  key={`${propertyName}-${event.eventType}-${index}`} 
-                  className={`p-2 rounded ${getUrgencyClass(event.date)}`}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-900 dark:text-gray-100">
+      {upcomingWithinRange.length === 0 ? (
+        <div className="mt-6 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-400">
+          No key events in the next {dateRange} days. You’re in the clear.
+        </div>
+      ) : (
+        <div className="relative mt-6 pl-6">
+          <span className="absolute left-2 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+          <div className="space-y-6">
+            {upcomingWithinRange.map((event, index) => {
+              const urgency = getUrgencyMeta(event.eventDate);
+              return (
+                <div key={`${event.propertyName}-${event.eventType}-${index}`} className="relative">
+                  <span
+                    className={`absolute -left-3 mt-1 h-3 w-3 rounded-full border-2 ${urgency.dot}`}
+                    aria-hidden="true"
+                  />
+                  <div className={`rounded-lg border px-4 py-3 transition-colors ${urgency.card}`}>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {event.eventType}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {event.propertyName}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                          {formatEventDate(event.eventDate)}
+                        </p>
+                        {urgency.label && (
+                          <span className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${urgency.badge}`}>
+                            {urgency.label}
                     </span>
-                    <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                      {formatDate(event.date)}
-                    </span>
+                        )}
                   </div>
                 </div>
-              ))}
             </div>
           </div>
-        ))}
+              );
+            })}
       </div>
+        </div>
+      )}
     </div>
   );
 }
+
+
 
 
 

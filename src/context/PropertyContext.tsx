@@ -11,6 +11,7 @@ import {
   calculateCashOnCashReturn,
   updatePropertyFinancialMetrics
 } from '@/utils/financialCalculations';
+import { getMonthlyMortgagePayment } from '@/utils/mortgageCalculator';
 
 // Define TypeScript interfaces for better type safety
 export interface Property {
@@ -109,9 +110,12 @@ export interface PortfolioMetrics {
   totalEquity: number;
   totalMortgageBalance: number;
   totalMonthlyRent: number;
+  totalMonthlyOperatingExpenses: number;
+  totalMonthlyDebtService: number;
   totalMonthlyExpenses: number;
   totalMonthlyCashFlow: number;
   totalAnnualOperatingExpenses: number;
+  totalAnnualDebtService: number;
   netOperatingIncome: number;
   totalAnnualDeductibleExpenses: number;
   totalProperties: number;
@@ -238,7 +242,37 @@ const preparePropertyData = (property: Property): Property => {
   const operatingExpensesTotal = OPERATING_EXPENSE_KEYS.reduce((sum, key) => {
     return sum + ensureNumber(monthlyExpensesRecord[key]);
   }, 0);
-  monthlyExpensesRecord.total = Number(operatingExpensesTotal.toFixed(2));
+  const existingMortgagePayment = ensureNumber(monthlyExpensesRecord.mortgagePayment);
+  let derivedMortgagePayment = existingMortgagePayment;
+
+  if (derivedMortgagePayment <= 0 && cloned.mortgage && cloned.mortgage.originalAmount) {
+    try {
+      derivedMortgagePayment = getMonthlyMortgagePayment(cloned.mortgage as any) || 0;
+    } catch (error) {
+      const principal = ensureNumber(cloned.mortgage.originalAmount);
+      const annualRate = ensureNumber(cloned.mortgage.interestRate);
+      const amortizationYears = ensureNumber(cloned.mortgage.amortizationYears);
+
+      if (principal > 0 && amortizationYears > 0) {
+        const totalPayments = amortizationYears * 12;
+        const monthlyRate = annualRate > 0 ? annualRate / 12 : 0;
+
+        if (monthlyRate === 0) {
+          derivedMortgagePayment = principal / totalPayments;
+        } else {
+          const factor = Math.pow(1 + monthlyRate, totalPayments);
+          derivedMortgagePayment = principal * (monthlyRate * factor) / (factor - 1);
+        }
+      }
+    }
+
+    derivedMortgagePayment = Number.isFinite(derivedMortgagePayment) ? Number(derivedMortgagePayment.toFixed(2)) : 0;
+  }
+
+  monthlyExpensesRecord.mortgagePayment = derivedMortgagePayment;
+
+  const mortgagePayment = ensureNumber(monthlyExpensesRecord.mortgagePayment);
+  monthlyExpensesRecord.total = Number((operatingExpensesTotal + mortgagePayment).toFixed(2));
 
   cloned.monthlyPropertyTax = monthlyExpensesRecord.propertyTax || 0;
   cloned.monthlyCondoFees = monthlyExpensesRecord.condoFees || 0;

@@ -7,7 +7,7 @@
  * - Scenario modeling with variable assumptions
  */
 
-import { getCurrentMortgageBalance, getMonthlyMortgagePayment } from '@/utils/mortgageCalculator';
+import { getCurrentMortgageBalance, getMonthlyMortgagePayment, getMortgageYearlySummary } from '@/utils/mortgageCalculator';
 
 /**
  * Default assumptions for sensitivity analysis
@@ -85,6 +85,11 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS) {
     cumulativeCashFlow: [],
     totalProfit: [],
     noi: [], // Net Operating Income (before debt service)
+    rentalIncome: [],
+    operatingExpenses: [],
+    debtService: [],
+    debtServicePrincipal: [],
+    debtServiceInterest: [],
   };
 
   // Get current mortgage details
@@ -107,6 +112,14 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS) {
     monthlyMortgagePayment = property.mortgage.originalAmount * 
       (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
       (Math.pow(1 + monthlyRate, numPayments) - 1);
+  }
+
+  // Pre-compute forward-looking mortgage schedule summaries (fallback to empty on error)
+  let mortgageYearSummaries = [];
+  try {
+    mortgageYearSummaries = getMortgageYearlySummary(property.mortgage, 10);
+  } catch (error) {
+    console.warn('Error building mortgage yearly summary:', error);
   }
 
   // Starting values
@@ -139,19 +152,32 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS) {
     // Calculate NOI (Net Operating Income - before debt service)
     const noi = annualRentalIncome - annualOperatingExpenses;
 
-    // Calculate interest payment for this year
-    const monthlyInterestRate = property.mortgage.interestRate / 12;
-    const annualInterest = mortgageBalance * property.mortgage.interestRate;
+    // Determine debt service using schedule-driven values when available
+    let annualDebtService = 0;
+    let annualPrincipalPaid = 0;
+    let annualInterestPaid = 0;
 
-    // Calculate principal payment
-    const annualMortgagePayment = monthlyMortgagePayment * 12;
-    const annualPrincipal = Math.min(annualMortgagePayment - annualInterest, mortgageBalance);
+    const mortgageSummary = mortgageYearSummaries[year - 1];
 
-    // Update mortgage balance
-    mortgageBalance = Math.max(0, mortgageBalance - annualPrincipal);
+    if (mortgageSummary) {
+      annualDebtService = mortgageSummary.totalPayment;
+      annualPrincipalPaid = mortgageSummary.totalPrincipal;
+      annualInterestPaid = mortgageSummary.totalInterest;
+      mortgageBalance = mortgageSummary.endingBalance;
+    } else if (mortgageBalance > 0 && monthlyMortgagePayment > 0) {
+      const annualMortgagePayment = monthlyMortgagePayment * 12;
+      const estimatedAnnualInterest = mortgageBalance * property.mortgage.interestRate;
+      const annualPrincipal = Math.min(annualMortgagePayment - estimatedAnnualInterest, mortgageBalance);
+      annualDebtService = annualMortgagePayment;
+      annualPrincipalPaid = annualPrincipal;
+      annualInterestPaid = estimatedAnnualInterest;
+      mortgageBalance = Math.max(0, mortgageBalance - annualPrincipal);
+    } else {
+      mortgageBalance = 0;
+    }
 
     // Calculate net cash flow (after debt service)
-    const netCashFlow = annualRentalIncome - annualOperatingExpenses - annualMortgagePayment;
+    const netCashFlow = annualRentalIncome - annualOperatingExpenses - annualDebtService;
     cumulativeCashFlow += netCashFlow;
 
     // Calculate property value
@@ -178,6 +204,11 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS) {
     forecast.cumulativeCashFlow.push(cumulativeCashFlow);
     forecast.totalProfit.push(totalProfit);
     forecast.noi.push(noi);
+    forecast.rentalIncome.push(annualRentalIncome);
+    forecast.operatingExpenses.push(annualOperatingExpenses);
+    forecast.debtService.push(annualDebtService);
+    forecast.debtServicePrincipal.push(annualPrincipalPaid);
+    forecast.debtServiceInterest.push(annualInterestPaid);
 
     // Update rent for next year
     currentRent = currentRent * (1 + assumptions.annualRentIncrease / 100);
@@ -216,6 +247,123 @@ export function calculateReturnMetrics(property, assumptions = DEFAULT_ASSUMPTIO
     averageAnnualCashFlow,
     totalProfitAtSale,
     forecast
+  };
+}
+
+const sumArray = (values = []) =>
+  Array.isArray(values)
+    ? values.reduce((sum, value) => sum + (Number.isFinite(Number(value)) ? Number(value) : 0), 0)
+    : 0;
+
+/**
+ * Prepare Sankey chart data describing capital inflows and outflows across the forecast horizon.
+ *
+ * The structure highlights how initial equity, operating income, and sale proceeds are allocated
+ * between operating costs, debt service, and investor returns.
+ *
+ * @param {Object} property Property details (requires totalInvestment and mortgage info)
+ * @param {Object} forecast Forecast object produced by generateForecast
+ * @returns {{nodes: Array, links: Array, meta: Object} | null}
+ */
+export function buildCapitalFlowSankeyData(property, forecast) {
+  if (!property || !forecast) {
+    return null;
+  }
+
+  const initialEquity = Number(property.totalInvestment) || 0;
+  const originalDebt = Number(property.mortgage?.originalAmount) || 0;
+
+  const totalRentalIncome = sumArray(forecast.rentalIncome);
+  const totalOperatingExpenses = sumArray(forecast.operatingExpenses);
+  const totalDebtService = sumArray(forecast.debtService);
+  const totalNetCashFlow = sumArray(forecast.netCashFlow);
+
+  const lastIndex = Math.max(forecast.propertyValue.length - 1, 0);
+  const propertyValueAtExit = Number(forecast.propertyValue[lastIndex]) || 0;
+  const remainingDebtAtExit = Number(forecast.mortgageBalance[lastIndex]) || 0;
+
+  const saleProceedsGross = Math.max(propertyValueAtExit, 0);
+  const saleDebtPayoff = Math.min(remainingDebtAtExit, saleProceedsGross);
+  const saleEquityProceeds = Math.max(saleProceedsGross - saleDebtPayoff, 0);
+
+  const operatingCoveredByRent = Math.min(totalOperatingExpenses, totalRentalIncome);
+  const remainingAfterOperating = totalRentalIncome - operatingCoveredByRent;
+  const debtCoveredByRent = Math.min(totalDebtService, Math.max(remainingAfterOperating, 0));
+  const remainingAfterDebtFromRent = remainingAfterOperating - debtCoveredByRent;
+
+  const positiveNetCashFlow = Math.max(totalNetCashFlow, 0);
+  const rentToNetCashFlow = Math.max(Math.min(positiveNetCashFlow, Math.max(remainingAfterDebtFromRent, 0)), 0);
+
+  const operatingShortfall = Math.max(totalOperatingExpenses - operatingCoveredByRent, 0);
+  const debtShortfall = Math.max(totalDebtService - debtCoveredByRent, 0);
+  const netCashFlowShortfall = Math.max(-totalNetCashFlow, 0);
+
+  let remainingEquity = initialEquity;
+  const equityToOperating = Math.min(remainingEquity, operatingShortfall);
+  remainingEquity -= equityToOperating;
+  const equityToDebt = Math.min(remainingEquity, debtShortfall);
+  remainingEquity -= equityToDebt;
+  const equityToNetCash = Math.min(remainingEquity, netCashFlowShortfall);
+  remainingEquity -= equityToNetCash;
+  const equityReturnedDirect = Math.max(remainingEquity, 0);
+
+  const nodes = [
+    { name: 'Initial Equity' },    // 0
+    { name: 'Rental Income' },     // 1
+    { name: 'Sale Proceeds' },     // 2
+    { name: 'Operating Expenses' },// 3
+    { name: 'Debt Service' },      // 4
+    { name: 'Net Cash Flow' },     // 5
+    { name: 'Equity Returned' },   // 6
+  ];
+
+  const links = [];
+
+  const pushLink = (source, target, value, label) => {
+    if (value > 0) {
+      links.push({
+        source,
+        target,
+        value,
+        label,
+      });
+    }
+  };
+
+  // Rental income allocations
+  pushLink(1, 3, operatingCoveredByRent, 'Income → OpEx');
+  pushLink(1, 4, debtCoveredByRent, 'Income → Debt');
+  pushLink(1, 5, rentToNetCashFlow, 'Income → Net Cash');
+
+  // Equity used to cover shortfalls and returned directly
+  pushLink(0, 3, equityToOperating, 'Equity → OpEx');
+  pushLink(0, 4, equityToDebt, 'Equity → Debt');
+  pushLink(0, 5, equityToNetCash, 'Equity → Cash (Support)');
+  pushLink(0, 6, equityReturnedDirect, 'Equity Returned');
+
+  // Sale proceeds allocations
+  pushLink(2, 4, saleDebtPayoff, 'Sale → Debt Payoff');
+  pushLink(2, 6, saleEquityProceeds, 'Sale → Investor');
+
+  // Net cash flow distributed to investor
+  pushLink(5, 6, positiveNetCashFlow, 'Cash to Investor');
+
+  const totalDebtPaid = debtCoveredByRent + equityToDebt + saleDebtPayoff;
+
+  return {
+    nodes,
+    links,
+    meta: {
+      initialEquity,
+      originalDebt,
+      totalRentalIncome,
+      totalOperatingExpenses,
+      totalDebtService,
+      totalDebtPaid,
+      totalNetCashFlow,
+      saleProceedsGross,
+      saleEquityProceeds,
+    },
   };
 }
 

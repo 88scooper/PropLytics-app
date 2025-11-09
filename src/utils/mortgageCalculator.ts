@@ -28,6 +28,33 @@ export interface AmortizationSchedule {
   finalPaymentDate: string;
 }
 
+export interface MortgageYearlySummary {
+  /**
+   * Year number in the projection horizon starting at 1.
+   */
+  year: number;
+  /**
+   * Total payment (principal + interest) made during the year.
+   */
+  totalPayment: number;
+  /**
+   * Principal portion of payments during the year.
+   */
+  totalPrincipal: number;
+  /**
+   * Interest portion of payments during the year.
+   */
+  totalInterest: number;
+  /**
+   * Remaining balance after the final payment of the year.
+   */
+  endingBalance: number;
+  /**
+   * Number of payments made during the year.
+   */
+  payments: number;
+}
+
 /**
  * Calculate mortgage payment amount based on payment frequency
  */
@@ -65,6 +92,26 @@ function getTotalPayments(amortizationYears: number, paymentFrequency: string): 
       return amortizationYears * 52;
     default:
       return amortizationYears * 12; // Default to monthly
+  }
+}
+
+/**
+ * Get the number of payments made each year based on payment frequency.
+ */
+function getPaymentsPerYear(paymentFrequency: string): number {
+  switch (paymentFrequency.toLowerCase()) {
+    case 'monthly':
+      return 12;
+    case 'semi-monthly':
+      return 24;
+    case 'bi-weekly':
+    case 'accelerated bi-weekly':
+      return 26;
+    case 'weekly':
+    case 'accelerated weekly':
+      return 52;
+    default:
+      return 12;
   }
 }
 
@@ -413,4 +460,126 @@ export function getAnnualMortgageInterest(mortgage: MortgageData): number {
       return mortgage.originalAmount * mortgage.interestRate;
     }
   }
+}
+
+/**
+ * Generate forward-looking yearly mortgage payment summaries starting from the next payment.
+ *
+ * @param mortgage Mortgage data
+ * @param yearsAhead Maximum number of years to project forward
+ * @returns Array of yearly summaries including payments, principal, interest, and ending balance
+ */
+export function getMortgageYearlySummary(
+  mortgage: MortgageData,
+  yearsAhead = 30
+): MortgageYearlySummary[] {
+  if (!mortgage || yearsAhead <= 0) {
+    return [];
+  }
+
+  const schedule = calculateAmortizationSchedule(mortgage);
+  const paymentsPerYear = getPaymentsPerYear(mortgage.paymentFrequency || 'monthly');
+  if (paymentsPerYear <= 0) {
+    return [];
+  }
+
+  const today = new Date();
+  const summaries: MortgageYearlySummary[] = [];
+
+  const startIndex = schedule.payments.findIndex(payment => {
+    const paymentDate = new Date(payment.paymentDate);
+    return paymentDate >= today;
+  });
+
+  if (startIndex === -1) {
+    return [];
+  }
+
+  let currentBalance: number;
+  try {
+    currentBalance = getCurrentMortgageBalance(mortgage);
+  } catch (error) {
+    console.warn(`Error getting current mortgage balance for ${mortgage.lender}:`, error);
+    currentBalance = schedule.payments[startIndex - 1]
+      ? schedule.payments[startIndex - 1].remainingBalance
+      : mortgage.originalAmount;
+  }
+
+  let paymentIndex = startIndex;
+
+  for (let year = 1; year <= yearsAhead && paymentIndex < schedule.payments.length; year++) {
+    let totalPayment = 0;
+    let totalPrincipal = 0;
+    let totalInterest = 0;
+    let paymentsThisYear = 0;
+    let endingBalance = currentBalance;
+
+    while (paymentIndex < schedule.payments.length && paymentsThisYear < paymentsPerYear) {
+      const payment = schedule.payments[paymentIndex];
+      totalPayment += payment.monthlyPayment;
+      totalPrincipal += payment.principal;
+      totalInterest += payment.interest;
+      endingBalance = payment.remainingBalance;
+      paymentIndex++;
+      paymentsThisYear++;
+
+      if (endingBalance <= 0) {
+        break;
+      }
+    }
+
+    summaries.push({
+      year,
+      totalPayment,
+      totalPrincipal,
+      totalInterest,
+      endingBalance,
+      payments: paymentsThisYear,
+    });
+
+    currentBalance = endingBalance;
+
+    if (endingBalance <= 0) {
+      break;
+    }
+  }
+
+  return summaries;
+}
+
+/**
+ * Get the remaining mortgage balance after a given number of future years.
+ *
+ * @param mortgage Mortgage data
+ * @param yearsAhead Number of years into the future (0 returns the current balance)
+ * @returns Remaining balance after the specified number of years
+ */
+export function getMortgageBalanceAtYear(mortgage: MortgageData, yearsAhead: number): number {
+  if (!mortgage || yearsAhead === undefined || yearsAhead === null) {
+    return 0;
+  }
+
+  if (yearsAhead <= 0) {
+    try {
+      return getCurrentMortgageBalance(mortgage);
+    } catch (error) {
+      console.warn(`Error getting current mortgage balance for ${mortgage.lender}:`, error);
+      return mortgage.originalAmount;
+    }
+  }
+
+  const targetYear = Math.floor(yearsAhead);
+  const summaries = getMortgageYearlySummary(mortgage, targetYear);
+  const summary = summaries.find(item => item.year === targetYear);
+
+  if (summary) {
+    return summary.endingBalance;
+  }
+
+  const lastSummary = summaries[summaries.length - 1];
+  if (lastSummary) {
+    return lastSummary.endingBalance;
+  }
+
+  return 0;
 }
