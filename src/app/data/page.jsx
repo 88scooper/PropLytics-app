@@ -22,7 +22,7 @@ function getHistoricalIncome(property, year) {
   
   property.tenants.forEach(tenant => {
     const leaseStart = new Date(tenant.leaseStart);
-    const leaseEnd = tenant.leaseEnd === 'Active' || tenant.leaseEnd === 'Current' 
+    const leaseEnd = tenant.leaseEnd === 'Active' 
       ? new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())
       : new Date(tenant.leaseEnd);
     
@@ -99,7 +99,7 @@ function getAvailableYears(property) {
   if (property.tenants) {
     property.tenants.forEach(tenant => {
       const leaseStartYear = new Date(tenant.leaseStart).getFullYear();
-      const leaseEndYear = tenant.leaseEnd === 'Active' || tenant.leaseEnd === 'Current' 
+      const leaseEndYear = tenant.leaseEnd === 'Active' 
         ? new Date().getFullYear()
         : new Date(tenant.leaseEnd).getFullYear();
       
@@ -642,16 +642,16 @@ function PropertyCard({ property, onUpdate }) {
           {tenantView === 'current' ? (
             /* Current Tenant */
             <>
-              <EditableDataRow label="Tenant Name" value={property.tenant?.name || property.tenants?.find(t => t.status === 'Current')?.name || 'N/A'} />
-              <EditableDataRow label="Unit" value={property.tenants?.find(t => t.status === 'Current')?.unit || 'N/A'} />
-              <EditableDataRow label="Lease Start Date" value={property.tenant?.leaseStartDate || property.tenants?.find(t => t.status === 'Current')?.leaseStart || 'N/A'} />
-              <EditableDataRow label="Lease End Date" value={property.tenant?.leaseEndDate || property.tenants?.find(t => t.status === 'Current')?.leaseEnd || 'N/A'} />
+              <EditableDataRow label="Tenant Name" value={property.tenant?.name || property.tenants?.find(t => t.status === 'Active')?.name || 'N/A'} />
+              <EditableDataRow label="Unit" value={property.tenants?.find(t => t.status === 'Active')?.unit || 'N/A'} />
+              <EditableDataRow label="Lease Start Date" value={property.tenant?.leaseStartDate || property.tenants?.find(t => t.status === 'Active')?.leaseStart || 'N/A'} />
+              <EditableDataRow label="Lease End Date" value={property.tenant?.leaseEndDate || property.tenants?.find(t => t.status === 'Active')?.leaseEnd || 'N/A'} />
               <EditableDataRow 
                 label="Monthly Rent" 
-                value={`$${(property.tenant?.rent || property.tenants?.find(t => t.status === 'Current')?.rent || 0).toLocaleString()}`} 
+                value={`$${(property.tenant?.rent || property.tenants?.find(t => t.status === 'Active')?.rent || 0).toLocaleString()}`} 
               />
               <EditableDataRow label="Key Deposit" value="" />
-              <EditableDataRow label="Status" value={property.tenant?.status || property.tenants?.find(t => t.status === 'Current')?.status || 'N/A'} />
+              <EditableDataRow label="Status" value={property.tenant?.status || property.tenants?.find(t => t.status === 'Active')?.status || 'N/A'} />
             </>
           ) : (
             /* All Tenants */
@@ -663,7 +663,7 @@ function PropertyCard({ property, onUpdate }) {
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Tenant {index + 1}</span>
                         <span className={`px-2 py-1 text-xs rounded-full ${
-                          tenant.status === 'Current' 
+                          tenant.status === 'Active' 
                             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
                             : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                         }`}>

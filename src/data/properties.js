@@ -130,7 +130,7 @@ export const properties = [
     },
 
     // Calculated fields
-    totalInvestment: 550000, // purchasePrice + closingCosts + renovationCosts
+    totalInvestment: 150000, // down payment + closingCosts + initial renovations
     appreciation: 100000, // currentMarketValue - purchasePrice
     monthlyPropertyTax: 233, // 2796 / 12 (using 2025 data)
     monthlyCondoFees: 962.25, // 11547 / 12 (using 2025 data)
@@ -171,7 +171,7 @@ export const properties = [
         rent: 2800, // Based on 2021 annual income 33600 / 12
         leaseStart: '2021-01-01',
         leaseEnd: '2022-12-22',
-        status: 'Past'
+        status: 'Vacant'
       },
       {
         name: 'Jane Doe',
@@ -179,7 +179,7 @@ export const properties = [
         rent: 2650, // Updated to 2025 rent from CSV 2025.11.03
         leaseStart: '2023-01-01',
         leaseEnd: 'Active',
-        status: 'Current'
+        status: 'Active'
       }
     ]
   },
@@ -263,7 +263,7 @@ export const properties = [
     },
 
     // Calculated fields
-    totalInvestment: 660000, // purchasePrice + closingCosts + renovationCosts
+    totalInvestment: 260000, // down payment + closingCosts + initial renovations
     appreciation: 50000, // currentMarketValue - purchasePrice
     monthlyPropertyTax: 248.17, // 2978 / 12 (using 2024 data - no 2025 data available)
     monthlyCondoFees: 985.17, // 11818 / 12 (using 2024 data - no 2025 data available)
@@ -304,7 +304,7 @@ export const properties = [
         rent: 2600, // Based on 2021 annual income 31200 / 12
         leaseStart: '2021-01-01',
         leaseEnd: '2022-12-22',
-        status: 'Past'
+        status: 'Vacant'
       },
       {
         name: 'Jane Doe',
@@ -312,7 +312,7 @@ export const properties = [
         rent: 2650, // Updated to 2025 rent from CSV 2025.11.03
         leaseStart: '2023-01-01',
         leaseEnd: 'Active',
-        status: 'Current'
+        status: 'Active'
       }
     ]
   }

@@ -39,7 +39,7 @@ function getRevenueForPeriod(property, year, startMonth = 1, endMonth = 12) {
   // Process each tenant to calculate revenue for the period
   property.tenants.forEach(tenant => {
     const leaseStart = new Date(tenant.leaseStart);
-    const leaseEnd = tenant.leaseEnd === 'Active' || tenant.leaseEnd === 'Current' 
+    const leaseEnd = tenant.leaseEnd === 'Active' 
       ? new Date(currentYear, currentMonth - 1, new Date().getDate())
       : new Date(tenant.leaseEnd);
     
