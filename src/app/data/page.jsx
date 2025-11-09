@@ -5,13 +5,18 @@ import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import { useAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
-import Input from "@/components/Input";
 import { useToast } from "@/context/ToastContext";
-import { useProperties, useProperty } from "@/context/PropertyContext";
+import { useProperties, usePropertyContext } from "@/context/PropertyContext";
 import { Download, Upload, X, ChevronDown, ChevronUp, Edit2, Save, XCircle } from "lucide-react";
 import * as XLSX from 'xlsx';
 
 // Helper functions for historical data calculations
+const getYearFromDateString = (value) => {
+  if (!value) return NaN;
+  const match = String(value).match(/^(\d{4})/);
+  return match ? Number(match[1]) : NaN;
+};
+
 function getHistoricalIncome(property, year) {
   if (!property.tenants || property.tenants.length === 0) return 0;
   
@@ -77,7 +82,7 @@ function getHistoricalExpenses(property, year) {
   
   const targetYear = parseInt(year);
   const yearExpenses = property.expenseHistory.filter(expense => {
-    const expenseYear = new Date(expense.date).getFullYear();
+    const expenseYear = getYearFromDateString(expense.date);
     return expenseYear === targetYear;
   });
   
@@ -86,30 +91,37 @@ function getHistoricalExpenses(property, year) {
 
 function getAvailableYears(property) {
   const years = new Set();
+  const addYear = (value) => {
+    const year = getYearFromDateString(value);
+    if (!Number.isNaN(year)) {
+      years.add(year);
+    }
+  };
   
   // Get years from expense history
   if (property.expenseHistory) {
     property.expenseHistory.forEach(expense => {
-      const year = new Date(expense.date).getFullYear();
-      years.add(year);
+      addYear(expense.date);
     });
   }
   
   // Get years from tenant history
   if (property.tenants) {
     property.tenants.forEach(tenant => {
-      const leaseStartYear = new Date(tenant.leaseStart).getFullYear();
+      const leaseStartYear = getYearFromDateString(tenant.leaseStart);
       const leaseEndYear = tenant.leaseEnd === 'Active' 
         ? new Date().getFullYear()
-        : new Date(tenant.leaseEnd).getFullYear();
+        : getYearFromDateString(tenant.leaseEnd);
       
       for (let year = leaseStartYear; year <= leaseEndYear; year++) {
+        if (!Number.isNaN(year)) {
         years.add(year);
+        }
       }
     });
   }
   
-  return Array.from(years).sort((a, b) => b - a); // Sort descending (newest first)
+  return Array.from(years).sort((a, b) => a - b); // Sort ascending (oldest first)
 }
 
 // Shared DataRow component for displaying data rows
@@ -124,8 +136,34 @@ function DataRow({ label, value, isBold = false }) {
 
 // Historical Data Display Component
 function HistoricalDataDisplay({ property, expenseView, selectedYear: externalSelectedYear, onYearChange }) {
-  const availableYears = getAvailableYears(property);
-  const [internalSelectedYear, setInternalSelectedYear] = useState(availableYears[0] || new Date().getFullYear());
+  const availableYears = [...getAvailableYears(property)].sort((a, b) => a - b);
+  const [internalSelectedYear, setInternalSelectedYear] = useState(
+    availableYears.length > 1 ? 'all' : (availableYears[0] ?? 'all')
+  );
+
+  useEffect(() => {
+    if (availableYears.length === 0) {
+      setInternalSelectedYear('all');
+      return;
+    }
+
+    if (availableYears.length === 1) {
+      setInternalSelectedYear(availableYears[0]);
+      return;
+    }
+
+    setInternalSelectedYear(prev => {
+      if (prev === 'all') {
+        return prev;
+      }
+
+      if (typeof prev === 'number' && availableYears.includes(prev)) {
+        return prev;
+      }
+
+      return 'all';
+    });
+  }, [availableYears]);
   
   // Use external year if provided, otherwise use internal state
   const selectedYear = externalSelectedYear !== undefined ? externalSelectedYear : internalSelectedYear;
@@ -139,24 +177,148 @@ function HistoricalDataDisplay({ property, expenseView, selectedYear: externalSe
     );
   }
 
-  const historicalIncome = getHistoricalIncome(property, selectedYear);
-  const historicalExpenses = getHistoricalExpenses(property, selectedYear);
-  const netIncome = historicalIncome - historicalExpenses;
+  const showAllYears = selectedYear === 'all';
+  const yearsToDisplay = showAllYears
+    ? availableYears
+    : (typeof selectedYear === 'number' && availableYears.includes(selectedYear))
+      ? [selectedYear]
+      : availableYears;
+
+  if (yearsToDisplay.length === 0) {
+  return (
+      <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+        <div className="text-sm">No historical data available</div>
+      </div>
+    );
+  }
+
+  const snapshots = yearsToDisplay.map((year) => {
+    const income = getHistoricalIncome(property, year);
+    const expenses = getHistoricalExpenses(property, year);
+
+    const expenseBreakdown = (property.expenseHistory || [])
+      .filter(expense => getYearFromDateString(expense.date) === year)
+      .reduce((acc, expense) => {
+        const category = expense.category;
+        if (!acc[category]) {
+          acc[category] = 0;
+        }
+        acc[category] += expense.amount;
+        return acc;
+      }, {});
+
+    return {
+      year,
+      income,
+      expenses,
+      netIncome: income - expenses,
+      expenseBreakdown,
+    };
+  });
+
+  if (showAllYears) {
+    const categorySet = new Set();
+    snapshots.forEach(snapshot => {
+      Object.keys(snapshot.expenseBreakdown).forEach(category => categorySet.add(category));
+    });
+    const sortedCategories = Array.from(categorySet).sort();
+
+    const formatValue = (amount) =>
+      `$${(
+        expenseView === 'monthly'
+          ? amount / 12
+          : amount
+      ).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm text-left">
+          <thead>
+            <tr className="border-b border-gray-200 dark:border-gray-700">
+              <th className="py-2 pr-4 font-semibold text-gray-700 dark:text-gray-200">Category</th>
+              {snapshots.map(snapshot => (
+                <th
+                  key={`header-${snapshot.year}`}
+                  className="py-2 px-4 font-semibold text-gray-700 dark:text-gray-200 text-right"
+                >
+                  {snapshot.year}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tr>
+              <td className="py-2 pr-4 text-gray-700 dark:text-gray-300">Rent</td>
+              {snapshots.map(snapshot => (
+                <td key={`rent-${snapshot.year}`} className="py-2 px-4 text-right text-gray-900 dark:text-gray-100">
+                  {formatValue(snapshot.income)}
+                </td>
+              ))}
+            </tr>
+            {sortedCategories.map(category => (
+              <tr key={`category-${category}`}>
+                <td className="py-2 pr-4 text-gray-700 dark:text-gray-300">{category}</td>
+                {snapshots.map(snapshot => {
+                  const amount = snapshot.expenseBreakdown[category] || 0;
+                  return (
+                    <td key={`category-${category}-${snapshot.year}`} className="py-2 px-4 text-right text-gray-900 dark:text-gray-100">
+                      {formatValue(amount)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+            <tr>
+              <td className="py-2 pr-4 font-semibold text-gray-900 dark:text-gray-100">
+                {expenseView === 'monthly' ? 'Total Monthly Expenses' : 'Total Annual Expenses'}
+              </td>
+              {snapshots.map(snapshot => (
+                <td key={`total-exp-${snapshot.year}`} className="py-2 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">
+                  {formatValue(snapshot.expenses)}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td className="py-2 pr-4 font-semibold text-gray-900 dark:text-gray-100">
+                {expenseView === 'monthly' ? 'Monthly Net Income' : 'Annual Net Income'}
+              </td>
+              {snapshots.map(snapshot => (
+                <td key={`net-${snapshot.year}`} className="py-2 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">
+                  {formatValue(snapshot.netIncome)}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Year Selector is now handled at the section level */}
+    <div className="space-y-6">
+      {snapshots.map((snapshot, index) => (
+        <div key={snapshot.year} className="space-y-4">
+          {showAllYears && (
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+              <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                {snapshot.year}
+              </span>
+              <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                {expenseView === 'monthly' ? 'Monthly View' : 'Annual View'}
+              </span>
+            </div>
+          )}
 
       {/* Historical Income */}
       <div className="space-y-1">
         <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Income</div>
         <DataRow 
           label={expenseView === 'monthly' ? 'Monthly Rent' : 'Annual Rent'} 
-          value={`$${expenseView === 'monthly' ? (historicalIncome / 12).toLocaleString() : historicalIncome.toLocaleString()}`} 
+              value={`$${expenseView === 'monthly' ? (snapshot.income / 12).toLocaleString() : snapshot.income.toLocaleString()}`} 
         />
         <DataRow 
           label={expenseView === 'monthly' ? 'Total Monthly Revenue' : 'Total Annual Revenue'} 
-          value={`$${expenseView === 'monthly' ? (historicalIncome / 12).toLocaleString() : historicalIncome.toLocaleString()}`} 
+              value={`$${expenseView === 'monthly' ? (snapshot.income / 12).toLocaleString() : snapshot.income.toLocaleString()}`} 
           isBold={true}
         />
       </div>
@@ -169,32 +331,25 @@ function HistoricalDataDisplay({ property, expenseView, selectedYear: externalSe
         <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Expenses</div>
         {property.expenseHistory && property.expenseHistory.length > 0 ? (
           <>
-            {Object.entries(
-              property.expenseHistory
-                .filter(expense => new Date(expense.date).getFullYear() === selectedYear)
-                .reduce((acc, expense) => {
-                  const category = expense.category;
-                  if (!acc[category]) {
-                    acc[category] = 0;
-                  }
-                  acc[category] += expense.amount;
-                  return acc;
-                }, {})
-            ).map(([category, amount]) => (
+                {Object.entries(snapshot.expenseBreakdown).map(([category, amount]) => (
               <DataRow 
-                key={category}
+                    key={`${snapshot.year}-${category}`}
                 label={category} 
-                value={`$${expenseView === 'monthly' ? (amount / 12).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                    value={`$${expenseView === 'monthly'
+                      ? (amount / 12).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                      : amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               />
             ))}
             <DataRow 
               label={expenseView === 'monthly' ? 'Total Monthly Expenses' : 'Total Annual Expenses'} 
-              value={`$${expenseView === 'monthly' ? (historicalExpenses / 12).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : historicalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                  value={`$${expenseView === 'monthly'
+                    ? (snapshot.expenses / 12).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : snapshot.expenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               isBold={true}
             />
           </>
         ) : (
-          <div className="text-sm text-gray-500 dark:text-gray-400">No expense data for {selectedYear}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">No expense data for {snapshot.year}</div>
         )}
       </div>
 
@@ -202,10 +357,18 @@ function HistoricalDataDisplay({ property, expenseView, selectedYear: externalSe
       <div className="py-2 border-t border-gray-200 dark:border-gray-700">
         <DataRow 
           label={expenseView === 'monthly' ? 'Monthly Net Income' : 'Annual Net Income'} 
-          value={`$${expenseView === 'monthly' ? (netIncome / 12).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : netIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              value={`$${expenseView === 'monthly'
+                ? (snapshot.netIncome / 12).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                : snapshot.netIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
           isBold={true}
         />
       </div>
+
+          {showAllYears && index < snapshots.length - 1 && (
+            <div className="border-t border-dashed border-gray-200 dark:border-gray-700 pt-4"></div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -218,9 +381,73 @@ function PropertyCard({ property, onUpdate }) {
   const [expenseView, setExpenseView] = useState('monthly');
   const [tenantView, setTenantView] = useState('current');
   const [historicalView, setHistoricalView] = useState('current');
-  const availableYears = getAvailableYears(property);
-  const [selectedYear, setSelectedYear] = useState(availableYears[0] || new Date().getFullYear());
-  const { addToast } = useToast();
+  const availableYears = [...getAvailableYears(property)].sort((a, b) => a - b);
+  const [selectedYear, setSelectedYear] = useState(() => {
+    if (availableYears.length === 0) return 'all';
+    if (availableYears.length === 1) return availableYears[0];
+    return 'all';
+  });
+
+  const clonePropertyData = (value) => {
+    const structuredCloneFn = (globalThis).structuredClone;
+    if (typeof structuredCloneFn === "function") {
+      return structuredCloneFn(value);
+    }
+    return JSON.parse(JSON.stringify(value));
+  };
+
+  const getValueAtPath = (obj, path) => {
+    if (!path) return undefined;
+    return path.split('.').reduce((acc, key) => {
+      if (acc === null || acc === undefined) return undefined;
+      return acc[key];
+    }, obj);
+  };
+
+  const setValueAtPath = (obj, path, value) => {
+    if (!path) return obj;
+    const keys = path.split('.');
+    const base = Array.isArray(obj) ? [...obj] : { ...(obj || {}) };
+    let current = base;
+
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i];
+      const next = current[key];
+      if (Array.isArray(next)) {
+        current[key] = [...next];
+      } else if (next && typeof next === 'object') {
+        current[key] = { ...next };
+      } else {
+        current[key] = {};
+      }
+      current = current[key];
+    }
+
+    current[keys[keys.length - 1]] = value;
+    return base;
+  };
+
+  useEffect(() => {
+    setSelectedYear(prev => {
+      if (availableYears.length === 0) {
+        return 'all';
+      }
+
+      if (availableYears.length === 1) {
+        return availableYears[0];
+      }
+
+      if (prev === 'all') {
+        return 'all';
+      }
+
+      if (typeof prev === 'number' && availableYears.includes(prev)) {
+        return prev;
+      }
+
+      return 'all';
+    });
+  }, [availableYears]);
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -231,25 +458,7 @@ function PropertyCard({ property, onUpdate }) {
 
   const handleEdit = () => {
     setIsEditing(true);
-    setEditedData({
-      name: property.name || property.nickname || "",
-      address: property.address || "",
-      propertyType: property.propertyType || "",
-      yearBuilt: property.yearBuilt || "",
-      size: property.size || property.squareFootage || "",
-      bedrooms: property.bedrooms?.[0] || "",
-      bathrooms: property.bathrooms?.[0] || "",
-      purchaseDate: property.purchaseDate || "",
-      purchasePrice: property.purchasePrice || "",
-      closingCosts: property.closingCosts || "",
-      renovationCosts: property.renovationCosts || "",
-      currentMarketValue: property.currentMarketValue || property.currentValue || "",
-      monthlyRent: property.rent?.monthlyRent || "",
-      lender: property.mortgage?.lender || "",
-      loanAmount: property.mortgage?.originalAmount || "",
-      interestRate: (property.mortgage?.interestRate * 100) || "",
-      loanTerm: property.mortgage?.amortizationYears || "",
-    });
+    setEditedData(clonePropertyData(property));
   };
 
   const handleCancel = () => {
@@ -258,14 +467,74 @@ function PropertyCard({ property, onUpdate }) {
   };
 
   const handleSave = () => {
-    // In a real app, this would save to the database
-    addToast("Property updated successfully!", { type: "success" });
+    const payload =
+      editedData && Object.keys(editedData).length > 0
+        ? clonePropertyData(editedData)
+        : clonePropertyData(property);
+
+    if (!payload.rent) {
+      payload.rent = { monthlyRent: 0, annualRent: 0 };
+    }
+    const monthlyRent = Number(payload.rent.monthlyRent || 0);
+    payload.rent.monthlyRent = monthlyRent;
+    payload.rent.annualRent = Number(payload.rent.annualRent || monthlyRent * 12);
+
+    if (!payload.monthlyExpenses) {
+      payload.monthlyExpenses = {};
+    }
+
+    const operatingExpenseKeys = [
+      "advertising",
+      "insurance",
+      "officeExpenses",
+      "professionalFees",
+      "management",
+      "maintenance",
+      "propertyTax",
+      "travel",
+      "utilities",
+      "motorVehicle",
+      "condoFees",
+    ];
+
+    const monthlyExpensesRecord = payload.monthlyExpenses;
+    operatingExpenseKeys.forEach((key) => {
+      monthlyExpensesRecord[key] = Number(monthlyExpensesRecord[key] || 0);
+    });
+    monthlyExpensesRecord.mortgageInterest = Number(monthlyExpensesRecord.mortgageInterest || 0);
+    monthlyExpensesRecord.mortgagePrincipal = Number(monthlyExpensesRecord.mortgagePrincipal || 0);
+    monthlyExpensesRecord.mortgagePayment = Number(monthlyExpensesRecord.mortgagePayment || 0);
+
+    const operatingTotal = operatingExpenseKeys.reduce(
+      (sum, key) => sum + (monthlyExpensesRecord[key] || 0),
+      0
+    );
+    monthlyExpensesRecord.total = Number(operatingTotal.toFixed(2));
+
+    payload.monthlyPropertyTax = monthlyExpensesRecord.propertyTax || 0;
+    payload.monthlyCondoFees = monthlyExpensesRecord.condoFees || 0;
+    payload.monthlyInsurance = monthlyExpensesRecord.insurance || 0;
+    payload.monthlyMaintenance = monthlyExpensesRecord.maintenance || 0;
+    payload.monthlyProfessionalFees = monthlyExpensesRecord.professionalFees || 0;
+    payload.monthlyUtilities = monthlyExpensesRecord.utilities || 0;
+
+    if (onUpdate) {
+      onUpdate(property.id, payload);
+    }
+
     setIsEditing(false);
-    if (onUpdate) onUpdate(property.id, editedData);
+    setEditedData({});
   };
 
-  const updateField = (key, value) => {
-    setEditedData(prev => ({ ...prev, [key]: value }));
+  const updateField = (path, value, type = "text") => {
+    if (!path) return;
+    setEditedData(prev => {
+      const base =
+        prev && Object.keys(prev).length > 0 ? prev : clonePropertyData(property);
+      const parsedValue =
+        type === "number" ? (value === "" ? "" : Number(value)) : value;
+      return setValueAtPath(base, path, parsedValue);
+    });
   };
 
   const Section = ({ title, sectionKey, children }) => {
@@ -293,14 +562,19 @@ function PropertyCard({ property, onUpdate }) {
   };
 
   // Editable DataRow component for PropertyCard (with editing capabilities)
-  const EditableDataRow = ({ label, value, editable = false, field = "", type = "text", isBold = false }) => (
+  const EditableDataRow = ({ label, value, editable = false, field = "", type = "text", isBold = false }) => {
+    const rawInputValue = field ? getValueAtPath(editedData, field) : undefined;
+    const inputValue = rawInputValue === undefined || rawInputValue === null ? "" : rawInputValue;
+    const inputString = inputValue === "" ? "" : String(inputValue);
+
+    return (
     <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
       <span className={`text-sm font-medium text-gray-600 dark:text-gray-400 ${isBold ? 'font-bold' : ''}`}>{label}</span>
       {isEditing && editable ? (
         <input
           type={type}
-          value={editedData[field] || ""}
-          onChange={(e) => updateField(field, e.target.value)}
+            value={type === "number" ? inputString : inputString}
+            onChange={(e) => updateField(field, e.target.value, type)}
           className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#205A3E]"
         />
       ) : (
@@ -308,6 +582,7 @@ function PropertyCard({ property, onUpdate }) {
       )}
     </div>
   );
+  };
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
@@ -377,7 +652,7 @@ function PropertyCard({ property, onUpdate }) {
             label="Original Mortgage" 
             value={`$${(property.mortgage?.originalAmount || 0).toLocaleString()}`} 
             editable 
-            field="originalAmount" 
+            field="mortgage.originalAmount" 
             type="number" 
           />
           <EditableDataRow 
@@ -418,27 +693,24 @@ function PropertyCard({ property, onUpdate }) {
 
       <Section title="Mortgage Details" sectionKey="mortgageDetails">
         <div className="space-y-1">
-          <EditableDataRow label="Lender" value={property.mortgage?.lender} editable field="lender" />
+          <EditableDataRow label="Lender" value={property.mortgage?.lender} editable field="mortgage.lender" />
           <EditableDataRow 
             label="Original Amount" 
             value={`$${(property.mortgage?.originalAmount || 0).toLocaleString()}`} 
             editable 
-            field="loanAmount" 
+            field="mortgage.originalAmount" 
             type="number" 
           />
           <EditableDataRow 
             label="Interest Rate" 
             value={`${((property.mortgage?.interestRate || 0) * 100).toFixed(2)}%`} 
-            editable 
-            field="interestRate" 
-            type="number" 
           />
           <EditableDataRow label="Rate Type" value={property.mortgage?.rateType} />
           <EditableDataRow 
             label="Amortization (Years)" 
             value={property.mortgage?.amortizationYears?.toFixed(1)} 
             editable 
-            field="loanTerm" 
+            field="mortgage.amortizationYears" 
             type="number" 
           />
           <EditableDataRow label="Term (Months)" value={property.mortgage?.termMonths} />
@@ -506,12 +778,16 @@ function PropertyCard({ property, onUpdate }) {
           {/* Year Selector - shown when Historical view is selected */}
           {historicalView === 'historical' && availableYears.length > 0 && (
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Year:</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Year(s):</span>
               <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                value={selectedYear === 'all' ? 'all' : selectedYear.toString()}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedYear(value === 'all' ? 'all' : parseInt(value, 10));
+                }}
                 className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#205A3E]"
               >
+                <option value="all">All Years</option>
                 {availableYears.map(year => (
                   <option key={year} value={year}>{year}</option>
                 ))}
@@ -526,8 +802,8 @@ function PropertyCard({ property, onUpdate }) {
               <EditableDataRow 
                 label={expenseView === 'monthly' ? 'Monthly Rent' : 'Annual Rent'} 
                 value={`$${expenseView === 'monthly' ? (property.rent?.monthlyRent || 0).toLocaleString() : (property.rent?.annualRent || 0).toLocaleString()}`} 
-                editable 
-                field={expenseView === 'monthly' ? 'monthlyRent' : 'annualRent'} 
+                editable={expenseView === 'monthly'}
+                field="rent.monthlyRent"
                 type="number" 
               />
               <EditableDataRow 
@@ -543,54 +819,93 @@ function PropertyCard({ property, onUpdate }) {
               <EditableDataRow 
                 label="Advertising" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.advertising || 0) : ((property.monthlyExpenses?.advertising || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                editable={expenseView === 'monthly'}
+                field="monthlyExpenses.advertising"
+                type="number"
               />
               <EditableDataRow 
                 label="Insurance" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.insurance || 0) : ((property.monthlyExpenses?.insurance || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                editable={expenseView === 'monthly'}
+                field="monthlyExpenses.insurance"
+                type="number"
               />
               <EditableDataRow 
                 label="Interest & Banking Charges" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.mortgageInterest || 0) : ((property.monthlyExpenses?.mortgageInterest || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                editable={expenseView === 'monthly'}
+                field="monthlyExpenses.mortgageInterest"
+                type="number"
               />
               <EditableDataRow 
                 label="Office Expenses" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.officeExpenses || 0) : ((property.monthlyExpenses?.officeExpenses || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                editable={expenseView === 'monthly'}
+                field="monthlyExpenses.officeExpenses"
+                type="number"
               />
               <EditableDataRow 
                 label="Professional Fees" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.professionalFees || 0) : ((property.monthlyExpenses?.professionalFees || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                editable={expenseView === 'monthly'}
+                field="monthlyExpenses.professionalFees"
+                type="number"
               />
               <EditableDataRow 
                 label="Management & Administration" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.management || 0) : ((property.monthlyExpenses?.management || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                editable={expenseView === 'monthly'}
+                field="monthlyExpenses.management"
+                type="number"
               />
               <EditableDataRow 
                 label="Repairs & Maintenance" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.maintenance || 0) : ((property.monthlyExpenses?.maintenance || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                editable={expenseView === 'monthly'}
+                field="monthlyExpenses.maintenance"
+                type="number"
               />
               <EditableDataRow 
                 label="Property Taxes" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.propertyTax || 0) : ((property.monthlyExpenses?.propertyTax || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                editable={expenseView === 'monthly'}
+                field="monthlyExpenses.propertyTax"
+                type="number"
               />
               <EditableDataRow 
                 label="Travel" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.travel || 0) : ((property.monthlyExpenses?.travel || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                editable={expenseView === 'monthly'}
+                field="monthlyExpenses.travel"
+                type="number"
               />
               <EditableDataRow 
                 label="Utilities" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.utilities || 0) : ((property.monthlyExpenses?.utilities || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                editable={expenseView === 'monthly'}
+                field="monthlyExpenses.utilities"
+                type="number"
               />
               <EditableDataRow 
                 label="Motor Vehicle Expense" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.motorVehicle || 0) : ((property.monthlyExpenses?.motorVehicle || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                editable={expenseView === 'monthly'}
+                field="monthlyExpenses.motorVehicle"
+                type="number"
               />
               <EditableDataRow 
                 label="Other Rental Expense (incl. Condo Fees & Broker Fees)" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.condoFees || 0) : ((property.monthlyExpenses?.condoFees || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                editable={expenseView === 'monthly'}
+                field="monthlyExpenses.condoFees"
+                type="number"
               />
               <EditableDataRow 
                 label="Mortgage (Principal)" 
                 value={`$${(expenseView === 'monthly' ? (property.monthlyExpenses?.mortgagePrincipal || 0) : ((property.monthlyExpenses?.mortgagePrincipal || 0) * 12)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                editable={expenseView === 'monthly'}
+                field="monthlyExpenses.mortgagePrincipal"
+                type="number"
               />
               <EditableDataRow 
                 label={expenseView === 'monthly' ? 'Total Monthly Expenses' : 'Total Annual Expenses'} 
@@ -713,13 +1028,19 @@ export default function DataPage() {
   const { addToast } = useToast();
   const { user } = useAuth();
   const properties = useProperties(); // Get properties from context
+  const { updateProperty } = usePropertyContext();
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ processed: 0, total: 0 });
 
   const handlePropertyUpdate = (propertyId, updatedData) => {
-    // In a real application, this would update the property in the database
-    console.log("Updating property:", propertyId, updatedData);
+    try {
+      updateProperty(propertyId, updatedData);
+      addToast("Property updated successfully!", { type: "success" });
+    } catch (error) {
+      console.error("Failed to update property", error);
+      addToast("Failed to update property. Please try again.", { type: "error" });
+    }
   };
 
   // Excel Template Download

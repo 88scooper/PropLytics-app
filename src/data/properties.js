@@ -361,8 +361,9 @@ if (typeof window !== 'undefined') {
 }
 
 // Helper function to get property by ID
-export const getPropertyById = (id) => {
-  return properties.find(property => property.id === id);
+export const getPropertyById = (id, propertyList = properties) => {
+  const list = Array.isArray(propertyList) ? propertyList : properties;
+  return list.find(property => property.id === id);
 };
 
 // Helper function to get all properties
@@ -371,19 +372,41 @@ export const getAllProperties = () => {
 };
 
 // Helper function to calculate portfolio metrics
-export const getPortfolioMetrics = () => {
-  const totalValue = properties.reduce((sum, property) => sum + property.currentMarketValue, 0);
-  const totalInvestment = properties.reduce((sum, property) => sum + property.totalInvestment, 0);
-  const totalMonthlyRent = properties.reduce((sum, property) => sum + property.rent.monthlyRent, 0);
-  const totalMonthlyExpenses = properties.reduce((sum, property) => sum + property.monthlyExpenses.total, 0);
-  const totalMonthlyCashFlow = properties.reduce((sum, property) => sum + property.monthlyCashFlow, 0);
+export const getPortfolioMetrics = (propertyList = properties) => {
+  const list = Array.isArray(propertyList) ? propertyList : properties;
+
+  if (!list.length) {
+    return {
+      totalValue: 0,
+      totalInvestment: 0,
+      totalEquity: 0,
+      totalMortgageBalance: 0,
+      totalMonthlyRent: 0,
+      totalMonthlyExpenses: 0,
+      totalMonthlyCashFlow: 0,
+      totalAnnualOperatingExpenses: 0,
+      netOperatingIncome: 0,
+      totalAnnualDeductibleExpenses: 0,
+      totalProperties: 0,
+      averageCapRate: 0,
+      averageOccupancy: 0,
+      totalAnnualCashFlow: 0,
+      cashOnCashReturn: 0
+    };
+  }
+
+  const totalValue = list.reduce((sum, property) => sum + (property.currentMarketValue || 0), 0);
+  const totalInvestment = list.reduce((sum, property) => sum + (property.totalInvestment || 0), 0);
+  const totalMonthlyRent = list.reduce((sum, property) => sum + (property.rent?.monthlyRent || 0), 0);
+  const totalMonthlyExpenses = list.reduce((sum, property) => sum + (property.monthlyExpenses?.total || 0), 0);
+  const totalMonthlyCashFlow = list.reduce((sum, property) => sum + (property.monthlyCashFlow || 0), 0);
   
   // Calculate current mortgage balance using accurate calculation
   let totalMortgageBalance = 0;
   
   // Use accurate calculation for browser environment
   if (typeof window !== 'undefined' && getCurrentMortgageBalance) {
-    totalMortgageBalance = properties.reduce((sum, property) => {
+    totalMortgageBalance = list.reduce((sum, property) => {
       try {
         return sum + getCurrentMortgageBalance(property.mortgage);
       } catch (error) {
@@ -393,7 +416,7 @@ export const getPortfolioMetrics = () => {
     }, 0);
   } else {
     // Fallback: use original amount if calculation not available
-    totalMortgageBalance = properties.reduce((sum, property) => {
+    totalMortgageBalance = list.reduce((sum, property) => {
       return sum + (property.mortgage?.originalAmount || 0);
     }, 0);
   }
@@ -402,7 +425,7 @@ export const getPortfolioMetrics = () => {
   const totalEquity = totalValue - totalMortgageBalance;
   
   // Calculate total annual operating expenses (excluding mortgage payments) using standardized calculation
-  const totalAnnualOperatingExpenses = properties.reduce((sum, property) => {
+  const totalAnnualOperatingExpenses = list.reduce((sum, property) => {
     return sum + calculateAnnualOperatingExpenses(property);
   }, 0);
   
@@ -414,7 +437,7 @@ export const getPortfolioMetrics = () => {
   
   // Use accurate calculation for browser environment
   if (typeof window !== 'undefined' && getAnnualMortgageInterest && calculateAnnualOperatingExpenses) {
-    totalAnnualDeductibleExpenses = properties.reduce((sum, property) => {
+    totalAnnualDeductibleExpenses = list.reduce((sum, property) => {
       try {
         // Calculate annual operating expenses (excluding mortgage principal)
         const annualOperatingExpenses = calculateAnnualOperatingExpenses(property);
@@ -439,7 +462,7 @@ export const getPortfolioMetrics = () => {
     }, 0);
   } else {
     // Fallback: use simplified calculation if utilities not available
-    totalAnnualDeductibleExpenses = properties.reduce((sum, property) => {
+    totalAnnualDeductibleExpenses = list.reduce((sum, property) => {
       const annualOperatingExpenses = 
         (property.monthlyExpenses?.propertyTax || 0) * 12 +
         (property.monthlyExpenses?.condoFees || 0) * 12 +
@@ -463,10 +486,16 @@ export const getPortfolioMetrics = () => {
     totalAnnualOperatingExpenses,
     netOperatingIncome,
     totalAnnualDeductibleExpenses,
-    totalProperties: properties.length,
-    averageCapRate: properties.reduce((sum, property) => sum + property.capRate, 0) / properties.length,
-    averageOccupancy: properties.reduce((sum, property) => sum + property.occupancy, 0) / properties.length,
+    totalProperties: list.length,
+    averageCapRate: list.length
+      ? list.reduce((sum, property) => sum + (property.capRate || 0), 0) / list.length
+      : 0,
+    averageOccupancy: list.length
+      ? list.reduce((sum, property) => sum + (property.occupancy || 0), 0) / list.length
+      : 0,
     totalAnnualCashFlow: totalMonthlyCashFlow * 12,
-    cashOnCashReturn: (totalMonthlyCashFlow * 12 / totalInvestment) * 100
+    cashOnCashReturn: totalInvestment
+      ? (totalMonthlyCashFlow * 12 / totalInvestment) * 100
+      : 0
   };
 };

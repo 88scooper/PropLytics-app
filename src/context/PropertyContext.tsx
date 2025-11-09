@@ -1,14 +1,15 @@
 "use client";
 
 import React, { createContext, useContext, useMemo, useCallback, ReactNode, useEffect, useState } from 'react';
-import { properties, getPropertyById, getAllProperties, getPortfolioMetrics } from '@/data/properties';
+import { getAllProperties, getPortfolioMetrics } from '@/data/properties';
 import { 
   calculateAnnualOperatingExpenses, 
   calculateNOI, 
   calculateCapRate, 
   calculateMonthlyCashFlow, 
   calculateAnnualCashFlow, 
-  calculateCashOnCashReturn 
+  calculateCashOnCashReturn,
+  updatePropertyFinancialMetrics
 } from '@/utils/financialCalculations';
 
 // Define TypeScript interfaces for better type safety
@@ -69,6 +70,14 @@ export interface Property {
     maintenance: number;
     professionalFees: number;
     utilities?: number;
+    advertising?: number;
+    mortgageInterest?: number;
+    officeExpenses?: number;
+    management?: number;
+    travel?: number;
+    motorVehicle?: number;
+    mortgagePrincipal?: number;
+    mortgagePayment?: number;
     total: number;
   };
   monthlyCashFlow: number;
@@ -128,21 +137,201 @@ export interface PropertyContextType {
   getPropertiesByLocation: (location: string) => Property[];
   getPropertiesWithTenants: () => Property[];
   getVacantProperties: () => Property[];
+  updateProperty: (id: string, updatedProperty: Property) => void;
   
   // Loading and error states (for future use)
   loading: boolean;
   error: string | null;
 }
 
+const cloneData = <T,>(value: T): T => {
+  const structuredCloneFn = (globalThis as any).structuredClone;
+  if (typeof structuredCloneFn === "function") {
+    return structuredCloneFn(value);
+  }
+  return JSON.parse(JSON.stringify(value));
+};
+
+const ensureNumber = (value: unknown): number => {
+  if (value === "" || value === null || value === undefined) {
+    return 0;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const MONTHLY_EXPENSE_KEYS = [
+  "propertyTax",
+  "condoFees",
+  "insurance",
+  "maintenance",
+  "professionalFees",
+  "utilities",
+  "advertising",
+  "mortgageInterest",
+  "officeExpenses",
+  "management",
+  "travel",
+  "motorVehicle",
+  "mortgagePrincipal",
+  "mortgagePayment"
+] as const;
+
+const OPERATING_EXPENSE_KEYS = [
+  "advertising",
+  "insurance",
+  "officeExpenses",
+  "professionalFees",
+  "management",
+  "maintenance",
+  "propertyTax",
+  "travel",
+  "utilities",
+  "motorVehicle",
+  "condoFees"
+] as const;
+
+const createDefaultMonthlyExpenses = (): Property["monthlyExpenses"] => ({
+  propertyTax: 0,
+  condoFees: 0,
+  insurance: 0,
+  maintenance: 0,
+  professionalFees: 0,
+  utilities: 0,
+  advertising: 0,
+  mortgageInterest: 0,
+  officeExpenses: 0,
+  management: 0,
+  travel: 0,
+  motorVehicle: 0,
+  mortgagePrincipal: 0,
+  mortgagePayment: 0,
+  total: 0,
+});
+
+const preparePropertyData = (property: Property): Property => {
+  const cloned = cloneData(property);
+
+  cloned.rent = {
+    ...cloned.rent,
+    monthlyRent: ensureNumber(cloned.rent?.monthlyRent),
+    annualRent: ensureNumber(cloned.rent?.annualRent),
+  };
+
+  if (!cloned.rent.annualRent && cloned.rent.monthlyRent) {
+    cloned.rent.annualRent = cloned.rent.monthlyRent * 12;
+  } else if (!cloned.rent.monthlyRent && cloned.rent.annualRent) {
+    cloned.rent.monthlyRent = cloned.rent.annualRent / 12;
+  }
+
+  const defaultMonthlyExpenses = createDefaultMonthlyExpenses();
+  cloned.monthlyExpenses = {
+    ...defaultMonthlyExpenses,
+    ...(cloned.monthlyExpenses || {}),
+  };
+
+  const monthlyExpensesRecord = cloned.monthlyExpenses as Record<string, number>;
+  MONTHLY_EXPENSE_KEYS.forEach((key) => {
+    monthlyExpensesRecord[key] = ensureNumber(monthlyExpensesRecord[key]);
+  });
+
+  const operatingExpensesTotal = OPERATING_EXPENSE_KEYS.reduce((sum, key) => {
+    return sum + ensureNumber(monthlyExpensesRecord[key]);
+  }, 0);
+  monthlyExpensesRecord.total = Number(operatingExpensesTotal.toFixed(2));
+
+  cloned.monthlyPropertyTax = monthlyExpensesRecord.propertyTax || 0;
+  cloned.monthlyCondoFees = monthlyExpensesRecord.condoFees || 0;
+  cloned.monthlyInsurance = monthlyExpensesRecord.insurance || 0;
+  cloned.monthlyMaintenance = monthlyExpensesRecord.maintenance || 0;
+  cloned.monthlyProfessionalFees = monthlyExpensesRecord.professionalFees || 0;
+  cloned.monthlyUtilities = monthlyExpensesRecord.utilities || 0;
+
+  const purchasePrice = ensureNumber(cloned.purchasePrice);
+  const closingCosts = ensureNumber(cloned.closingCosts);
+  const initialRenovations = ensureNumber(cloned.initialRenovations);
+  const renovationCosts = ensureNumber((cloned as any).renovationCosts);
+
+  cloned.mortgage = {
+    lender: cloned.mortgage?.lender || "",
+    originalAmount: ensureNumber(cloned.mortgage?.originalAmount),
+    interestRate: typeof cloned.mortgage?.interestRate === "number"
+      ? cloned.mortgage.interestRate
+      : ensureNumber(cloned.mortgage?.interestRate),
+    rateType: cloned.mortgage?.rateType || "",
+    termMonths: ensureNumber(cloned.mortgage?.termMonths),
+    amortizationYears: ensureNumber(cloned.mortgage?.amortizationYears),
+    paymentFrequency: cloned.mortgage?.paymentFrequency || "Monthly",
+    startDate: cloned.mortgage?.startDate || "",
+  };
+
+  const downPayment = Math.max(0, purchasePrice - cloned.mortgage.originalAmount);
+  cloned.totalInvestment = Number((downPayment + closingCosts + initialRenovations + renovationCosts).toFixed(2));
+
+  const prepared = updatePropertyFinancialMetrics
+    ? updatePropertyFinancialMetrics(cloned as any)
+    : cloned;
+
+  prepared.pricePerSquareFoot = prepared.squareFootage > 0
+    ? prepared.purchasePrice / prepared.squareFootage
+    : 0;
+
+  return prepared as Property;
+};
+
 // Create the context
 const PropertyContext = createContext<PropertyContextType | undefined>(undefined);
 
 // Provider component
 export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [propertiesState, setPropertiesState] = useState<Property[]>(() => {
+    const initialProperties = getAllProperties() as Property[];
+    return initialProperties.map((property) => preparePropertyData(property));
+  });
   const [calculationsComplete, setCalculationsComplete] = useState(false);
   
   // Get all properties and portfolio metrics
-  const allProperties = getAllProperties();
+  const allProperties = propertiesState;
+
+  const updateProperty = useCallback((id: string, updatedProperty: Property) => {
+    setPropertiesState(prevProperties =>
+      prevProperties.map(property => {
+        if (property.id !== id) {
+          return property;
+        }
+
+        const mergedProperty = {
+          ...property,
+          ...updatedProperty,
+          id: property.id,
+          rent: {
+            ...property.rent,
+            ...(updatedProperty.rent || {}),
+          },
+          mortgage: {
+            ...property.mortgage,
+            ...(updatedProperty.mortgage || {}),
+          },
+          monthlyExpenses: {
+            ...property.monthlyExpenses,
+            ...(updatedProperty.monthlyExpenses || {}),
+          },
+          tenant: {
+            ...property.tenant,
+            ...(updatedProperty.tenant || {}),
+          },
+          expenses: {
+            ...property.expenses,
+            ...(updatedProperty.expenses || {}),
+          },
+          tenants: updatedProperty.tenants || property.tenants,
+          expenseHistory: updatedProperty.expenseHistory || property.expenseHistory,
+        } as Property;
+
+        return preparePropertyData(mergedProperty);
+      })
+    );
+  }, []);
   
   // Calculate mortgage payments and update property data in browser environment
   useEffect(() => {
@@ -205,7 +394,7 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
   });
   
-  const metrics = getPortfolioMetrics();
+  const metrics = getPortfolioMetrics(allProperties);
 
   // Memoized helper functions for performance
   const contextValue = useMemo(() => ({
@@ -229,11 +418,12 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
       propertiesWithCalculations.filter(property => 
         !property.tenant || !property.tenant.name || property.tenant.name.trim() === ''
       ),
+    updateProperty,
     
     // Loading and error states (currently static, can be enhanced later)
     loading: false,
     error: null,
-  }), [propertiesWithCalculations, metrics, calculationsComplete]);
+  }), [propertiesWithCalculations, metrics, calculationsComplete, updateProperty]);
 
   return (
     <PropertyContext.Provider value={contextValue}>
