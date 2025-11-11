@@ -8,12 +8,12 @@ import ScenarioAnalysisDashboard from "@/components/scenarios/ScenarioAnalysisDa
 import AssumptionsPanel from "@/components/calculators/AssumptionsPanel";
 import BaselineForecast from "@/components/calculators/BaselineForecast";
 import SensitivityDashboard from "@/components/calculators/SensitivityDashboard";
-import BreakEvenAnalysis from "@/components/calculators/BreakEvenAnalysis";
 import YoYAnalysis from "@/components/calculators/YoYAnalysis";
 import SaveScenarioModal from "@/components/calculators/SaveScenarioModal";
 import SavedScenariosPanel from "@/components/calculators/SavedScenariosPanel";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/sensitivity-analysis";
 import { formatCurrency, formatPercentage } from "@/utils/formatting";
+import { useToast } from "@/context/ToastContext";
 
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState('sensitivity');
@@ -23,6 +23,7 @@ export default function AnalyticsPage() {
   const [scenariosKey, setScenariosKey] = useState(0); // Key to force refresh of SavedScenariosPanel
   const properties = useProperties();
   const portfolioMetrics = usePortfolioMetrics();
+  const { addToast } = useToast();
 
   // Set default property selection
   useEffect(() => {
@@ -37,6 +38,7 @@ export default function AnalyticsPage() {
   // Handle save scenario success
   const handleSaveSuccess = () => {
     setScenariosKey(prev => prev + 1); // Increment key to refresh SavedScenariosPanel
+    addToast("Scenario saved to your library.");
   };
 
   // Handle load scenario
@@ -55,12 +57,15 @@ export default function AnalyticsPage() {
     <RequireAuth>
       <Layout>
         <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Analytics</h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-300">
-              Analyze your property portfolio and model different scenarios
-            </p>
-          </div>
+          <header className="space-y-4">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Analytics</h1>
+              <p className="mt-2 text-gray-600 dark:text-gray-300">
+                Explore how each property performs today, try out new assumptions, and compare outcomes side by side.
+              </p>
+            </div>
+            <GuidedIntroCard />
+          </header>
 
           {/* Tab Navigation */}
           <div className="border-b border-gray-200 dark:border-gray-700">
@@ -85,62 +90,63 @@ export default function AnalyticsPage() {
           {/* Tab Content */}
           <div className="mt-6">
             {activeTab === 'sensitivity' && (
-              <div className="space-y-6">
-                {/* Property Selector */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Select Property to Analyze
-                  </label>
-                  <select
-                    value={selectedPropertyId}
-                    onChange={(e) => setSelectedPropertyId(e.target.value)}
-                    className="w-full md:w-96 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                             transition-colors"
-                  >
-                    {properties.map((property) => (
-                      <option key={property.id} value={property.id}>
-                        {property.nickname} - {property.address}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="space-y-8">
+                <PropertySelectCard
+                  properties={properties}
+                  selectedPropertyId={selectedPropertyId}
+                  onSelect={setSelectedPropertyId}
+                />
 
-                {/* Main Dashboard Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Left Column - Assumptions Panel and Saved Scenarios */}
-                  <div className="lg:col-span-1 space-y-6">
-                    <AssumptionsPanel 
-                      assumptions={assumptions}
-                      onAssumptionsChange={setAssumptions}
-                      onSaveClick={() => setShowSaveModal(true)}
-                    />
+                <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
+                  <div className="space-y-6">
+                    <StepCard
+                      step="1"
+                      title="Understand the default projection"
+                      subtitle="We start with conservative assumptions so you have a baseline to compare against."
+                    >
+                      <BaselineForecast 
+                        property={selectedProperty}
+                        assumptions={DEFAULT_ASSUMPTIONS}
+                      />
+                    </StepCard>
+
+                    <StepCard
+                      step="3"
+                      title="Compare your scenario to the default plan"
+                      subtitle="See how your changes affect long-term returns, cash flow, and risk."
+                    >
+                      <div className="space-y-6">
+                        <SensitivityDashboard 
+                          property={selectedProperty}
+                          assumptions={assumptions}
+                        />
+                      <YoYAnalysis 
+                        property={selectedProperty}
+                        assumptions={assumptions}
+                        baselineAssumptions={DEFAULT_ASSUMPTIONS}
+                      />
+                      </div>
+                    </StepCard>
+                  </div>
+
+                  <div className="space-y-6">
+                    <StepCard
+                      step="2"
+                      title="Adjust the levers"
+                      subtitle="Tweak growth, expense, and exit assumptions. Small changes can create big differences."
+                    >
+                      <AssumptionsPanel 
+                        assumptions={assumptions}
+                        onAssumptionsChange={setAssumptions}
+                        onSaveClick={() => setShowSaveModal(true)}
+                      />
+                    </StepCard>
+
                     <SavedScenariosPanel 
                       key={scenariosKey}
                       propertyId={selectedPropertyId}
                       onLoadScenario={handleLoadScenario}
                       currentAssumptions={assumptions}
-                    />
-                  </div>
-
-                  {/* Right Column - Forecast and Dashboard */}
-                  <div className="lg:col-span-2 space-y-6">
-                    <BaselineForecast 
-                      property={selectedProperty}
-                      assumptions={DEFAULT_ASSUMPTIONS}
-                    />
-                    <SensitivityDashboard 
-                      property={selectedProperty}
-                      assumptions={assumptions}
-                    />
-                    <YoYAnalysis 
-                      property={selectedProperty}
-                      assumptions={assumptions}
-                      baselineAssumptions={DEFAULT_ASSUMPTIONS}
-                    />
-                    <BreakEvenAnalysis 
-                      property={selectedProperty}
                     />
                   </div>
                 </div>
@@ -297,4 +303,91 @@ export default function AnalyticsPage() {
   );
 }
 
+
+function GuidedIntroCard() {
+  const steps = [
+    {
+      title: "Pick a property",
+      description: "Choose which rental you’d like to explore. We’ll load its rent, expenses, and mortgage details automatically."
+    },
+    {
+      title: "Adjust the assumptions",
+      description: "Change rent growth, expense inflation, interest rates, or exit cap rate to match your expectations."
+    },
+    {
+      title: "Compare the outcomes",
+      description: "See how cash flow, equity, and returns change instantly so you can decide what to do next."
+    },
+  ];
+
+  return (
+    <section className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900">
+      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        New to investment analytics? Start here.
+      </h2>
+      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        Follow the three steps below to test “what if” scenarios and understand the story behind your numbers.
+      </p>
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
+        {steps.map((step, index) => (
+          <div
+            key={step.title}
+            className="rounded-xl border border-black/10 bg-gray-50 p-4 dark:border-white/5 dark:bg-gray-800/70"
+          >
+            <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+              {index + 1}
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{step.title}</h3>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{step.description}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function StepCard({ step, title, subtitle, children }) {
+  return (
+    <section className="space-y-4 rounded-2xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900">
+      <header className="space-y-1">
+        <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+          Step {step}
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+        {subtitle && <p className="text-sm text-gray-600 dark:text-gray-400">{subtitle}</p>}
+      </header>
+      <div>{children}</div>
+    </section>
+  );
+}
+
+function PropertySelectCard({ properties = [], selectedPropertyId, onSelect }) {
+  const hasProperties = properties.length > 0;
+
+  return (
+    <section className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900">
+      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Choose a property to analyse</h2>
+      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+        We’ll use this property’s rent, expenses, and mortgage to build your forecast.
+      </p>
+      {hasProperties ? (
+        <select
+          value={selectedPropertyId}
+          onChange={(e) => onSelect(e.target.value)}
+          className="mt-4 w-full max-w-md rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+        >
+          {properties.map((property) => (
+            <option key={property.id} value={property.id}>
+              {property.nickname} — {property.address}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <div className="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-300">
+          Add a property first so we can run the numbers. Head to the <strong>Data</strong> tab to import details.
+        </div>
+      )}
+    </section>
+  );
+}
 

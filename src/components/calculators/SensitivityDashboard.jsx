@@ -3,7 +3,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { formatCurrency, formatPercentage } from '@/utils/formatting';
 import { calculateReturnMetrics, compareScenarios, calculateYoYMetrics, DEFAULT_ASSUMPTIONS } from '@/lib/sensitivity-analysis';
-import CapitalFlowSankey from './CapitalFlowSankey';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 const SensitivityDashboard = ({ property, assumptions }) => {
@@ -218,14 +217,6 @@ const SensitivityDashboard = ({ property, assumptions }) => {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Capital flow Sankey chart (easy to remove if design reverts) */}
-      <div className="mt-6">
-        <CapitalFlowSankey
-          property={property}
-          forecast={newScenarioMetrics.forecast}
-        />
       </div>
 
       {/* Key Insights */}

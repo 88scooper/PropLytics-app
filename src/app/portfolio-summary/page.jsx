@@ -941,7 +941,7 @@ export default function PortfolioSummaryPage() {
                         <div>
                           <p className="text-sm text-gray-600 dark:text-gray-300">
                                   {isOccupied ? property.tenant?.name : 'No tenant assigned'}
-                                </p>
+                          </p>
                                 <p className={leaseTone}>
                                   {leaseSummary}
                           </p>
@@ -1166,7 +1166,7 @@ function AnnualRentalIncomeCard({ properties = [], totalMonthlyRent = 0 }) {
     <div className="rounded-lg border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-neutral-900">
       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Annual Rental Income</h3>
       {hasProperties ? (
-        <div className="space-y-3">
+              <div className="space-y-3">
           {properties.map((property) => {
             const propertyName = property.nickname || property.name;
             const monthlyRent = property?.rent?.monthlyRent || 0;
@@ -1176,35 +1176,35 @@ function AnnualRentalIncomeCard({ properties = [], totalMonthlyRent = 0 }) {
                 key={property.id}
                 className="flex justify-between items-center rounded-lg bg-gray-50 p-3 dark:bg-gray-800"
               >
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">
                     {propertyName || 'Unnamed Property'}
-                  </h4>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-gray-900 dark:text-gray-100">
+                      </h4>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">
                     {formatCurrency(monthlyRent * 12)}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                     {formatCurrency(monthlyRent)}/mo
-                  </p>
-                </div>
-              </div>
+                      </p>
+                    </div>
+                  </div>
             );
           })}
           <div className="border-t border-gray-200 pt-3 dark:border-gray-700">
-            <div className="flex justify-between items-center">
-              <span className="font-semibold text-gray-900 dark:text-gray-100">Total Annual Income</span>
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">Total Annual Income</span>
               <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                 {formatCurrency(totalMonthlyRent * 12)}
-              </span>
-            </div>
-          </div>
-        </div>
+                    </span>
+                  </div>
+                </div>
+              </div>
       ) : (
         <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-400">
           Add a property to see projected rent by address.
-        </div>
+            </div>
       )}
     </div>
   );
@@ -1232,154 +1232,154 @@ function AnnualDeductibleExpensesCard({
 
   return (
     <div className="rounded-lg border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-neutral-900">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           {cardTitle}
-        </h3>
-
+                </h3>
+                
         <div className="relative" ref={settingsRef}>
-          <button
+                  <button
             onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-            className="p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-            aria-label="Customize expense view"
-          >
+                    className="p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    aria-label="Customize expense view"
+                  >
             <Settings className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-          </button>
+                  </button>
 
           {isSettingsOpen && (
             <div className="absolute right-0 mt-2 w-64 rounded-lg border border-black/10 bg-white py-2 shadow-lg dark:border-white/10 dark:bg-neutral-900 z-50">
               <div className="border-b border-black/10 px-4 pb-2 dark:border-white/10">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Expense View</h3>
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Expense View</h3>
                 <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  Select which expense data to display
-                </p>
-              </div>
-              <div className="py-2">
-                <button
+                          Select which expense data to display
+                        </p>
+                      </div>
+                      <div className="py-2">
+                        <button
                   onClick={() => onViewChange('annual')}
                   className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                    expenseViewType === 'annual'
+                            expenseViewType === 'annual' 
                       ? 'text-[#205A3E] font-medium dark:text-[#4ade80]'
-                      : 'text-gray-700 dark:text-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Annual Expenses</span>
-                    {expenseViewType === 'annual' && (
+                              : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span>Annual Expenses</span>
+                            {expenseViewType === 'annual' && (
                       <div className="h-2 w-2 rounded-full bg-[#205A3E] dark:bg-[#4ade80]" />
-                    )}
-                  </div>
-                </button>
-                <button
+                            )}
+                          </div>
+                        </button>
+                        <button
                   onClick={() => onViewChange('deductible')}
                   className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                    expenseViewType === 'deductible'
+                            expenseViewType === 'deductible' 
                       ? 'text-[#205A3E] font-medium dark:text-[#4ade80]'
-                      : 'text-gray-700 dark:text-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span>Annual Deductible Expenses</span>
-                      <div className="relative group">
+                              : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span>Annual Deductible Expenses</span>
+                              <div className="relative group">
                         <div className="flex h-3 w-3 items-center justify-center rounded-full border border-[#205A3E] bg-white dark:border-[#4ade80] dark:bg-gray-100">
                           <span className="text-[10px] font-bold text-[#205A3E] dark:text-[#4ade80]">
                             i
                           </span>
-                        </div>
+                                </div>
                         <div className="pointer-events-none absolute bottom-full left-1/2 z-10 w-64 -translate-x-1/2 whitespace-normal rounded-lg bg-[#205A3E] p-2 text-xs text-white opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100">
                           Deductible costs can offset rental income for tax purposes. Typical write-offs
                           include mortgage interest, property tax, insurance, utilities, and maintenance.
                           <div className="absolute top-full left-1/2 -ml-1 h-2 w-2 rotate-45 bg-[#205A3E]" />
-                        </div>
+                                </div>
+                              </div>
+                            </div>
+                            {expenseViewType === 'deductible' && (
+                      <div className="h-2 w-2 rounded-full bg-[#205A3E] dark:bg-[#4ade80]" />
+                            )}
+                          </div>
+                        </button>
                       </div>
                     </div>
-                    {expenseViewType === 'deductible' && (
-                      <div className="h-2 w-2 rounded-full bg-[#205A3E] dark:bg-[#4ade80]" />
-                    )}
-                  </div>
-                </button>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      </div>
 
-      <div className="space-y-3">
+              <div className="space-y-3">
         {hasProperties ? (
-          properties.map((property) => {
+                  properties.map((property) => {
             const monthlyExpenses = property.monthlyExpenses || {};
             const monthlyTotal = monthlyExpenses?.total || 0;
             const propertyExpenseValue =
               expenseViewType === 'deductible'
-                ? (() => {
-                    try {
-                      const annualOperatingExpenses =
+                      ? (() => {
+                          try {
+                            const annualOperatingExpenses = 
                         (monthlyExpenses.propertyTax || 0) * 12 +
                         (monthlyExpenses.condoFees || 0) * 12 +
                         (monthlyExpenses.insurance || 0) * 12 +
                         (monthlyExpenses.maintenance || 0) * 12 +
                         (monthlyExpenses.professionalFees || 0) * 12 +
                         (monthlyExpenses.utilities || 0) * 12;
-
+                            
                       const estimatedAnnualInterest =
                         (property?.mortgage?.originalAmount || 0) *
                         (property?.mortgage?.interestRate || 0);
-
-                      return annualOperatingExpenses + estimatedAnnualInterest;
-                    } catch (error) {
+                            
+                            return annualOperatingExpenses + estimatedAnnualInterest;
+                          } catch (error) {
                       const amortizationYears = property?.mortgage?.amortizationYears || 1;
                       const originalAmount = property?.mortgage?.originalAmount || 0;
                       const estimatedAnnualPrincipal =
                         amortizationYears > 0 ? originalAmount / amortizationYears : 0;
                       return monthlyTotal * 12 - estimatedAnnualPrincipal;
-                    }
-                  })()
+                          }
+                        })()
                 : monthlyTotal * 12;
 
-            return (
+                    return (
               <div
                 key={property.id}
                 className="flex justify-between items-center rounded-lg bg-gray-50 p-3 dark:bg-gray-800"
               >
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100">
-                    {property.nickname || property.name}
-                  </h4>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-gray-900 dark:text-gray-100">
+                        <div>
+                          <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                            {property.nickname || property.name}
+                          </h4>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">
                     {formatCurrency(propertyExpenseValue)}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
                     {formatCurrency(propertyExpenseValue / 12)}/mo
-                  </p>
-                </div>
-              </div>
-            );
-          })
-        ) : (
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
           <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-400">
             Add property expenses to see where cash flow is going.
-          </div>
-        )}
+                  </div>
+                )}
 
         {hasProperties && (
           <div className="border-t border-gray-200 pt-3 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-gray-900 dark:text-gray-100">
+                      <span className="font-semibold text-gray-900 dark:text-gray-100">
                 {expenseViewType === 'deductible'
                   ? 'Total Annual Deductible Expenses'
                   : 'Total Annual Expenses (Operating + Debt)'}
-              </span>
+                      </span>
               <span className="text-lg font-bold text-red-600 dark:text-red-400">
-                {expenseViewType === 'deductible'
+                        {expenseViewType === 'deductible' 
                   ? formatCurrency(totalAnnualDeductibleExpenses)
                   : formatCurrency(totalAnnualExpenses)}
-              </span>
-            </div>
-          </div>
-        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
         {expenseCategoryList.length > 0 && (
           <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
@@ -1397,18 +1397,18 @@ function AnnualDeductibleExpensesCard({
                     <div className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
                       <span>{category.label}</span>
                       <span>{formatCurrency(category.value)}</span>
-                    </div>
+              </div>
                     <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
                       <div
                         className="h-full rounded-full bg-[#E16262] dark:bg-[#A12424]"
                         style={{ width: `${width}%` }}
                         role="presentation"
                       />
-                    </div>
-                  </div>
+            </div>
+          </div>
                 );
               })}
-            </div>
+        </div>
           </div>
         )}
       </div>
