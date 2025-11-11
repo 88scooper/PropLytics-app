@@ -49,7 +49,6 @@ export default function AnalyticsPage() {
   const tabs = [
     { id: 'sensitivity', label: 'Sensitivity Analysis', icon: '🎯' },
     { id: 'scenarios', label: 'Scenario Analysis', icon: '📊' },
-    { id: 'portfolio', label: 'Portfolio Analytics', icon: '📈' },
     { id: 'insights', label: 'Insights', icon: '💡' }
   ];
 
@@ -166,102 +165,6 @@ export default function AnalyticsPage() {
 
             {activeTab === 'scenarios' && <ScenarioAnalysisDashboard />}
             
-            {activeTab === 'portfolio' && (
-              <div className="space-y-6">
-                <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                  <h2 className="text-lg font-semibold mb-4">Portfolio Performance</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-                    <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
-                      <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Portfolio Value</div>
-                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                        {formatCurrency(portfolioMetrics.totalValue)}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
-                      <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Monthly Cash Flow</div>
-                      <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                        {formatCurrency(portfolioMetrics.totalMonthlyCashFlow)}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
-                      <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Average Cap Rate</div>
-                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                        {formatPercentage(portfolioMetrics.averageCapRate)}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
-                      <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Equity</div>
-                      <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                        {formatCurrency(portfolioMetrics.totalEquity)}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
-                      <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Net Operating Income (NOI)</div>
-                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                        {formatCurrency(portfolioMetrics.netOperatingIncome)}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-black/10 dark:border-white/10 p-4">
-                      <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Annual Deductible Expenses</div>
-                      <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                        {formatCurrency(portfolioMetrics.totalAnnualDeductibleExpenses)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                  <h2 className="text-lg font-semibold mb-4">Property Performance</h2>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-black/10 dark:divide-white/10">
-                      <thead>
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Property
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Monthly Rent
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Cash Flow
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Cap Rate
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Market Value
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-black/10 dark:divide-white/10">
-                        {properties.map((property) => (
-                          <tr key={property.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              {property.nickname}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                              {formatCurrency(property.rent.monthlyRent)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                              <span className={`font-medium ${property.monthlyCashFlow >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                                {formatCurrency(property.monthlyCashFlow)}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                              {formatPercentage(property.capRate)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                              {formatCurrency(property.marketValue)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {activeTab === 'insights' && (
               <div className="space-y-6">
                 <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
