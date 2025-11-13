@@ -3,9 +3,12 @@
  * 
  * Manages saving, loading, and deleting user-defined scenarios
  * using browser localStorage
+ * 
+ * Extended to support folders, tags, and descriptions
  */
 
 const STORAGE_KEY = 'proplytics_saved_scenarios';
+const FOLDERS_STORAGE_KEY = 'proplytics_scenario_folders';
 
 /**
  * Get all saved scenarios from localStorage
@@ -26,6 +29,9 @@ export function getSavedScenarios() {
 /**
  * Save a new scenario to localStorage
  * @param {Object} scenario - Scenario object with name, assumptions, propertyId, and metadata
+ * @param {string} scenario.folder - Optional folder name (defaults to 'Uncategorized')
+ * @param {string[]} scenario.tags - Optional array of tag strings
+ * @param {string} scenario.description - Optional description/notes
  * @returns {boolean} Success status
  */
 export function saveScenario(scenario) {
@@ -34,6 +40,14 @@ export function saveScenario(scenario) {
   try {
     const scenarios = getSavedScenarios();
     
+    // Migrate existing scenarios without folder/tags/description
+    const migratedScenarios = scenarios.map(s => ({
+      ...s,
+      folder: s.folder || 'Uncategorized',
+      tags: s.tags || [],
+      description: s.description || '',
+    }));
+    
     // Create scenario with metadata
     const newScenario = {
       id: Date.now().toString(),
@@ -41,12 +55,15 @@ export function saveScenario(scenario) {
       propertyId: scenario.propertyId,
       propertyName: scenario.propertyName,
       assumptions: scenario.assumptions,
+      folder: scenario.folder || 'Uncategorized',
+      tags: scenario.tags || [],
+      description: scenario.description || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     
-    scenarios.push(newScenario);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(scenarios));
+    migratedScenarios.push(newScenario);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(migratedScenarios));
     
     return true;
   } catch (error) {
@@ -110,7 +127,173 @@ export function deleteScenario(id) {
  */
 export function getScenariosByProperty(propertyId) {
   const scenarios = getSavedScenarios();
-  return scenarios.filter(s => s.propertyId === propertyId);
+  // Migrate scenarios without folder/tags/description
+  return scenarios
+    .filter(s => s.propertyId === propertyId)
+    .map(s => ({
+      ...s,
+      folder: s.folder || 'Uncategorized',
+      tags: s.tags || [],
+      description: s.description || '',
+    }));
+}
+
+/**
+ * Get scenarios by folder
+ * @param {string} folderName - Folder name
+ * @returns {Array} Array of scenarios in the folder
+ */
+export function getScenariosByFolder(folderName) {
+  const scenarios = getSavedScenarios();
+  return scenarios
+    .filter(s => (s.folder || 'Uncategorized') === folderName)
+    .map(s => ({
+      ...s,
+      folder: s.folder || 'Uncategorized',
+      tags: s.tags || [],
+      description: s.description || '',
+    }));
+}
+
+/**
+ * Get scenarios by tag
+ * @param {string} tag - Tag name
+ * @returns {Array} Array of scenarios with the tag
+ */
+export function getScenariosByTag(tag) {
+  const scenarios = getSavedScenarios();
+  return scenarios
+    .filter(s => (s.tags || []).includes(tag))
+    .map(s => ({
+      ...s,
+      folder: s.folder || 'Uncategorized',
+      tags: s.tags || [],
+      description: s.description || '',
+    }));
+}
+
+/**
+ * Update scenario folder
+ * @param {string} id - Scenario ID
+ * @param {string} folderName - New folder name
+ * @returns {boolean} Success status
+ */
+export function updateScenarioFolder(id, folderName) {
+  return updateScenario(id, { folder: folderName || 'Uncategorized' });
+}
+
+/**
+ * Update scenario tags
+ * @param {string} id - Scenario ID
+ * @param {string[]} tags - Array of tag strings
+ * @returns {boolean} Success status
+ */
+export function updateScenarioTags(id, tags) {
+  return updateScenario(id, { tags: tags || [] });
+}
+
+/**
+ * Get all folders
+ * @returns {Array} Array of folder names
+ */
+export function getFolders() {
+  if (typeof window === 'undefined') return ['Uncategorized'];
+  
+  try {
+    const saved = localStorage.getItem(FOLDERS_STORAGE_KEY);
+    const folders = saved ? JSON.parse(saved) : [];
+    // Always include default folders
+    const defaultFolders = ['All Scenarios', 'Uncategorized', 'Favorites'];
+    const allFolders = [...new Set([...defaultFolders, ...folders])];
+    return allFolders;
+  } catch (error) {
+    console.error('Error loading folders:', error);
+    return ['Uncategorized'];
+  }
+}
+
+/**
+ * Create a new folder
+ * @param {string} folderName - Folder name
+ * @returns {boolean} Success status
+ */
+export function createFolder(folderName) {
+  if (typeof window === 'undefined') return false;
+  if (!folderName || folderName.trim() === '') return false;
+  
+  try {
+    const folders = getFolders();
+    const trimmedName = folderName.trim();
+    
+    // Prevent duplicate folder names
+    if (folders.includes(trimmedName)) {
+      return false;
+    }
+    
+    // Don't allow default folder names to be created
+    const defaultFolders = ['All Scenarios', 'Uncategorized', 'Favorites'];
+    if (defaultFolders.includes(trimmedName)) {
+      return false;
+    }
+    
+    const customFolders = folders.filter(f => !defaultFolders.includes(f));
+    customFolders.push(trimmedName);
+    localStorage.setItem(FOLDERS_STORAGE_KEY, JSON.stringify(customFolders));
+    return true;
+  } catch (error) {
+    console.error('Error creating folder:', error);
+    return false;
+  }
+}
+
+/**
+ * Delete a folder (moves scenarios to Uncategorized)
+ * @param {string} folderName - Folder name to delete
+ * @returns {boolean} Success status
+ */
+export function deleteFolder(folderName) {
+  if (typeof window === 'undefined') return false;
+  
+  // Don't allow deleting default folders
+  const defaultFolders = ['All Scenarios', 'Uncategorized', 'Favorites'];
+  if (defaultFolders.includes(folderName)) {
+    return false;
+  }
+  
+  try {
+    // Move all scenarios in this folder to Uncategorized
+    const scenarios = getSavedScenarios();
+    const updatedScenarios = scenarios.map(s => {
+      if ((s.folder || 'Uncategorized') === folderName) {
+        return { ...s, folder: 'Uncategorized' };
+      }
+      return s;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedScenarios));
+    
+    // Remove folder from folders list
+    const folders = getFolders();
+    const customFolders = folders.filter(f => f !== folderName && !defaultFolders.includes(f));
+    localStorage.setItem(FOLDERS_STORAGE_KEY, JSON.stringify(customFolders));
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting folder:', error);
+    return false;
+  }
+}
+
+/**
+ * Get all unique tags from all scenarios
+ * @returns {Array} Array of unique tag strings
+ */
+export function getAllTags() {
+  const scenarios = getSavedScenarios();
+  const allTags = scenarios.reduce((tags, scenario) => {
+    const scenarioTags = scenario.tags || [];
+    return [...tags, ...scenarioTags];
+  }, []);
+  return [...new Set(allTags)].sort();
 }
 
 /**

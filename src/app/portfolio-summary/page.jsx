@@ -486,23 +486,24 @@ export default function PortfolioSummaryPage() {
   return (
     <RequireAuth>
       <Layout>
-        <div className="space-y-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Portfolio Summary</h1>
-              <p className="mt-2 text-gray-600 dark:text-gray-300">
-                Overview of your real estate investment performance and key metrics.
-              </p>
-              <div
-                className="mt-4 text-sm text-gray-500 dark:text-gray-400"
-                role="status"
-                aria-live="polite"
-              >
-                {periodSummary}
+        <div className="portfolio-summary-scale">
+          <div className="space-y-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <h1 className="text-3xl font-bold">Portfolio Summary</h1>
+                <p className="mt-2 text-gray-600 dark:text-gray-300">
+                  Overview of your real estate investment performance and key metrics.
+                </p>
+                <div
+                  className="mt-4 text-sm text-gray-500 dark:text-gray-400"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {periodSummary}
+                </div>
               </div>
-            </div>
-            
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               {/* Time Period Toggle */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Time Period:</span>
@@ -976,7 +977,7 @@ export default function PortfolioSummaryPage() {
             </div>
 
           </div>
-
+          </div>
         </div>
       </Layout>
     </RequireAuth>

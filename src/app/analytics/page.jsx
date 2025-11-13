@@ -11,9 +11,11 @@ import SensitivityDashboard from "@/components/calculators/SensitivityDashboard"
 import YoYAnalysis from "@/components/calculators/YoYAnalysis";
 import SaveScenarioModal from "@/components/calculators/SaveScenarioModal";
 import SavedScenariosPanel from "@/components/calculators/SavedScenariosPanel";
+import PropertySelector from "@/components/analytics/PropertySelector";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/sensitivity-analysis";
 import { formatCurrency, formatPercentage } from "@/utils/formatting";
 import { useToast } from "@/context/ToastContext";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState('sensitivity');
@@ -21,9 +23,16 @@ export default function AnalyticsPage() {
   const [assumptions, setAssumptions] = useState(DEFAULT_ASSUMPTIONS);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [scenariosKey, setScenariosKey] = useState(0); // Key to force refresh of SavedScenariosPanel
+  const [mounted, setMounted] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
   const properties = useProperties();
   const portfolioMetrics = usePortfolioMetrics();
   const { addToast } = useToast();
+
+  // Prevent hydration mismatch by only rendering after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Set default property selection
   useEffect(() => {
@@ -51,6 +60,21 @@ export default function AnalyticsPage() {
     { id: 'scenarios', label: 'Scenario Analysis', icon: '📊' },
     { id: 'insights', label: 'Insights', icon: '💡' }
   ];
+
+  // Prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <RequireAuth>
+        <Layout>
+          <div className="space-y-6">
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#205A3E]"></div>
+            </div>
+          </div>
+        </Layout>
+      </RequireAuth>
+    );
+  }
 
   return (
     <RequireAuth>
@@ -90,10 +114,11 @@ export default function AnalyticsPage() {
           <div className="mt-6">
             {activeTab === 'sensitivity' && (
               <div className="space-y-8">
-                <PropertySelectCard
+                <PropertySelector
                   properties={properties}
                   selectedPropertyId={selectedPropertyId}
                   onSelect={setSelectedPropertyId}
+                  isLoading={!mounted}
                 />
 
                 <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
@@ -208,10 +233,11 @@ export default function AnalyticsPage() {
 
 
 function GuidedIntroCard() {
+  const [isOpen, setIsOpen] = useState(false);
   const steps = [
     {
       title: "Pick a property",
-      description: "Choose which rental you’d like to explore. We’ll load its rent, expenses, and mortgage details automatically."
+      description: "Choose which rental you'd like to explore. We'll load its rent, expenses, and mortgage details automatically."
     },
     {
       title: "Adjust the assumptions",
@@ -224,27 +250,44 @@ function GuidedIntroCard() {
   ];
 
   return (
-    <section className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900">
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-        New to investment analytics? Start here.
-      </h2>
-      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-        Follow the three steps below to test “what if” scenarios and understand the story behind your numbers.
-      </p>
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
-        {steps.map((step, index) => (
-          <div
-            key={step.title}
-            className="rounded-xl border border-black/10 bg-gray-50 p-4 dark:border-white/5 dark:bg-gray-800/70"
-          >
-            <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-              {index + 1}
-            </div>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{step.title}</h3>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{step.description}</p>
+    <section className="rounded-2xl border border-black/10 bg-white shadow-sm dark:border-white/10 dark:bg-gray-900 overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+      >
+        <div className="text-left">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            New to investment analytics? Start here.
+          </h2>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Follow the three steps below to test "what if" scenarios and understand the story behind your numbers.
+          </p>
+        </div>
+        {isOpen ? (
+          <ChevronUp className="w-5 h-5 text-gray-400 flex-shrink-0 ml-4" />
+        ) : (
+          <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0 ml-4" />
+        )}
+      </button>
+      
+      {isOpen && (
+        <div className="px-6 pb-6 border-t border-black/10 dark:border-white/10">
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            {steps.map((step, index) => (
+              <div
+                key={step.title}
+                className="rounded-xl border border-black/10 bg-gray-50 p-4 dark:border-white/5 dark:bg-gray-800/70"
+              >
+                <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                  {index + 1}
+                </div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{step.title}</h3>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{step.description}</p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -264,33 +307,4 @@ function StepCard({ step, title, subtitle, children }) {
   );
 }
 
-function PropertySelectCard({ properties = [], selectedPropertyId, onSelect }) {
-  const hasProperties = properties.length > 0;
-
-  return (
-    <section className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900">
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Choose a property to analyse</h2>
-      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-        We’ll use this property’s rent, expenses, and mortgage to build your forecast.
-      </p>
-      {hasProperties ? (
-        <select
-          value={selectedPropertyId}
-          onChange={(e) => onSelect(e.target.value)}
-          className="mt-4 w-full max-w-md rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-        >
-          {properties.map((property) => (
-            <option key={property.id} value={property.id}>
-              {property.nickname} — {property.address}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <div className="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-300">
-          Add a property first so we can run the numbers. Head to the <strong>Data</strong> tab to import details.
-        </div>
-      )}
-    </section>
-  );
-}
 

@@ -4,42 +4,71 @@ import { useMemo, useState, useEffect } from 'react';
 import { formatCurrency, formatPercentage } from '@/utils/formatting';
 import { calculateReturnMetrics, compareScenarios, calculateYoYMetrics, DEFAULT_ASSUMPTIONS } from '@/lib/sensitivity-analysis';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import MetricCardSkeleton from '@/components/analytics/MetricCardSkeleton';
 
 const SensitivityDashboard = ({ property, assumptions }) => {
-  // Calculate baseline metrics (using default assumptions)
-  const baselineMetrics = useMemo(() => {
-    if (!property) return null;
-    return calculateReturnMetrics(property, DEFAULT_ASSUMPTIONS);
-  }, [property]);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [baselineMetrics, setBaselineMetrics] = useState(null);
+  const [newScenarioMetrics, setNewScenarioMetrics] = useState(null);
+  const [comparison, setComparison] = useState(null);
+  const [yoyMetrics, setYoyMetrics] = useState(null);
 
-  // Calculate new scenario metrics (using user-adjusted assumptions)
-  const newScenarioMetrics = useMemo(() => {
-    if (!property) return null;
-    return calculateReturnMetrics(property, assumptions);
+  // Calculate metrics with loading state
+  useEffect(() => {
+    if (!property) {
+      setBaselineMetrics(null);
+      setNewScenarioMetrics(null);
+      setComparison(null);
+      setYoyMetrics(null);
+      return;
+    }
+
+    setIsCalculating(true);
+    const timer = setTimeout(() => {
+      try {
+        const baseline = calculateReturnMetrics(property, DEFAULT_ASSUMPTIONS);
+        const newScenario = calculateReturnMetrics(property, assumptions);
+        const comp = compareScenarios(baseline, newScenario);
+        const yoy = calculateYoYMetrics(property, assumptions, DEFAULT_ASSUMPTIONS);
+
+        setBaselineMetrics(baseline);
+        setNewScenarioMetrics(newScenario);
+        setComparison(comp);
+        setYoyMetrics(yoy);
+      } catch (error) {
+        console.error('Error calculating metrics:', error);
+      } finally {
+        setIsCalculating(false);
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
   }, [property, assumptions]);
 
-  // Compare scenarios
-  const comparison = useMemo(() => {
-    if (!baselineMetrics || !newScenarioMetrics) return null;
-    return compareScenarios(baselineMetrics, newScenarioMetrics);
-  }, [baselineMetrics, newScenarioMetrics]);
 
-  // Calculate YoY metrics
-  const yoyMetrics = useMemo(() => {
-    if (!property) return null;
-    return calculateYoYMetrics(property, assumptions, DEFAULT_ASSUMPTIONS);
-  }, [property, assumptions]);
-
-
-  if (!property || !baselineMetrics || !newScenarioMetrics || !comparison) {
+  if (!property) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+      <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
           🎯 Sensitivity Analysis Dashboard
         </h2>
-        <p className="text-gray-600 dark:text-gray-400 text-center">
+        <p className="text-sm text-gray-600 dark:text-gray-400 text-center py-8">
           Select a property to view sensitivity analysis.
         </p>
+      </div>
+    );
+  }
+
+  if (isCalculating || !baselineMetrics || !newScenarioMetrics || !comparison) {
+    return (
+      <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          🎯 Sensitivity Analysis Dashboard
+        </h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+          Compare baseline scenario with your adjusted assumptions. Green indicates improvement, red indicates decline.
+        </p>
+        <MetricCardSkeleton count={3} />
       </div>
     );
   }

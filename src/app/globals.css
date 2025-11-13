@@ -24,3 +24,10 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.portfolio-summary-scale {
+  --portfolio-page-scale: 0.9;
+  transform: scale(var(--portfolio-page-scale));
+  transform-origin: top left;
+  width: calc(100% / var(--portfolio-page-scale));
+}

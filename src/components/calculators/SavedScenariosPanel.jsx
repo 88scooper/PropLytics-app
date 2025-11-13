@@ -1,18 +1,35 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Trash2, Download, Upload, RefreshCw, Calendar, TrendingUp } from 'lucide-react';
-import { getSavedScenarios, deleteScenario, getScenariosByProperty } from '@/lib/scenario-storage';
+import { useState, useEffect, useMemo } from 'react';
+import { Trash2, Download, Upload, RefreshCw, Calendar, TrendingUp, Search, Folder, Tag, X, Edit2 } from 'lucide-react';
+import { 
+  getSavedScenarios, 
+  deleteScenario, 
+  getScenariosByProperty,
+  getFolders,
+  updateScenarioFolder,
+  updateScenarioTags,
+  getAllTags
+} from '@/lib/scenario-storage';
+import ScenarioFolderManager from '@/components/analytics/ScenarioFolderManager';
 
 const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions }) => {
   const [savedScenarios, setSavedScenarios] = useState([]);
   const [selectedScenarioId, setSelectedScenarioId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [selectedFolder, setSelectedFolder] = useState('All Scenarios');
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFolderManager, setShowFolderManager] = useState(false);
+  const [editingScenario, setEditingScenario] = useState(null);
 
   // Load saved scenarios
   useEffect(() => {
     loadScenarios();
   }, [propertyId]);
+
+  const folders = getFolders();
+  const allTags = getAllTags();
 
   const loadScenarios = () => {
     if (propertyId) {
@@ -20,6 +37,61 @@ const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions })
       setSavedScenarios(scenarios);
     } else {
       setSavedScenarios([]);
+    }
+  };
+
+  // Filter scenarios by folder, tags, and search
+  const filteredScenarios = useMemo(() => {
+    let filtered = savedScenarios;
+
+    // Filter by folder
+    if (selectedFolder && selectedFolder !== 'All Scenarios') {
+      filtered = filtered.filter(s => (s.folder || 'Uncategorized') === selectedFolder);
+    }
+
+    // Filter by tags
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter(s => {
+        const scenarioTags = s.tags || [];
+        return selectedTags.every(tag => scenarioTags.includes(tag));
+      });
+    }
+
+    // Filter by search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(s => 
+        s.name.toLowerCase().includes(query) ||
+        (s.description || '').toLowerCase().includes(query) ||
+        (s.tags || []).some(tag => tag.toLowerCase().includes(query))
+      );
+    }
+
+    // Group by folder
+    const grouped = filtered.reduce((acc, scenario) => {
+      const folder = scenario.folder || 'Uncategorized';
+      if (!acc[folder]) {
+        acc[folder] = [];
+      }
+      acc[folder].push(scenario);
+      return acc;
+    }, {});
+
+    return grouped;
+  }, [savedScenarios, selectedFolder, selectedTags, searchQuery]);
+
+  const handleTagToggle = (tag) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  };
+
+  const handleMoveToFolder = (scenarioId, folderName) => {
+    const success = updateScenarioFolder(scenarioId, folderName);
+    if (success) {
+      loadScenarios();
     }
   };
 
@@ -53,9 +125,12 @@ const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions })
     return JSON.stringify(scenario.assumptions) === JSON.stringify(currentAssumptions);
   };
 
-  if (savedScenarios.length === 0) {
+  const totalScenarios = savedScenarios.length;
+  const filteredCount = Object.values(filteredScenarios).flat().length;
+
+  if (totalScenarios === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
           <TrendingUp className="w-5 h-5" />
           Saved Scenarios
@@ -76,27 +151,122 @@ const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions })
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+    <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
           <TrendingUp className="w-5 h-5" />
           Saved Scenarios
         </h3>
-        <button
-          onClick={loadScenarios}
-          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-          title="Refresh"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowFolderManager(true)}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            title="Manage Folders"
+          >
+            <Folder className="w-4 h-4" />
+          </button>
+          <button
+            onClick={loadScenarios}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            title="Refresh"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-        {savedScenarios.length} scenario{savedScenarios.length !== 1 ? 's' : ''} saved for this property
+        {filteredCount} of {totalScenarios} scenario{totalScenarios !== 1 ? 's' : ''} {selectedFolder !== 'All Scenarios' ? `in "${selectedFolder}"` : 'total'}
       </p>
 
-      <div className="space-y-3 max-h-96 overflow-y-auto">
-        {savedScenarios.map((scenario) => (
+      {/* Search Bar */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search scenarios..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-black/15 dark:border-white/15 bg-transparent text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20 outline-none"
+          />
+        </div>
+      </div>
+
+      {/* Folder Filter */}
+      <div className="mb-4">
+        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Folder
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {folders.map((folder) => (
+            <button
+              key={folder}
+              onClick={() => setSelectedFolder(folder)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                selectedFolder === folder
+                  ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+              }`}
+            >
+              {folder}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tag Filter */}
+      {allTags.length > 0 && (
+        <div className="mb-4">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Tags
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {allTags.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => handleTagToggle(tag)}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                  selectedTags.includes(tag)
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-2 border-blue-300 dark:border-blue-700'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 border-2 border-transparent'
+                }`}
+              >
+                <Tag className="w-3 h-3" />
+                {tag}
+              </button>
+            ))}
+            {selectedTags.length > 0 && (
+              <button
+                onClick={() => setSelectedTags([])}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+              >
+                <X className="w-3 h-3" />
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-4 max-h-96 overflow-y-auto">
+        {Object.keys(filteredScenarios).length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No scenarios match your filters
+            </p>
+          </div>
+        ) : (
+          Object.entries(filteredScenarios).map(([folder, scenarios]) => (
+            <div key={folder}>
+              {selectedFolder === 'All Scenarios' && (
+                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <Folder className="w-3 h-3" />
+                  {folder}
+                </h4>
+              )}
+              <div className="space-y-3">
+                {scenarios.map((scenario) => (
           <div
             key={scenario.id}
             className={`relative rounded-lg border transition-all ${
@@ -108,17 +278,49 @@ const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions })
             <div className="p-4">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
-                    {scenario.name}
-                    {isCurrentScenario(scenario) && (
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
-                        Current
-                      </span>
-                    )}
-                  </h4>
-                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                    <Calendar className="w-3 h-3" />
-                    <span>Saved {formatDate(scenario.createdAt)}</span>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                        {scenario.name}
+                        {isCurrentScenario(scenario) && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+                            Current
+                          </span>
+                        )}
+                      </h4>
+                      {scenario.description && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1 line-clamp-2">
+                          {scenario.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <Calendar className="w-3 h-3" />
+                        <span>Saved {formatDate(scenario.createdAt)}</span>
+                        {scenario.folder && scenario.folder !== 'Uncategorized' && (
+                          <>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1">
+                              <Folder className="w-3 h-3" />
+                              {scenario.folder}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      {/* Tags */}
+                      {scenario.tags && scenario.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {scenario.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                            >
+                              <Tag className="w-2.5 h-2.5" />
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -144,19 +346,43 @@ const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions })
                 {!isCurrentScenario(scenario) && (
                   <button
                     onClick={() => handleLoadScenario(scenario)}
-                    className="flex-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded 
-                             hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-3 py-1.5 text-sm bg-black text-white dark:bg-white dark:text-gray-900 rounded-md 
+                             hover:opacity-90 transition-opacity"
                   >
                     <Upload className="w-3 h-3 inline mr-1" />
                     Load
                   </button>
                 )}
                 
+                {/* Move to Folder Dropdown */}
+                <div className="relative group">
+                  <button
+                    className="px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md 
+                             hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    title="Move to folder"
+                  >
+                    <Folder className="w-3 h-3" />
+                  </button>
+                  <div className="absolute right-0 mt-1 w-48 rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-gray-800 shadow-lg z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                    <div className="py-1">
+                      {folders.filter(f => f !== 'All Scenarios').map((folder) => (
+                        <button
+                          key={folder}
+                          onClick={() => handleMoveToFolder(scenario.id, folder)}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          Move to {folder}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                
                 {showDeleteConfirm === scenario.id ? (
                   <div className="flex-1 flex items-center gap-2">
                     <button
                       onClick={() => handleDeleteScenario(scenario.id)}
-                      className="flex-1 px-3 py-1.5 text-sm bg-red-600 text-white rounded 
+                      className="flex-1 px-3 py-1.5 text-sm bg-red-600 text-white rounded-md 
                                hover:bg-red-700 transition-colors"
                     >
                       Confirm
@@ -164,7 +390,7 @@ const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions })
                     <button
                       onClick={() => setShowDeleteConfirm(null)}
                       className="flex-1 px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 
-                               text-gray-700 dark:text-gray-300 rounded 
+                               text-gray-700 dark:text-gray-300 rounded-md 
                                hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                     >
                       Cancel
@@ -174,7 +400,7 @@ const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions })
                   <button
                     onClick={() => setShowDeleteConfirm(scenario.id)}
                     className={`px-3 py-1.5 text-sm border border-red-300 dark:border-red-800 
-                             text-red-600 dark:text-red-400 rounded 
+                             text-red-600 dark:text-red-400 rounded-md 
                              hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors ${
                                isCurrentScenario(scenario) ? 'flex-1' : ''
                              }`}
@@ -186,8 +412,24 @@ const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions })
               </div>
             </div>
           </div>
-        ))}
+                ))}
+              </div>
+            </div>
+          ))
+        )}
       </div>
+
+      {/* Folder Manager Modal */}
+      {showFolderManager && (
+        <ScenarioFolderManager
+          isOpen={showFolderManager}
+          onClose={() => setShowFolderManager(false)}
+          onFolderChange={() => {
+            loadScenarios();
+            setSelectedFolder('All Scenarios');
+          }}
+        />
+      )}
     </div>
   );
 };

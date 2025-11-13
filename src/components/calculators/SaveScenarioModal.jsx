@@ -1,13 +1,51 @@
 "use client";
 
-import { useState } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
-import { saveScenario, scenarioNameExists } from '@/lib/scenario-storage';
+import { useState, useEffect } from 'react';
+import { X, Save, AlertCircle, Folder, Tag, FileText } from 'lucide-react';
+import { saveScenario, scenarioNameExists, getFolders, getAllTags } from '@/lib/scenario-storage';
 
 const SaveScenarioModal = ({ isOpen, onClose, assumptions, property, onSaveSuccess }) => {
   const [scenarioName, setScenarioName] = useState('');
+  const [description, setDescription] = useState('');
+  const [selectedFolder, setSelectedFolder] = useState('Uncategorized');
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  
+  const folders = getFolders().filter(f => f !== 'All Scenarios');
+  const existingTags = getAllTags();
+
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setScenarioName('');
+      setDescription('');
+      setSelectedFolder('Uncategorized');
+      setTags([]);
+      setTagInput('');
+      setError('');
+    }
+  }, [isOpen]);
+
+  const handleAddTag = () => {
+    const trimmed = tagInput.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags([...tags, trimmed]);
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove) => {
+    setTags(tags.filter(t => t !== tagToRemove));
+  };
+
+  const handleTagInputKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -43,11 +81,18 @@ const SaveScenarioModal = ({ isOpen, onClose, assumptions, property, onSaveSucce
         propertyId: property.id,
         propertyName: property.nickname,
         assumptions: assumptions,
+        folder: selectedFolder,
+        tags: tags,
+        description: description,
       });
 
       if (success) {
         // Reset form and close modal
         setScenarioName('');
+        setDescription('');
+        setSelectedFolder('Uncategorized');
+        setTags([]);
+        setTagInput('');
         setError('');
         onSaveSuccess && onSaveSuccess();
         onClose();
@@ -65,6 +110,10 @@ const SaveScenarioModal = ({ isOpen, onClose, assumptions, property, onSaveSucce
   const handleClose = () => {
     if (!isSaving) {
       setScenarioName('');
+      setDescription('');
+      setSelectedFolder('Uncategorized');
+      setTags([]);
+      setTagInput('');
       setError('');
       onClose();
     }
@@ -124,13 +173,131 @@ const SaveScenarioModal = ({ isOpen, onClose, assumptions, property, onSaveSucce
               onKeyPress={handleKeyPress}
               placeholder="e.g., Optimistic Growth, Conservative Forecast"
               disabled={isSaving}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                       bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                       focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+              className="w-full px-4 py-2 border border-black/15 dark:border-white/15 rounded-lg 
+                       bg-transparent text-gray-900 dark:text-white
+                       focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
                        disabled:opacity-50 disabled:cursor-not-allowed
                        transition-colors"
               autoFocus
             />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Description (Optional)
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add notes or context for this scenario..."
+              disabled={isSaving}
+              rows={3}
+              className="w-full px-4 py-2 border border-black/15 dark:border-white/15 rounded-lg 
+                       bg-transparent text-gray-900 dark:text-white
+                       focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
+                       disabled:opacity-50 disabled:cursor-not-allowed
+                       transition-colors resize-none"
+            />
+          </div>
+
+          {/* Folder Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <Folder className="w-4 h-4 inline mr-1" />
+              Folder
+            </label>
+            <select
+              value={selectedFolder}
+              onChange={(e) => setSelectedFolder(e.target.value)}
+              disabled={isSaving}
+              className="w-full px-4 py-2 border border-black/15 dark:border-white/15 rounded-lg 
+                       bg-transparent text-gray-900 dark:text-white
+                       focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
+                       disabled:opacity-50 disabled:cursor-not-allowed
+                       transition-colors"
+            >
+              {folders.map((folder) => (
+                <option key={folder} value={folder}>
+                  {folder}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <Tag className="w-4 h-4 inline mr-1" />
+              Tags (Optional)
+            </label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyPress={handleTagInputKeyPress}
+                placeholder="Add a tag and press Enter"
+                disabled={isSaving}
+                className="flex-1 px-4 py-2 border border-black/15 dark:border-white/15 rounded-lg 
+                         bg-transparent text-gray-900 dark:text-white
+                         focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         transition-colors"
+              />
+              <button
+                type="button"
+                onClick={handleAddTag}
+                disabled={isSaving || !tagInput.trim()}
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg 
+                         hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Add
+              </button>
+            </div>
+            {/* Existing tags suggestions */}
+            {existingTags.length > 0 && (
+              <div className="mb-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Suggestions:</p>
+                <div className="flex flex-wrap gap-1">
+                  {existingTags.filter(tag => !tags.includes(tag)).slice(0, 5).map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        if (!tags.includes(tag)) {
+                          setTags([...tags, tag]);
+                        }
+                      }}
+                      className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                    >
+                      + {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Selected tags */}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTag(tag)}
+                      className="hover:text-blue-900 dark:hover:text-blue-100"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Current Assumptions Summary */}
