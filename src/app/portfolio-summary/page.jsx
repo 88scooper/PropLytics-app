@@ -25,6 +25,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useProperties, usePortfolioMetrics, usePropertyContext } from "@/context/PropertyContext";
 import { formatCurrency, formatPercentage } from "@/utils/formatting";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 
 const highlightedMetricIds = ['portfolioValue', 'equity', 'mortgageDebt'];
@@ -350,6 +351,7 @@ export default function PortfolioSummaryPage() {
       acc.utilities += (monthlyExpenses.utilities || 0) * 12;
       acc.condoFees += (monthlyExpenses.condoFees || 0) * 12;
       acc.professionalFees += (monthlyExpenses.professionalFees || 0) * 12;
+      acc.mortgagePayment += (monthlyExpenses.mortgagePayment || 0) * 12;
 
       return acc;
     },
@@ -360,6 +362,7 @@ export default function PortfolioSummaryPage() {
       utilities: 0,
       condoFees: 0,
       professionalFees: 0,
+      mortgagePayment: 0,
     }
   );
 
@@ -370,6 +373,7 @@ export default function PortfolioSummaryPage() {
     { id: 'utilities', label: 'Utilities', value: expenseAggregates.utilities },
     { id: 'condoFees', label: 'Condo Fees', value: expenseAggregates.condoFees },
     { id: 'professionalFees', label: 'Professional Fees', value: expenseAggregates.professionalFees },
+    { id: 'mortgagePayment', label: 'Mortgage Payment', value: expenseAggregates.mortgagePayment },
   ]
     .filter((category) => category.value > 0)
     .sort((a, b) => b.value - a.value)
@@ -867,13 +871,6 @@ export default function PortfolioSummaryPage() {
                         <span>{occupiedPropertiesCount} of {properties.length} properties occupied</span>
                         <span>{formatPercentage(occupancyRate)}</span>
                       </div>
-                      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                        <div
-                          className={`h-full rounded-full ${occupancyRate >= 0.75 ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-amber-500 dark:bg-amber-400'}`}
-                          style={{ width: `${Math.min(occupancyRate, 1) * 100}%` }}
-                          role="presentation"
-                        />
-                      </div>
                     </div>
 
                 <div className="space-y-4">
@@ -1163,6 +1160,49 @@ function IncomeWaterfallCard({ totalRevenue, operatingExpenses, debtService, net
 function AnnualRentalIncomeCard({ properties = [], totalMonthlyRent = 0 }) {
   const hasProperties = properties.length > 0;
 
+  // Prepare data for pie chart
+  const pieChartData = properties
+    .map((property) => {
+      const propertyName = property.nickname || property.name || 'Unnamed Property';
+      const monthlyRent = property?.rent?.monthlyRent || 0;
+      const annualRent = monthlyRent * 12;
+      return {
+        name: propertyName,
+        value: annualRent,
+      };
+    })
+    .filter((item) => item.value > 0);
+
+  // Color palette for pie chart - high contrast colors for better visibility
+  const COLORS = [
+    '#205A3E', // primary emerald green
+    '#E16262', // red
+    '#3B82F6', // blue
+    '#F59E0B', // amber/orange
+    '#8B5CF6', // purple
+    '#06B6D4', // cyan
+    '#EC4899', // pink
+    '#10B981', // bright emerald
+  ];
+
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0];
+      const percentage = totalMonthlyRent * 12 > 0 
+        ? ((data.value / (totalMonthlyRent * 12)) * 100).toFixed(1)
+        : 0;
+      return (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3">
+          <p className="font-semibold text-gray-900 dark:text-white">{data.name}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {formatCurrency(data.value)} ({percentage}%)
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="rounded-lg border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-neutral-900">
       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Annual Rental Income</h3>
@@ -1194,12 +1234,54 @@ function AnnualRentalIncomeCard({ properties = [], totalMonthlyRent = 0 }) {
             );
           })}
           <div className="border-t border-gray-200 pt-3 dark:border-gray-700">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center mb-4">
                     <span className="font-semibold text-gray-900 dark:text-gray-100">Total Annual Income</span>
               <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                 {formatCurrency(totalMonthlyRent * 12)}
                     </span>
                   </div>
+                  
+                  {/* Pie Chart */}
+                  {pieChartData.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                        Income Distribution by Property
+                      </h4>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie
+                            data={pieChartData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => 
+                              percent > 0.05 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''
+                            }
+                            outerRadius={70}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {pieChartData.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={COLORS[index % COLORS.length]} 
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip />} />
+                          <Legend 
+                            verticalAlign="bottom" 
+                            height={36}
+                            formatter={(value, entry) => (
+                              <span style={{ color: entry.color, fontSize: '12px' }}>
+                                {value}
+                              </span>
+                            )}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </div>
               </div>
       ) : (
@@ -1371,7 +1453,7 @@ function AnnualDeductibleExpensesCard({
                       <span className="font-semibold text-gray-900 dark:text-gray-100">
                 {expenseViewType === 'deductible'
                   ? 'Total Annual Deductible Expenses'
-                  : 'Total Annual Expenses (Operating + Debt)'}
+                  : 'Total Annual Expenses'}
                       </span>
               <span className="text-lg font-bold text-red-600 dark:text-red-400">
                         {expenseViewType === 'deductible' 
