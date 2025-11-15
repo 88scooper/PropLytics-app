@@ -22,6 +22,31 @@ export const DEFAULT_ASSUMPTIONS = {
 };
 
 /**
+ * Scenario presets for quick assumption adjustments
+ */
+export const SCENARIO_PRESETS = {
+  conservative: {
+    annualRentIncrease: 1.5, // Lower rent growth
+    annualExpenseInflation: 3.0, // Higher expense inflation
+    annualPropertyAppreciation: 2.0, // Lower appreciation
+    vacancyRate: 7.0, // Higher vacancy
+    futureInterestRate: 6.0, // Higher interest rates
+    exitCapRate: 5.5, // Higher cap rate (lower sale price)
+  },
+  standard: {
+    ...DEFAULT_ASSUMPTIONS, // Same as default
+  },
+  aggressive: {
+    annualRentIncrease: 3.0, // Higher rent growth
+    annualExpenseInflation: 2.0, // Lower expense inflation
+    annualPropertyAppreciation: 4.5, // Higher appreciation
+    vacancyRate: 3.0, // Lower vacancy
+    futureInterestRate: 4.0, // Lower interest rates
+    exitCapRate: 4.5, // Lower cap rate (higher sale price)
+  },
+};
+
+/**
  * Calculate IRR using Newton-Raphson method
  * @param {Array<number>} cashFlows - Array of cash flows (negative for investment, positive for returns)
  * @returns {number} IRR as a percentage
@@ -70,12 +95,13 @@ export function calculateNPV(cashFlows, discountRate) {
 }
 
 /**
- * Generate 10-year forecast for a property
+ * Generate forecast for a property
  * @param {Object} property - Property object
  * @param {Object} assumptions - Forecast assumptions
+ * @param {number} years - Number of years to forecast (default: 10)
  * @returns {Object} Forecast data with yearly projections
  */
-export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS) {
+export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS, years = 10) {
   const forecast = {
     years: [],
     netCashFlow: [],
@@ -117,7 +143,7 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS) {
   // Pre-compute forward-looking mortgage schedule summaries (fallback to empty on error)
   let mortgageYearSummaries = [];
   try {
-    mortgageYearSummaries = getMortgageYearlySummary(property.mortgage, 10);
+    mortgageYearSummaries = getMortgageYearlySummary(property.mortgage, years);
   } catch (error) {
     console.warn('Error building mortgage yearly summary:', error);
   }
@@ -137,8 +163,8 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS) {
     (property.monthlyExpenses.professionalFees || 0) +
     (property.monthlyExpenses.utilities || 0);
 
-  // Project 10 years into the future
-  for (let year = 1; year <= 10; year++) {
+  // Project years into the future
+  for (let year = 1; year <= years; year++) {
     forecast.years.push(year);
 
     // Calculate rent with vacancy allowance
@@ -181,9 +207,9 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS) {
     cumulativeCashFlow += netCashFlow;
 
     // Calculate property value
-    // For year 10, use Exit Cap Rate formula: Future Sale Price = NOI / Exit Cap Rate
+    // For final year, use Exit Cap Rate formula: Future Sale Price = NOI / Exit Cap Rate
     // For other years, use appreciation model
-    if (year === 10 && assumptions.exitCapRate && assumptions.exitCapRate > 0) {
+    if (year === years && assumptions.exitCapRate && assumptions.exitCapRate > 0) {
       currentPropertyValue = noi / (assumptions.exitCapRate / 100);
     } else {
       currentPropertyValue = property.currentMarketValue * 
@@ -218,29 +244,31 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS) {
 }
 
 /**
- * Calculate key return metrics for a property over 10 years
+ * Calculate key return metrics for a property over specified years
  * @param {Object} property - Property object
  * @param {Object} assumptions - Forecast assumptions
+ * @param {number} years - Number of years to forecast (default: 10)
  * @returns {Object} Return metrics (IRR, average annual cash flow, total profit)
  */
-export function calculateReturnMetrics(property, assumptions = DEFAULT_ASSUMPTIONS) {
-  const forecast = generateForecast(property, assumptions);
+export function calculateReturnMetrics(property, assumptions = DEFAULT_ASSUMPTIONS, years = 10) {
+  const forecast = generateForecast(property, assumptions, years);
 
   // Calculate IRR
-  // Cash flows: Year 0 = -initial investment, Years 1-9 = net cash flow, Year 10 = net cash flow + sale proceeds
+  // Cash flows: Year 0 = -initial investment, Years 1 to (years-1) = net cash flow, Final year = net cash flow + sale proceeds
+  const lastYearIndex = years - 1;
   const cashFlows = [
     -property.totalInvestment, // Initial investment (negative)
-    ...forecast.netCashFlow.slice(0, 9), // Years 1-9 cash flows
-    forecast.netCashFlow[9] + forecast.equity[9] // Year 10: cash flow + equity from sale
+    ...forecast.netCashFlow.slice(0, lastYearIndex), // Years 1 to (years-1) cash flows
+    forecast.netCashFlow[lastYearIndex] + forecast.equity[lastYearIndex] // Final year: cash flow + equity from sale
   ];
 
   const irr = calculateIRR(cashFlows);
 
   // Calculate average annual cash flow
-  const averageAnnualCashFlow = forecast.netCashFlow.reduce((sum, cf) => sum + cf, 0) / 10;
+  const averageAnnualCashFlow = forecast.netCashFlow.reduce((sum, cf) => sum + cf, 0) / years;
 
-  // Total profit at end of year 10 (if property is sold)
-  const totalProfitAtSale = forecast.totalProfit[9];
+  // Total profit at end of final year (if property is sold)
+  const totalProfitAtSale = forecast.totalProfit[lastYearIndex];
 
   return {
     irr,
