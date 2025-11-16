@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatCurrency } from '@/utils/formatting';
 import { generateForecast, formatForecastForChart } from '@/lib/sensitivity-analysis';
-import { Check, TrendingUp, TrendingDown, Download, FileImage, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
+import { Check, TrendingUp, TrendingDown, Download, FileImage, FileText, FileSpreadsheet, ChevronDown, LineChart as LineChartIcon } from 'lucide-react';
 import ChartSkeleton from '@/components/analytics/ChartSkeleton';
 import { exportChartAsPNG, exportChartAsPDF, exportChartAsCSV, generateFilename } from '@/utils/chartExport';
 import { useToast } from '@/context/ToastContext';
@@ -20,6 +20,7 @@ const BaselineForecast = ({ property, assumptions }) => {
   const [forecastData, setForecastData] = useState([]);
   const [isExporting, setIsExporting] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [years, setYears] = useState(10);
   const chartRef = useRef(null);
   const exportMenuRef = useRef(null);
   const { addToast } = useToast();
@@ -35,7 +36,7 @@ const BaselineForecast = ({ property, assumptions }) => {
     // Simulate calculation delay for better UX
     const timer = setTimeout(() => {
       try {
-        const forecast = generateForecast(property, assumptions);
+        const forecast = generateForecast(property, assumptions, years);
         const formatted = formatForecastForChart(forecast);
         setForecastData(formatted);
       } catch (error) {
@@ -47,7 +48,7 @@ const BaselineForecast = ({ property, assumptions }) => {
     }, 100); // Small delay to show loading state
 
     return () => clearTimeout(timer);
-  }, [property, assumptions]);
+  }, [property, assumptions, years]);
 
   // Toggle metric visibility
   const toggleMetric = (metricKey) => {
@@ -125,22 +126,22 @@ const BaselineForecast = ({ property, assumptions }) => {
 
     const insights = [];
     const year1 = forecastData[0];
-    const year10 = forecastData[9];
+    const lastYear = forecastData[forecastData.length - 1];
 
-    if (visibleMetrics.mortgageBalance && year1 && year10) {
-      const debtDecrease = year1.mortgageBalance - year10.mortgageBalance;
+    if (visibleMetrics.mortgageBalance && year1 && lastYear) {
+      const debtDecrease = year1.mortgageBalance - lastYear.mortgageBalance;
       const debtDecreasePercent = year1.mortgageBalance > 0
         ? ((debtDecrease / year1.mortgageBalance) * 100).toFixed(1)
         : 0;
       insights.push({
         icon: TrendingDown,
-        text: `Debt decreases by ${formatCurrency(debtDecrease)} (${debtDecreasePercent}%) over 10 years`,
+        text: `Debt decreases by ${formatCurrency(debtDecrease)} (${debtDecreasePercent}%) over ${years} years`,
         color: 'text-red-600 dark:text-red-400',
       });
     }
 
-    if (visibleMetrics.equity && year1 && year10) {
-      const equityGrowth = year10.equity - year1.equity;
+    if (visibleMetrics.equity && year1 && lastYear) {
+      const equityGrowth = lastYear.equity - year1.equity;
       insights.push({
         icon: TrendingUp,
         text: `Equity grows by ${formatCurrency(equityGrowth)} through appreciation and principal paydown`,
@@ -152,7 +153,7 @@ const BaselineForecast = ({ property, assumptions }) => {
       const cumulativeCashFlow = forecastData.reduce((sum, year) => sum + (year.netCashFlow || 0), 0);
       insights.push({
         icon: null,
-        text: `Cumulative cash flow over 10 years: ${formatCurrency(cumulativeCashFlow)}`,
+        text: `Cumulative cash flow over ${years} years: ${formatCurrency(cumulativeCashFlow)}`,
         color: 'text-green-600 dark:text-green-400',
       });
     }
@@ -219,9 +220,12 @@ const BaselineForecast = ({ property, assumptions }) => {
   if (!property) {
     return (
       <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-          📈 Baseline Forecast (10 Years)
-        </h2>
+        <div className="flex items-center gap-2 mb-1">
+          <LineChartIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Baseline Forecast
+          </h2>
+        </div>
         <p className="text-sm text-gray-600 dark:text-gray-400 text-center py-8">
           Select a property to view the baseline forecast.
         </p>
@@ -232,11 +236,32 @@ const BaselineForecast = ({ property, assumptions }) => {
   if (isCalculating || forecastData.length === 0) {
     return (
       <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-          📈 Baseline Forecast (10 Years)
-        </h2>
+        <div className="flex items-center gap-3 mb-1">
+          <LineChartIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Baseline Forecast
+          </h2>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+              Years:
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="30"
+              value={years}
+              onChange={(e) => {
+                const value = parseInt(e.target.value);
+                if (value >= 1 && value <= 30) {
+                  setYears(value);
+                }
+              }}
+              className="w-16 px-2 py-1 text-sm border border-black/10 dark:border-white/10 rounded-md bg-white dark:bg-neutral-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-          Most likely projection based on default assumptions. This chart shows your expected financial position over the next decade.
+          Most likely projection based on default assumptions. This chart shows your expected financial position over the next {years} {years === 1 ? 'year' : 'years'}.
         </p>
         <ChartSkeleton />
       </div>
@@ -279,12 +304,33 @@ const BaselineForecast = ({ property, assumptions }) => {
   return (
     <div ref={chartRef} className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
       <div className="flex items-start justify-between mb-6">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-            📈 Baseline Forecast (10 Years)
-          </h2>
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-1">
+            <LineChartIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Baseline Forecast
+            </h2>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Years:
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="30"
+                value={years}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  if (value >= 1 && value <= 30) {
+                    setYears(value);
+                  }
+                }}
+                className="w-16 px-2 py-1 text-sm border border-black/10 dark:border-white/10 rounded-md bg-white dark:bg-neutral-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Most likely projection based on default assumptions. This chart shows your expected financial position over the next decade.
+            Most likely projection based on default assumptions. This chart shows your expected financial position over the next {years} {years === 1 ? 'year' : 'years'}.
           </p>
         </div>
         
@@ -332,7 +378,7 @@ const BaselineForecast = ({ property, assumptions }) => {
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-6">
         {metricCards.map((card) => {
           const isActive = visibleMetrics[card.key];
           const colorClasses = {
@@ -361,20 +407,14 @@ const BaselineForecast = ({ property, assumptions }) => {
             <button
               key={card.key}
               onClick={() => toggleMetric(card.key)}
-              className={`rounded-lg border-2 p-4 text-left transition-all hover:shadow-md ${
+              className={`rounded-md border p-2.5 text-left transition-all hover:bg-opacity-80 ${
                 colors.bg
-              } ${colors.border} ${isActive ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900' : ''}`}
+              } ${colors.border} ${isActive ? 'ring-1 ring-offset-1' : ''}`}
               style={isActive ? { ringColor: colors.accent } : {}}
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between">
                 <span className={`text-xs font-medium ${colors.accent}`}>{card.label}</span>
-                {isActive && <Check className={`w-4 h-4 ${colors.accent}`} />}
-              </div>
-              <div className={`text-lg font-bold ${colors.text} mb-1`}>
-                {formatCurrency(card.year1Value)}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                Year 10: {formatCurrency(card.year10Value)}
+                {isActive && <Check className={`w-3 h-3 ${colors.accent}`} />}
               </div>
             </button>
           );
@@ -458,26 +498,26 @@ const BaselineForecast = ({ property, assumptions }) => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-1">
-              Year 10 Net Cash Flow
+              Year {years} Net Cash Flow
             </p>
             <p className="text-2xl font-bold text-green-900 dark:text-green-300">
-              {formatCurrency(forecastData[9]?.netCashFlow || 0)}
+              {formatCurrency(forecastData[forecastData.length - 1]?.netCashFlow || 0)}
             </p>
           </div>
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-1">
-              Year 10 Total Equity
+              Year {years} Total Equity
             </p>
             <p className="text-2xl font-bold text-blue-900 dark:text-blue-300">
-              {formatCurrency(forecastData[9]?.equity || 0)}
+              {formatCurrency(forecastData[forecastData.length - 1]?.equity || 0)}
             </p>
           </div>
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-1">
-              Year 10 Mortgage Balance
+              Year {years} Mortgage Balance
             </p>
             <p className="text-2xl font-bold text-red-900 dark:text-red-300">
-              {formatCurrency(forecastData[9]?.mortgageBalance || 0)}
+              {formatCurrency(forecastData[forecastData.length - 1]?.mortgageBalance || 0)}
             </p>
           </div>
         </div>

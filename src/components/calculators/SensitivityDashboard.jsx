@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { formatCurrency, formatPercentage } from '@/utils/formatting';
 import { calculateReturnMetrics, compareScenarios, calculateYoYMetrics, DEFAULT_ASSUMPTIONS } from '@/lib/sensitivity-analysis';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Target, ChevronDown, Lightbulb, Check, ArrowRight, AlertTriangle } from 'lucide-react';
 import MetricCardSkeleton from '@/components/analytics/MetricCardSkeleton';
 
 const SensitivityDashboard = ({ property, assumptions }) => {
@@ -12,6 +12,8 @@ const SensitivityDashboard = ({ property, assumptions }) => {
   const [newScenarioMetrics, setNewScenarioMetrics] = useState(null);
   const [comparison, setComparison] = useState(null);
   const [yoyMetrics, setYoyMetrics] = useState(null);
+  const [isOpen, setIsOpen] = useState(true);
+  const dropdownRef = useRef(null);
 
   // Calculate metrics with loading state
   useEffect(() => {
@@ -48,27 +50,54 @@ const SensitivityDashboard = ({ property, assumptions }) => {
 
   if (!property) {
     return (
-      <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          🎯 Sensitivity Analysis Dashboard
-        </h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400 text-center py-8">
-          Select a property to view sensitivity analysis.
-        </p>
+      <div className="bg-white dark:bg-neutral-900 rounded-lg border border-black/10 dark:border-white/10 shadow-sm" ref={dropdownRef}>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full flex items-center justify-between px-4 py-3 text-left"
+          disabled
+        >
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <span className="font-semibold text-gray-900 dark:text-white">
+              Sensitivity Analysis Dashboard
+            </span>
+          </div>
+          <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {isOpen && (
+          <div className="px-4 pb-4">
+            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+              <div className="text-sm">Select a property to view sensitivity analysis</div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   if (isCalculating || !baselineMetrics || !newScenarioMetrics || !comparison) {
     return (
-      <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          🎯 Sensitivity Analysis Dashboard
-        </h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-          Compare baseline scenario with your adjusted assumptions. Green indicates improvement, red indicates decline.
-        </p>
-        <MetricCardSkeleton count={3} />
+      <div className="bg-white dark:bg-neutral-900 rounded-lg border border-black/10 dark:border-white/10 shadow-sm" ref={dropdownRef}>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <span className="font-semibold text-gray-900 dark:text-white">
+              Sensitivity Analysis Dashboard
+            </span>
+          </div>
+          <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {isOpen && (
+          <div className="px-4 pb-4 pt-2 border-t border-black/10 dark:border-white/10">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              Compare baseline scenario with your adjusted assumptions. Green indicates improvement, red indicates decline.
+            </p>
+            <MetricCardSkeleton count={3} />
+          </div>
+        )}
       </div>
     );
   }
@@ -176,13 +205,24 @@ const SensitivityDashboard = ({ property, assumptions }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        🎯 Sensitivity Analysis Dashboard
-      </h2>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-        Compare baseline scenario with your adjusted assumptions. Green indicates improvement, red indicates decline.
-      </p>
+    <div className="bg-white dark:bg-neutral-900 rounded-lg border border-black/10 dark:border-white/10 shadow-sm" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Target className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+          <span className="font-semibold text-gray-900 dark:text-white">
+            Sensitivity Analysis Dashboard
+          </span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {isOpen && (
+        <div className="px-4 pb-4 pt-2 border-t border-black/10 dark:border-white/10">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+            Compare baseline scenario with your adjusted assumptions. Green indicates improvement, red indicates decline.
+          </p>
 
       <div className="space-y-6">
         {allMetrics.map((metric, index) => (
@@ -250,36 +290,48 @@ const SensitivityDashboard = ({ property, assumptions }) => {
 
       {/* Key Insights */}
       <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
-          💡 Key Insights
-        </h3>
+        <div className="flex items-center gap-2 mb-3">
+          <Lightbulb className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+          <h3 className="font-semibold text-gray-900 dark:text-white">
+            Key Insights
+          </h3>
+        </div>
         <div className="space-y-2 text-sm">
           {comparison.irr.difference > 0 ? (
-            <p className="text-emerald-700 dark:text-emerald-400">
-              ✓ Your adjusted assumptions project a <strong>{comparison.irr.percentChange.toFixed(1)}% higher IRR</strong>, 
-              suggesting more favorable investment conditions.
-            </p>
+            <div className="flex items-start gap-2 text-emerald-700 dark:text-emerald-400">
+              <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <p>
+                Your adjusted assumptions project a <strong>{comparison.irr.percentChange.toFixed(1)}% higher IRR</strong>, 
+                suggesting more favorable investment conditions.
+              </p>
+            </div>
           ) : comparison.irr.difference < 0 ? (
-            <p className="text-red-700 dark:text-red-400">
-              ⚠ Your adjusted assumptions project a <strong>{Math.abs(comparison.irr.percentChange).toFixed(1)}% lower IRR</strong>, 
-              suggesting less favorable investment conditions.
-            </p>
+            <div className="flex items-start gap-2 text-red-700 dark:text-red-400">
+              <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <p>
+                Your adjusted assumptions project a <strong>{Math.abs(comparison.irr.percentChange).toFixed(1)}% lower IRR</strong>, 
+                suggesting less favorable investment conditions.
+              </p>
+            </div>
           ) : (
-            <p className="text-gray-600 dark:text-gray-400">
-              → Your adjusted assumptions result in similar returns to the baseline.
-            </p>
+            <div className="flex items-start gap-2 text-gray-600 dark:text-gray-400">
+              <ArrowRight className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <p>
+                Your adjusted assumptions result in similar returns to the baseline.
+              </p>
+            </div>
           )}
 
           {Math.abs(comparison.averageAnnualCashFlow.difference) > 1000 && (
             <p className="text-gray-600 dark:text-gray-400">
-              • Average annual cash flow changes by <strong>{formatCurrency(Math.abs(comparison.averageAnnualCashFlow.difference))}</strong> per year,
+              Average annual cash flow changes by <strong>{formatCurrency(Math.abs(comparison.averageAnnualCashFlow.difference))}</strong> per year,
               totaling <strong>{formatCurrency(Math.abs(comparison.averageAnnualCashFlow.difference) * 10)}</strong> over 10 years.
             </p>
           )}
 
           {Math.abs(comparison.totalProfitAtSale.difference) > 10000 && (
             <p className="text-gray-600 dark:text-gray-400">
-              • If you sell at year 10, your total profit would be <strong>{formatCurrency(Math.abs(comparison.totalProfitAtSale.difference))} 
+              If you sell at year 10, your total profit would be <strong>{formatCurrency(Math.abs(comparison.totalProfitAtSale.difference))} 
               {comparison.totalProfitAtSale.difference > 0 ? ' higher' : ' lower'}</strong> than baseline.
             </p>
           )}
@@ -289,7 +341,7 @@ const SensitivityDashboard = ({ property, assumptions }) => {
             <>
               {Math.abs(yoyMetrics.projected.revenue - yoyMetrics.baselineProjected.revenue) > 0.5 && (
                 <p className="text-gray-600 dark:text-gray-400">
-                  • Your rent growth assumptions will impact next year's revenue by <strong>
+                  Your rent growth assumptions will impact next year's revenue by <strong>
                     {Math.abs(yoyMetrics.projected.revenue - yoyMetrics.baselineProjected.revenue).toFixed(1)}%
                   </strong> {yoyMetrics.projected.revenue > yoyMetrics.baselineProjected.revenue ? 'more' : 'less'} than baseline.
                 </p>
@@ -297,7 +349,7 @@ const SensitivityDashboard = ({ property, assumptions }) => {
               
               {Math.abs(yoyMetrics.projected.expenses - yoyMetrics.baselineProjected.expenses) > 0.5 && (
                 <p className="text-gray-600 dark:text-gray-400">
-                  • Your expense inflation assumptions will impact next year's expenses by <strong>
+                  Your expense inflation assumptions will impact next year's expenses by <strong>
                     {Math.abs(yoyMetrics.projected.expenses - yoyMetrics.baselineProjected.expenses).toFixed(1)}%
                   </strong> {yoyMetrics.projected.expenses < yoyMetrics.baselineProjected.expenses ? 'less' : 'more'} than baseline.
                 </p>
@@ -305,7 +357,7 @@ const SensitivityDashboard = ({ property, assumptions }) => {
               
               {Math.abs(yoyMetrics.projected.cashFlow - yoyMetrics.baselineProjected.cashFlow) > 1 && (
                 <p className="text-gray-600 dark:text-gray-400">
-                  • Combined assumptions will impact next year's cash flow growth by <strong>
+                  Combined assumptions will impact next year's cash flow growth by <strong>
                     {Math.abs(yoyMetrics.projected.cashFlow - yoyMetrics.baselineProjected.cashFlow).toFixed(1)}%
                   </strong> {yoyMetrics.projected.cashFlow > yoyMetrics.baselineProjected.cashFlow ? 'more' : 'less'} than baseline.
                 </p>
@@ -314,6 +366,8 @@ const SensitivityDashboard = ({ property, assumptions }) => {
           )}
         </div>
       </div>
+        </div>
+      )}
     </div>
   );
 };

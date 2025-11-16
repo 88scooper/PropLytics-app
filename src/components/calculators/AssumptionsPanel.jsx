@@ -1,4 +1,15 @@
 "use client";
+/**
+ * AssumptionsPanel - BASELINE DESIGN
+ * 
+ * ⚠️ IMPORTANT: This is the baseline design. Do not revert to old layouts.
+ * 
+ * Key features:
+ * - Preset Templates and Analysis Mode in same row (grid layout)
+ * - Input fields in single horizontal row
+ * - Compact Save Scenario button (inline, small size)
+ * - Presets: Conservative, Moderate, Aggressive
+ */
 
 import { useState, useEffect } from 'react';
 import { HelpCircle, Save, TrendingUp, TrendingDown, Home, Sparkles } from 'lucide-react';
@@ -169,82 +180,102 @@ const AssumptionsPanel = ({ assumptions, onAssumptionsChange, onSaveClick }) => 
     <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-          Assumptions
-        </h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          {scenarioMode === SCENARIO_MODES.CUSTOM
-            ? 'Adjust assumptions to model different scenarios'
-            : `Focus mode: ${currentScenario.description.toLowerCase()}`}
-        </p>
+        <div className="flex items-start justify-between mb-1">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+              Scenario Builder
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {scenarioMode === SCENARIO_MODES.CUSTOM
+                ? 'Adjust assumptions to model different scenarios'
+                : `Focus mode: ${currentScenario.description.toLowerCase()}`}
+            </p>
+          </div>
+          {onSaveClick && (
+            <button
+              onClick={onSaveClick}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 
+                       bg-black text-white dark:bg-white dark:text-gray-900 rounded-md 
+                       hover:opacity-90 transition-opacity text-xs font-medium flex-shrink-0"
+            >
+              <Save className="w-3.5 h-3.5" />
+              Save Scenario
+            </button>
+          )}
+        </div>
       </div>
       
-      {/* Preset Templates */}
+      {/* Preset Templates and Analysis Mode - Combined Row */}
       <div className="mb-6">
-        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Preset Templates
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(PRESET_TEMPLATES).map(([key, template]) => {
-            const isActive = selectedTemplate === key;
-            return (
-              <button
-                key={key}
-                onClick={() => handleTemplateSelect(key)}
-                className={`group relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  isActive
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-2 border-emerald-300 dark:border-emerald-700'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 border-2 border-transparent'
-                }`}
-                title={template.description}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{template.name}</span>
-                {isActive && (
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full"></div>
-                )}
-              </button>
-            );
-          })}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Preset Templates */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Preset Templates
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(PRESET_TEMPLATES).map(([key, template]) => {
+                const isActive = selectedTemplate === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleTemplateSelect(key)}
+                    className={`group relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      isActive
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-2 border-emerald-300 dark:border-emerald-700'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 border-2 border-transparent'
+                    }`}
+                    title={template.description}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{template.name}</span>
+                    {isActive && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full"></div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              {PRESET_TEMPLATES[selectedTemplate]?.description}
+            </p>
+          </div>
+
+          {/* Scenario Mode Selector - Compact Pills */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Analysis Mode
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(scenarioConfigs).map(([mode, config]) => {
+                const Icon = config.icon;
+                const isActive = scenarioMode === mode;
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => handleScenarioModeChange(mode)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      isActive
+                        ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {Icon && <Icon className="w-3.5 h-3.5" />}
+                    <span>{config.label.replace(' Scenario', '').replace(' Analysis', '')}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
-        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          {PRESET_TEMPLATES[selectedTemplate]?.description}
-        </p>
       </div>
 
-      {/* Scenario Mode Selector - Compact Pills */}
-      <div className="mb-6">
-        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Analysis Mode
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(scenarioConfigs).map(([mode, config]) => {
-            const Icon = config.icon;
-            const isActive = scenarioMode === mode;
-            return (
-              <button
-                key={mode}
-                onClick={() => handleScenarioModeChange(mode)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  isActive
-                    ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-                }`}
-              >
-                {Icon && <Icon className="w-3.5 h-3.5" />}
-                <span>{config.label.replace(' Scenario', '').replace(' Analysis', '')}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Input Fields - Compact Grid */}
-      <div className="space-y-4">
+      {/* Input Fields - Single Row */}
+      <div className="flex items-end gap-3 flex-wrap">
         {inputFields.map((field) => {
           const isEditable = isFieldEditable(field.id);
           return (
-            <div key={field.id} className={!isEditable ? 'opacity-50' : ''}>
+            <div key={field.id} className={`flex-1 min-w-[140px] ${!isEditable ? 'opacity-50' : ''}`}>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="flex items-center gap-1.5 text-xs font-medium text-gray-700 dark:text-gray-300">
                   {field.label}
@@ -282,7 +313,7 @@ const AssumptionsPanel = ({ assumptions, onAssumptionsChange, onSaveClick }) => 
                   min="0"
                   max="100"
                   disabled={!isEditable}
-                  className={`w-full px-3 py-2 pr-8 rounded-md border bg-transparent text-sm transition-colors ${
+                  className={`w-full px-2.5 py-2 pr-8 rounded-md border bg-transparent text-sm transition-colors ${
                     isEditable
                       ? 'border-black/15 dark:border-white/15 text-gray-900 dark:text-white focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20'
                       : 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
@@ -300,22 +331,10 @@ const AssumptionsPanel = ({ assumptions, onAssumptionsChange, onSaveClick }) => 
       </div>
 
       {/* Actions */}
-      <div className="mt-6 pt-5 border-t border-black/10 dark:border-white/10 space-y-2">
-        {onSaveClick && (
-          <button
-            onClick={onSaveClick}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 
-                     bg-black text-white dark:bg-white dark:text-gray-900 rounded-md 
-                     hover:opacity-90 transition-opacity text-sm font-medium"
-          >
-            <Save className="w-4 h-4" />
-            Save Scenario
-          </button>
-        )}
-        
+      <div className="mt-6 pt-5 border-t border-black/10 dark:border-white/10">
         <button
           onClick={handleResetToTemplate}
-          className="w-full text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 
+          className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 
                    font-medium transition-colors py-1.5"
         >
           Reset to {PRESET_TEMPLATES[selectedTemplate]?.name || 'Moderate'}

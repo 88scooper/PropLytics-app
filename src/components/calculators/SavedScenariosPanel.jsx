@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { Trash2, Download, Upload, RefreshCw, Calendar, TrendingUp, Search, Folder, Tag, X, Edit2 } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Trash2, Download, Upload, RefreshCw, Calendar, TrendingUp, Search, Folder, Tag, X, Edit2, ChevronDown } from 'lucide-react';
 import { 
   getSavedScenarios, 
   deleteScenario, 
@@ -22,6 +22,8 @@ const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions })
   const [searchQuery, setSearchQuery] = useState('');
   const [showFolderManager, setShowFolderManager] = useState(false);
   const [editingScenario, setEditingScenario] = useState(null);
+  const [isOpen, setIsOpen] = useState(true);
+  const dropdownRef = useRef(null);
 
   // Load saved scenarios
   useEffect(() => {
@@ -128,52 +130,96 @@ const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions })
   const totalScenarios = savedScenarios.length;
   const filteredCount = Object.values(filteredScenarios).flat().length;
 
+  // Click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        // Don't close on outside click for this component
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const getButtonText = () => {
+    if (totalScenarios === 0) {
+      return 'No Saved Scenarios';
+    }
+    const currentScenario = savedScenarios.find(s => isCurrentScenario(s));
+    if (currentScenario) {
+      return `Current: ${currentScenario.name}`;
+    }
+    return `${totalScenarios} Saved Scenario${totalScenarios !== 1 ? 's' : ''}`;
+  };
+
   if (totalScenarios === 0) {
     return (
-      <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5" />
-          Saved Scenarios
-        </h3>
-        <div className="text-center py-8">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Download className="w-8 h-8 text-gray-400" />
+      <div className="bg-white dark:bg-neutral-900 rounded-lg border border-black/10 dark:border-white/10 shadow-sm" ref={dropdownRef}>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full flex items-center justify-between px-4 py-3 text-left"
+        >
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <span className="font-semibold text-gray-900 dark:text-white">
+              Saved Scenarios
+            </span>
           </div>
-          <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
-            No saved scenarios yet
-          </p>
-          <p className="text-gray-500 dark:text-gray-500 text-xs">
-            Save your current assumptions to compare different scenarios later
-          </p>
-        </div>
+          <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {isOpen && (
+          <div className="px-4 pb-4">
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Download className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
+                No saved scenarios yet
+              </p>
+              <p className="text-gray-500 dark:text-gray-500 text-xs">
+                Save your current assumptions to compare different scenarios later
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-          <TrendingUp className="w-5 h-5" />
-          Saved Scenarios
-        </h3>
+    <div className="bg-white dark:bg-neutral-900 rounded-lg border border-black/10 dark:border-white/10 shadow-sm" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+      >
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowFolderManager(true)}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            title="Manage Folders"
-          >
-            <Folder className="w-4 h-4" />
-          </button>
-          <button
-            onClick={loadScenarios}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            title="Refresh"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
+          <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+          <span className="font-semibold text-gray-900 dark:text-white">
+            {getButtonText()}
+          </span>
         </div>
-      </div>
+        <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {isOpen && (
+        <div className="px-4 pb-4 pt-2 border-t border-black/10 dark:border-white/10">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowFolderManager(true)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                title="Manage Folders"
+              >
+                <Folder className="w-4 h-4" />
+              </button>
+              <button
+                onClick={loadScenarios}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                title="Refresh"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
 
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
         {filteredCount} of {totalScenarios} scenario{totalScenarios !== 1 ? 's' : ''} {selectedFolder !== 'All Scenarios' ? `in "${selectedFolder}"` : 'total'}
@@ -429,6 +475,8 @@ const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions })
             setSelectedFolder('All Scenarios');
           }}
         />
+      )}
+        </div>
       )}
     </div>
   );
