@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Save, AlertCircle, Folder, Tag, FileText } from 'lucide-react';
 import { saveScenario, scenarioNameExists, getFolders, getAllTags } from '@/lib/scenario-storage';
 
-const SaveScenarioModal = ({ isOpen, onClose, assumptions, property, onSaveSuccess }) => {
+const SaveScenarioModal = ({ isOpen, onClose, assumptions, property, onSaveSuccess, analysisType = 'cash-flow' }) => {
   const [scenarioName, setScenarioName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedFolder, setSelectedFolder] = useState('Uncategorized');
@@ -82,6 +82,7 @@ const SaveScenarioModal = ({ isOpen, onClose, assumptions, property, onSaveSucce
         propertyName: property.nickname,
         assumptions: assumptions,
         folder: selectedFolder,
+        type: analysisType,
         tags: tags,
         description: description,
       });

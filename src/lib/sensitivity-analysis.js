@@ -10,16 +10,27 @@
 import { getCurrentMortgageBalance, getMonthlyMortgagePayment, getMortgageYearlySummary } from '@/utils/mortgageCalculator';
 
 /**
- * Default assumptions for sensitivity analysis
+ * Default assumptions for cash flow analysis
  */
-export const DEFAULT_ASSUMPTIONS = {
+export const CASH_FLOW_DEFAULT_ASSUMPTIONS = {
   annualRentIncrease: 2.0, // 2% per year
   annualExpenseInflation: 2.5, // 2.5% per year
-  annualPropertyAppreciation: 3.0, // 3% per year
   vacancyRate: 5.0, // 5% vacancy allowance
-  futureInterestRate: 5.0, // 5% for mortgage renewals
-  exitCapRate: 5.0, // 5% cap rate for calculating future sale price
 };
+
+/**
+ * Default assumptions for equity analysis
+ */
+export const EQUITY_DEFAULT_ASSUMPTIONS = {
+  annualPropertyAppreciation: 3.0, // 3% per year
+  exitCapRate: 5.0, // 5% for calculating future sale price
+  futureInterestRate: 5.0, // 5% for mortgage renewals
+};
+
+/**
+ * Default assumptions (backward compatibility - defaults to cash flow)
+ */
+export const DEFAULT_ASSUMPTIONS = CASH_FLOW_DEFAULT_ASSUMPTIONS;
 
 /**
  * Scenario presets for quick assumption adjustments
@@ -28,10 +39,7 @@ export const SCENARIO_PRESETS = {
   conservative: {
     annualRentIncrease: 1.5, // Lower rent growth
     annualExpenseInflation: 3.0, // Higher expense inflation
-    annualPropertyAppreciation: 2.0, // Lower appreciation
     vacancyRate: 7.0, // Higher vacancy
-    futureInterestRate: 6.0, // Higher interest rates
-    exitCapRate: 5.5, // Higher cap rate (lower sale price)
   },
   standard: {
     ...DEFAULT_ASSUMPTIONS, // Same as default
@@ -39,10 +47,7 @@ export const SCENARIO_PRESETS = {
   aggressive: {
     annualRentIncrease: 3.0, // Higher rent growth
     annualExpenseInflation: 2.0, // Lower expense inflation
-    annualPropertyAppreciation: 4.5, // Higher appreciation
     vacancyRate: 3.0, // Lower vacancy
-    futureInterestRate: 4.0, // Lower interest rates
-    exitCapRate: 4.5, // Lower cap rate (higher sale price)
   },
 };
 
@@ -99,17 +104,26 @@ export function calculateNPV(cashFlows, discountRate) {
  * @param {Object} property - Property object
  * @param {Object} assumptions - Forecast assumptions
  * @param {number} years - Number of years to forecast (default: 10)
+ * @param {string} analysisMode - 'cash-flow' | 'equity' (default: 'cash-flow')
  * @returns {Object} Forecast data with yearly projections
  */
-export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS, years = 10) {
-  const forecast = {
+export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS, years = 10, analysisMode = 'cash-flow') {
+  // Initialize forecast structure based on mode
+  const forecast = analysisMode === 'equity' ? {
+    years: [],
+    propertyValue: [],
+    mortgageBalance: [],
+    equity: [],
+    equityFromAppreciation: [],
+    equityFromPaydown: [],
+    equityGrowthRate: [],
+    originalPropertyValue: property.currentMarketValue || property.purchasePrice || 0,
+    originalMortgageBalance: 0,
+  } : {
     years: [],
     netCashFlow: [],
     mortgageBalance: [],
-    propertyValue: [],
-    equity: [],
     cumulativeCashFlow: [],
-    totalProfit: [],
     noi: [], // Net Operating Income (before debt service)
     rentalIncome: [],
     operatingExpenses: [],
@@ -125,6 +139,11 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS, ye
   } catch (error) {
     console.warn('Error getting mortgage balance, using original amount:', error);
     currentMortgageBalance = property.mortgage.originalAmount;
+  }
+
+  // Store original values for equity calculations
+  if (analysisMode === 'equity') {
+    forecast.originalMortgageBalance = property.mortgage.originalAmount || currentMortgageBalance;
   }
 
   let monthlyMortgagePayment;
@@ -149,95 +168,131 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS, ye
   }
 
   // Starting values
-  let currentRent = property.rent.monthlyRent;
-  let currentPropertyValue = property.currentMarketValue;
+  let currentRent = property.rent?.monthlyRent || 0;
   let mortgageBalance = currentMortgageBalance;
   let cumulativeCashFlow = 0;
+  let currentPropertyValue = forecast.originalPropertyValue || property.currentMarketValue || property.purchasePrice || 0;
   
-  // Calculate current monthly operating expenses (excluding mortgage)
-  const currentMonthlyOperatingExpenses = 
-    (property.monthlyExpenses.propertyTax || 0) +
-    (property.monthlyExpenses.condoFees || 0) +
-    (property.monthlyExpenses.insurance || 0) +
-    (property.monthlyExpenses.maintenance || 0) +
-    (property.monthlyExpenses.professionalFees || 0) +
-    (property.monthlyExpenses.utilities || 0);
+  // Calculate current monthly operating expenses (excluding mortgage) - only for cash-flow mode
+  const currentMonthlyOperatingExpenses = analysisMode === 'cash-flow' ? 
+    ((property.monthlyExpenses?.propertyTax || 0) +
+    (property.monthlyExpenses?.condoFees || 0) +
+    (property.monthlyExpenses?.insurance || 0) +
+    (property.monthlyExpenses?.maintenance || 0) +
+    (property.monthlyExpenses?.professionalFees || 0) +
+    (property.monthlyExpenses?.utilities || 0)) : 0;
 
   // Project years into the future
   for (let year = 1; year <= years; year++) {
     forecast.years.push(year);
 
-    // Calculate rent with vacancy allowance
-    const effectiveRent = currentRent * (1 - assumptions.vacancyRate / 100);
-    const annualRentalIncome = effectiveRent * 12;
+    if (analysisMode === 'equity') {
+      // EQUITY MODE CALCULATIONS
+      
+      // Calculate property value using appreciation model
+      // For final year, use Exit Cap Rate formula if provided
+      if (year === years && assumptions.exitCapRate && assumptions.exitCapRate > 0) {
+        // Calculate NOI for exit cap rate (simplified - using current rent and expenses)
+        const currentRentAnnual = (property.rent?.monthlyRent || 0) * 12;
+        const currentExpensesAnnual = currentMonthlyOperatingExpenses * 12;
+        const finalNOI = currentRentAnnual - currentExpensesAnnual;
+        currentPropertyValue = finalNOI / (assumptions.exitCapRate / 100);
+      } else {
+        // Use appreciation model
+        currentPropertyValue = forecast.originalPropertyValue * 
+          Math.pow(1 + (assumptions.annualPropertyAppreciation || 0) / 100, year);
+      }
 
-    // Calculate operating expenses (grows with inflation)
-    const annualOperatingExpenses = currentMonthlyOperatingExpenses * 12 * 
-      Math.pow(1 + assumptions.annualExpenseInflation / 100, year - 1);
+      // Determine mortgage balance using schedule-driven values when available
+      const mortgageSummary = mortgageYearSummaries[year - 1];
+      if (mortgageSummary) {
+        mortgageBalance = mortgageSummary.endingBalance;
+      } else if (mortgageBalance > 0 && monthlyMortgagePayment > 0) {
+        const annualMortgagePayment = monthlyMortgagePayment * 12;
+        const estimatedAnnualInterest = mortgageBalance * (assumptions.futureInterestRate || property.mortgage.interestRate) / 100;
+        const annualPrincipal = Math.min(annualMortgagePayment - estimatedAnnualInterest, mortgageBalance);
+        mortgageBalance = Math.max(0, mortgageBalance - annualPrincipal);
+      } else {
+        mortgageBalance = 0;
+      }
 
-    // Calculate NOI (Net Operating Income - before debt service)
-    const noi = annualRentalIncome - annualOperatingExpenses;
+      // Calculate equity
+      const equity = currentPropertyValue - mortgageBalance;
 
-    // Determine debt service using schedule-driven values when available
-    let annualDebtService = 0;
-    let annualPrincipalPaid = 0;
-    let annualInterestPaid = 0;
+      // Calculate equity sources
+      const equityFromAppreciation = currentPropertyValue - forecast.originalPropertyValue;
+      const equityFromPaydown = forecast.originalMortgageBalance - mortgageBalance;
 
-    const mortgageSummary = mortgageYearSummaries[year - 1];
+      // Calculate equity growth rate (year-over-year)
+      let equityGrowthRate = 0;
+      if (year > 1 && forecast.equity[year - 2] > 0) {
+        equityGrowthRate = ((equity - forecast.equity[year - 2]) / forecast.equity[year - 2]) * 100;
+      }
 
-    if (mortgageSummary) {
-      annualDebtService = mortgageSummary.totalPayment;
-      annualPrincipalPaid = mortgageSummary.totalPrincipal;
-      annualInterestPaid = mortgageSummary.totalInterest;
-      mortgageBalance = mortgageSummary.endingBalance;
-    } else if (mortgageBalance > 0 && monthlyMortgagePayment > 0) {
-      const annualMortgagePayment = monthlyMortgagePayment * 12;
-      const estimatedAnnualInterest = mortgageBalance * property.mortgage.interestRate;
-      const annualPrincipal = Math.min(annualMortgagePayment - estimatedAnnualInterest, mortgageBalance);
-      annualDebtService = annualMortgagePayment;
-      annualPrincipalPaid = annualPrincipal;
-      annualInterestPaid = estimatedAnnualInterest;
-      mortgageBalance = Math.max(0, mortgageBalance - annualPrincipal);
+      // Store equity values
+      forecast.propertyValue.push(currentPropertyValue);
+      forecast.mortgageBalance.push(mortgageBalance);
+      forecast.equity.push(equity);
+      forecast.equityFromAppreciation.push(equityFromAppreciation);
+      forecast.equityFromPaydown.push(equityFromPaydown);
+      forecast.equityGrowthRate.push(equityGrowthRate);
+
     } else {
-      mortgageBalance = 0;
+      // CASH FLOW MODE CALCULATIONS
+      
+      // Calculate rent with vacancy allowance
+      const effectiveRent = currentRent * (1 - (assumptions.vacancyRate || 0) / 100);
+      const annualRentalIncome = effectiveRent * 12;
+
+      // Calculate operating expenses (grows with inflation)
+      const annualOperatingExpenses = currentMonthlyOperatingExpenses * 12 * 
+        Math.pow(1 + (assumptions.annualExpenseInflation || 0) / 100, year - 1);
+
+      // Calculate NOI (Net Operating Income - before debt service)
+      const noi = annualRentalIncome - annualOperatingExpenses;
+
+      // Determine debt service using schedule-driven values when available
+      let annualDebtService = 0;
+      let annualPrincipalPaid = 0;
+      let annualInterestPaid = 0;
+
+      const mortgageSummary = mortgageYearSummaries[year - 1];
+
+      if (mortgageSummary) {
+        annualDebtService = mortgageSummary.totalPayment;
+        annualPrincipalPaid = mortgageSummary.totalPrincipal;
+        annualInterestPaid = mortgageSummary.totalInterest;
+        mortgageBalance = mortgageSummary.endingBalance;
+      } else if (mortgageBalance > 0 && monthlyMortgagePayment > 0) {
+        const annualMortgagePayment = monthlyMortgagePayment * 12;
+        const estimatedAnnualInterest = mortgageBalance * property.mortgage.interestRate;
+        const annualPrincipal = Math.min(annualMortgagePayment - estimatedAnnualInterest, mortgageBalance);
+        annualDebtService = annualMortgagePayment;
+        annualPrincipalPaid = annualPrincipal;
+        annualInterestPaid = estimatedAnnualInterest;
+        mortgageBalance = Math.max(0, mortgageBalance - annualPrincipal);
+      } else {
+        mortgageBalance = 0;
+      }
+
+      // Calculate net cash flow (after debt service)
+      const netCashFlow = annualRentalIncome - annualOperatingExpenses - annualDebtService;
+      cumulativeCashFlow += netCashFlow;
+
+      // Store values (cash flow metrics only)
+      forecast.netCashFlow.push(netCashFlow);
+      forecast.mortgageBalance.push(mortgageBalance);
+      forecast.cumulativeCashFlow.push(cumulativeCashFlow);
+      forecast.noi.push(noi);
+      forecast.rentalIncome.push(annualRentalIncome);
+      forecast.operatingExpenses.push(annualOperatingExpenses);
+      forecast.debtService.push(annualDebtService);
+      forecast.debtServicePrincipal.push(annualPrincipalPaid);
+      forecast.debtServiceInterest.push(annualInterestPaid);
+
+      // Update rent for next year
+      currentRent = currentRent * (1 + (assumptions.annualRentIncrease || 0) / 100);
     }
-
-    // Calculate net cash flow (after debt service)
-    const netCashFlow = annualRentalIncome - annualOperatingExpenses - annualDebtService;
-    cumulativeCashFlow += netCashFlow;
-
-    // Calculate property value
-    // For final year, use Exit Cap Rate formula: Future Sale Price = NOI / Exit Cap Rate
-    // For other years, use appreciation model
-    if (year === years && assumptions.exitCapRate && assumptions.exitCapRate > 0) {
-      currentPropertyValue = noi / (assumptions.exitCapRate / 100);
-    } else {
-      currentPropertyValue = property.currentMarketValue * 
-        Math.pow(1 + assumptions.annualPropertyAppreciation / 100, year);
-    }
-
-    // Calculate equity
-    const equity = currentPropertyValue - mortgageBalance;
-
-    // Calculate total profit if sold today (equity + cumulative cash flow - initial investment)
-    const totalProfit = equity + cumulativeCashFlow - property.totalInvestment;
-
-    // Store values
-    forecast.netCashFlow.push(netCashFlow);
-    forecast.mortgageBalance.push(mortgageBalance);
-    forecast.propertyValue.push(currentPropertyValue);
-    forecast.equity.push(equity);
-    forecast.cumulativeCashFlow.push(cumulativeCashFlow);
-    forecast.totalProfit.push(totalProfit);
-    forecast.noi.push(noi);
-    forecast.rentalIncome.push(annualRentalIncome);
-    forecast.operatingExpenses.push(annualOperatingExpenses);
-    forecast.debtService.push(annualDebtService);
-    forecast.debtServicePrincipal.push(annualPrincipalPaid);
-    forecast.debtServiceInterest.push(annualInterestPaid);
-
-    // Update rent for next year
-    currentRent = currentRent * (1 + assumptions.annualRentIncrease / 100);
   }
 
   return forecast;
@@ -253,27 +308,35 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS, ye
 export function calculateReturnMetrics(property, assumptions = DEFAULT_ASSUMPTIONS, years = 10) {
   const forecast = generateForecast(property, assumptions, years);
 
-  // Calculate IRR
-  // Cash flows: Year 0 = -initial investment, Years 1 to (years-1) = net cash flow, Final year = net cash flow + sale proceeds
-  const lastYearIndex = years - 1;
-  const cashFlows = [
-    -property.totalInvestment, // Initial investment (negative)
-    ...forecast.netCashFlow.slice(0, lastYearIndex), // Years 1 to (years-1) cash flows
-    forecast.netCashFlow[lastYearIndex] + forecast.equity[lastYearIndex] // Final year: cash flow + equity from sale
-  ];
-
-  const irr = calculateIRR(cashFlows);
-
   // Calculate average annual cash flow
   const averageAnnualCashFlow = forecast.netCashFlow.reduce((sum, cf) => sum + cf, 0) / years;
 
-  // Total profit at end of final year (if property is sold)
-  const totalProfitAtSale = forecast.totalProfit[lastYearIndex];
+  // Total cumulative cash flow
+  const totalCumulativeCashFlow = forecast.cumulativeCashFlow[years - 1] || 0;
+
+  // Calculate cash flow growth rate (year-over-year average)
+  let cashFlowGrowthRate = 0;
+  if (forecast.netCashFlow.length > 1 && forecast.netCashFlow[0] !== 0) {
+    const firstYear = forecast.netCashFlow[0];
+    const lastYear = forecast.netCashFlow[years - 1];
+    cashFlowGrowthRate = ((lastYear - firstYear) / Math.abs(firstYear)) * 100;
+  }
+
+  // Calculate operating margin (average NOI / average operating income)
+  const avgNOI = forecast.noi.reduce((sum, n) => sum + n, 0) / years;
+  const avgOperatingIncome = forecast.rentalIncome.reduce((sum, r) => sum + r, 0) / years;
+  const operatingMargin = avgOperatingIncome > 0 ? (avgNOI / avgOperatingIncome) * 100 : 0;
+
+  // Calculate debt service coverage ratio (average NOI / average debt service)
+  const avgDebtService = forecast.debtService.reduce((sum, d) => sum + d, 0) / years;
+  const debtServiceCoverageRatio = avgDebtService > 0 ? avgNOI / avgDebtService : 0;
 
   return {
-    irr,
     averageAnnualCashFlow,
-    totalProfitAtSale,
+    totalCumulativeCashFlow,
+    cashFlowGrowthRate,
+    operatingMargin,
+    debtServiceCoverageRatio,
     forecast
   };
 }
@@ -403,12 +466,6 @@ export function buildCapitalFlowSankeyData(property, forecast) {
  */
 export function compareScenarios(baseline, newScenario) {
   return {
-    irr: {
-      baseline: baseline.irr,
-      newScenario: newScenario.irr,
-      difference: newScenario.irr - baseline.irr,
-      percentChange: baseline.irr !== 0 ? ((newScenario.irr - baseline.irr) / Math.abs(baseline.irr)) * 100 : 0
-    },
     averageAnnualCashFlow: {
       baseline: baseline.averageAnnualCashFlow,
       newScenario: newScenario.averageAnnualCashFlow,
@@ -416,12 +473,33 @@ export function compareScenarios(baseline, newScenario) {
       percentChange: baseline.averageAnnualCashFlow !== 0 ? 
         ((newScenario.averageAnnualCashFlow - baseline.averageAnnualCashFlow) / Math.abs(baseline.averageAnnualCashFlow)) * 100 : 0
     },
-    totalProfitAtSale: {
-      baseline: baseline.totalProfitAtSale,
-      newScenario: newScenario.totalProfitAtSale,
-      difference: newScenario.totalProfitAtSale - baseline.totalProfitAtSale,
-      percentChange: baseline.totalProfitAtSale !== 0 ? 
-        ((newScenario.totalProfitAtSale - baseline.totalProfitAtSale) / Math.abs(baseline.totalProfitAtSale)) * 100 : 0
+    totalCumulativeCashFlow: {
+      baseline: baseline.totalCumulativeCashFlow,
+      newScenario: newScenario.totalCumulativeCashFlow,
+      difference: newScenario.totalCumulativeCashFlow - baseline.totalCumulativeCashFlow,
+      percentChange: baseline.totalCumulativeCashFlow !== 0 ? 
+        ((newScenario.totalCumulativeCashFlow - baseline.totalCumulativeCashFlow) / Math.abs(baseline.totalCumulativeCashFlow)) * 100 : 0
+    },
+    cashFlowGrowthRate: {
+      baseline: baseline.cashFlowGrowthRate,
+      newScenario: newScenario.cashFlowGrowthRate,
+      difference: newScenario.cashFlowGrowthRate - baseline.cashFlowGrowthRate,
+      percentChange: baseline.cashFlowGrowthRate !== 0 ? 
+        ((newScenario.cashFlowGrowthRate - baseline.cashFlowGrowthRate) / Math.abs(baseline.cashFlowGrowthRate)) * 100 : 0
+    },
+    operatingMargin: {
+      baseline: baseline.operatingMargin,
+      newScenario: newScenario.operatingMargin,
+      difference: newScenario.operatingMargin - baseline.operatingMargin,
+      percentChange: baseline.operatingMargin !== 0 ? 
+        ((newScenario.operatingMargin - baseline.operatingMargin) / Math.abs(baseline.operatingMargin)) * 100 : 0
+    },
+    debtServiceCoverageRatio: {
+      baseline: baseline.debtServiceCoverageRatio,
+      newScenario: newScenario.debtServiceCoverageRatio,
+      difference: newScenario.debtServiceCoverageRatio - baseline.debtServiceCoverageRatio,
+      percentChange: baseline.debtServiceCoverageRatio !== 0 ? 
+        ((newScenario.debtServiceCoverageRatio - baseline.debtServiceCoverageRatio) / Math.abs(baseline.debtServiceCoverageRatio)) * 100 : 0
     }
   };
 }
@@ -429,17 +507,32 @@ export function compareScenarios(baseline, newScenario) {
 /**
  * Format forecast data for chart display
  * @param {Object} forecast - Forecast object from generateForecast
+ * @param {string} analysisMode - 'cash-flow' | 'equity' (default: 'cash-flow')
  * @returns {Array} Array of data points for charting
  */
-export function formatForecastForChart(forecast) {
-  return forecast.years.map((year, index) => ({
-    year,
-    netCashFlow: Math.round(forecast.netCashFlow[index]),
-    mortgageBalance: Math.round(forecast.mortgageBalance[index]),
-    equity: Math.round(forecast.equity[index]),
-    propertyValue: Math.round(forecast.propertyValue[index]),
-    cumulativeCashFlow: Math.round(forecast.cumulativeCashFlow[index])
-  }));
+export function formatForecastForChart(forecast, analysisMode = 'cash-flow') {
+  if (analysisMode === 'equity') {
+    return forecast.years.map((year, index) => ({
+      year,
+      totalEquity: Math.round(forecast.equity[index] || 0),
+      propertyValue: Math.round(forecast.propertyValue[index] || 0),
+      mortgageBalance: Math.round(forecast.mortgageBalance[index] || 0),
+      equityFromAppreciation: Math.round(forecast.equityFromAppreciation[index] || 0),
+      equityFromPaydown: Math.round(forecast.equityFromPaydown[index] || 0),
+      equityGrowthRate: forecast.equityGrowthRate[index] || 0
+    }));
+  } else {
+    return forecast.years.map((year, index) => ({
+      year,
+      netCashFlow: Math.round(forecast.netCashFlow[index] || 0),
+      mortgageBalance: Math.round(forecast.mortgageBalance[index] || 0),
+      cumulativeCashFlow: Math.round(forecast.cumulativeCashFlow[index] || 0),
+      operatingIncome: Math.round(forecast.rentalIncome[index] || 0),
+      operatingExpenses: Math.round(forecast.operatingExpenses[index] || 0),
+      noi: Math.round(forecast.noi[index] || 0),
+      debtService: Math.round(forecast.debtService[index] || 0)
+    }));
+  }
 }
 
 /**
@@ -791,20 +884,20 @@ export function calculateForecastYoYGrowth(forecast) {
     const currentYear = i;
     const previousYear = i - 1;
     
-    const revenueGrowth = forecast.netCashFlow[previousYear] !== 0 
+    const cashFlowGrowth = forecast.netCashFlow[previousYear] !== 0 
       ? ((forecast.netCashFlow[currentYear] - forecast.netCashFlow[previousYear]) / Math.abs(forecast.netCashFlow[previousYear])) * 100
       : 0;
     
-    const equityGrowth = forecast.equity[previousYear] !== 0 
-      ? ((forecast.equity[currentYear] - forecast.equity[previousYear]) / forecast.equity[previousYear]) * 100
+    const operatingIncomeGrowth = forecast.rentalIncome[previousYear] !== 0 
+      ? ((forecast.rentalIncome[currentYear] - forecast.rentalIncome[previousYear]) / Math.abs(forecast.rentalIncome[previousYear])) * 100
       : 0;
     
     yoyGrowth.push({
       year: currentYear + 1, // Year 2, 3, 4, etc.
-      revenueGrowth,
-      equityGrowth,
+      cashFlowGrowth,
+      operatingIncomeGrowth,
       netCashFlow: forecast.netCashFlow[currentYear],
-      equity: forecast.equity[currentYear]
+      operatingIncome: forecast.rentalIncome[currentYear]
     });
   }
   

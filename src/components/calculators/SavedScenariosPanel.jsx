@@ -13,7 +13,7 @@ import {
 } from '@/lib/scenario-storage';
 import ScenarioFolderManager from '@/components/analytics/ScenarioFolderManager';
 
-const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions }) => {
+const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions, analysisType = 'cash-flow' }) => {
   const [savedScenarios, setSavedScenarios] = useState([]);
   const [selectedScenarioId, setSelectedScenarioId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
@@ -28,14 +28,14 @@ const SavedScenariosPanel = ({ propertyId, onLoadScenario, currentAssumptions })
   // Load saved scenarios
   useEffect(() => {
     loadScenarios();
-  }, [propertyId]);
+  }, [propertyId, analysisType]);
 
   const folders = getFolders();
   const allTags = getAllTags();
 
   const loadScenarios = () => {
     if (propertyId) {
-      const scenarios = getScenariosByProperty(propertyId);
+      const scenarios = getScenariosByProperty(propertyId).filter(s => s.type === analysisType);
       setSavedScenarios(scenarios);
     } else {
       setSavedScenarios([]);

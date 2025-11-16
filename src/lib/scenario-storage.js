@@ -40,12 +40,13 @@ export function saveScenario(scenario) {
   try {
     const scenarios = getSavedScenarios();
     
-    // Migrate existing scenarios without folder/tags/description
+    // Migrate existing scenarios without folder/tags/description/type
     const migratedScenarios = scenarios.map(s => ({
       ...s,
       folder: s.folder || 'Uncategorized',
       tags: s.tags || [],
       description: s.description || '',
+      type: s.type || 'cash-flow', // Default to cash-flow for backward compatibility
     }));
     
     // Create scenario with metadata
@@ -58,6 +59,7 @@ export function saveScenario(scenario) {
       folder: scenario.folder || 'Uncategorized',
       tags: scenario.tags || [],
       description: scenario.description || '',
+      type: scenario.type || 'cash-flow', // Default to cash-flow
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -127,7 +129,7 @@ export function deleteScenario(id) {
  */
 export function getScenariosByProperty(propertyId) {
   const scenarios = getSavedScenarios();
-  // Migrate scenarios without folder/tags/description
+  // Migrate scenarios without folder/tags/description/type
   return scenarios
     .filter(s => s.propertyId === propertyId)
     .map(s => ({
@@ -135,7 +137,18 @@ export function getScenariosByProperty(propertyId) {
       folder: s.folder || 'Uncategorized',
       tags: s.tags || [],
       description: s.description || '',
+      type: s.type || 'cash-flow', // Default to cash-flow for backward compatibility
     }));
+}
+
+/**
+ * Get scenarios by analysis type
+ * @param {string} type - 'cash-flow' | 'equity'
+ * @returns {Array} Array of scenarios for the type
+ */
+export function getScenariosByType(type) {
+  const scenarios = getSavedScenarios();
+  return scenarios.filter(s => (s.type || 'cash-flow') === type);
 }
 
 /**

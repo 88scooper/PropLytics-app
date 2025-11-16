@@ -104,16 +104,6 @@ const SensitivityDashboard = ({ property, assumptions }) => {
 
   const metrics = [
     {
-      label: '10-Year IRR (Internal Rate of Return)',
-      description: 'Annualized return considering all cash flows and property appreciation',
-      baseline: baselineMetrics.irr,
-      newScenario: newScenarioMetrics.irr,
-      difference: comparison.irr.difference,
-      percentChange: comparison.irr.percentChange,
-      formatter: (val) => `${val.toFixed(2)}%`,
-      higherIsBetter: true
-    },
-    {
       label: 'Average Annual Cash Flow',
       description: 'Mean net cash flow per year after all expenses and debt service',
       baseline: baselineMetrics.averageAnnualCashFlow,
@@ -124,13 +114,43 @@ const SensitivityDashboard = ({ property, assumptions }) => {
       higherIsBetter: true
     },
     {
-      label: 'Total Profit at Sale (Year 10)',
-      description: 'Total profit if property is sold at end of year 10 (equity + cumulative cash flow - initial investment)',
-      baseline: baselineMetrics.totalProfitAtSale,
-      newScenario: newScenarioMetrics.totalProfitAtSale,
-      difference: comparison.totalProfitAtSale.difference,
-      percentChange: comparison.totalProfitAtSale.percentChange,
+      label: 'Total Cumulative Cash Flow',
+      description: 'Sum of all cash flows over the forecast period',
+      baseline: baselineMetrics.totalCumulativeCashFlow,
+      newScenario: newScenarioMetrics.totalCumulativeCashFlow,
+      difference: comparison.totalCumulativeCashFlow.difference,
+      percentChange: comparison.totalCumulativeCashFlow.percentChange,
       formatter: (val) => formatCurrency(val),
+      higherIsBetter: true
+    },
+    {
+      label: 'Cash Flow Growth Rate',
+      description: 'Year-over-year cash flow growth rate',
+      baseline: baselineMetrics.cashFlowGrowthRate,
+      newScenario: newScenarioMetrics.cashFlowGrowthRate,
+      difference: comparison.cashFlowGrowthRate.difference,
+      percentChange: comparison.cashFlowGrowthRate.percentChange,
+      formatter: (val) => `${val.toFixed(1)}%`,
+      higherIsBetter: true
+    },
+    {
+      label: 'Operating Margin',
+      description: 'NOI as a percentage of operating income',
+      baseline: baselineMetrics.operatingMargin,
+      newScenario: newScenarioMetrics.operatingMargin,
+      difference: comparison.operatingMargin.difference,
+      percentChange: comparison.operatingMargin.percentChange,
+      formatter: (val) => `${val.toFixed(1)}%`,
+      higherIsBetter: true
+    },
+    {
+      label: 'Debt Service Coverage Ratio',
+      description: 'NOI divided by debt service (higher is better)',
+      baseline: baselineMetrics.debtServiceCoverageRatio,
+      newScenario: newScenarioMetrics.debtServiceCoverageRatio,
+      difference: comparison.debtServiceCoverageRatio.difference,
+      percentChange: comparison.debtServiceCoverageRatio.percentChange,
+      formatter: (val) => val.toFixed(2),
       higherIsBetter: true
     }
   ];
@@ -297,42 +317,35 @@ const SensitivityDashboard = ({ property, assumptions }) => {
           </h3>
         </div>
         <div className="space-y-2 text-sm">
-          {comparison.irr.difference > 0 ? (
+          {comparison.averageAnnualCashFlow.difference > 0 ? (
             <div className="flex items-start gap-2 text-emerald-700 dark:text-emerald-400">
               <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <p>
-                Your adjusted assumptions project a <strong>{comparison.irr.percentChange.toFixed(1)}% higher IRR</strong>, 
-                suggesting more favorable investment conditions.
+                Your adjusted assumptions project <strong>{formatCurrency(Math.abs(comparison.averageAnnualCashFlow.difference))} more</strong> in average annual cash flow,
+                suggesting more favorable cash flow conditions.
               </p>
             </div>
-          ) : comparison.irr.difference < 0 ? (
+          ) : comparison.averageAnnualCashFlow.difference < 0 ? (
             <div className="flex items-start gap-2 text-red-700 dark:text-red-400">
               <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <p>
-                Your adjusted assumptions project a <strong>{Math.abs(comparison.irr.percentChange).toFixed(1)}% lower IRR</strong>, 
-                suggesting less favorable investment conditions.
+                Your adjusted assumptions project <strong>{formatCurrency(Math.abs(comparison.averageAnnualCashFlow.difference))} less</strong> in average annual cash flow,
+                suggesting less favorable cash flow conditions.
               </p>
             </div>
           ) : (
             <div className="flex items-start gap-2 text-gray-600 dark:text-gray-400">
               <ArrowRight className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <p>
-                Your adjusted assumptions result in similar returns to the baseline.
+                Your adjusted assumptions result in similar cash flow to the baseline.
               </p>
             </div>
           )}
 
-          {Math.abs(comparison.averageAnnualCashFlow.difference) > 1000 && (
+          {Math.abs(comparison.totalCumulativeCashFlow.difference) > 10000 && (
             <p className="text-gray-600 dark:text-gray-400">
-              Average annual cash flow changes by <strong>{formatCurrency(Math.abs(comparison.averageAnnualCashFlow.difference))}</strong> per year,
-              totaling <strong>{formatCurrency(Math.abs(comparison.averageAnnualCashFlow.difference) * 10)}</strong> over 10 years.
-            </p>
-          )}
-
-          {Math.abs(comparison.totalProfitAtSale.difference) > 10000 && (
-            <p className="text-gray-600 dark:text-gray-400">
-              If you sell at year 10, your total profit would be <strong>{formatCurrency(Math.abs(comparison.totalProfitAtSale.difference))} 
-              {comparison.totalProfitAtSale.difference > 0 ? ' higher' : ' lower'}</strong> than baseline.
+              Over the forecast period, your total cumulative cash flow would be <strong>{formatCurrency(Math.abs(comparison.totalCumulativeCashFlow.difference))} 
+              {comparison.totalCumulativeCashFlow.difference > 0 ? ' higher' : ' lower'}</strong> than baseline.
             </p>
           )}
 

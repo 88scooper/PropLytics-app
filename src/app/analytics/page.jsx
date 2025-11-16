@@ -1,26 +1,30 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Target, BarChart3, Lightbulb, TrendingUp } from "lucide-react";
+import { Target, BarChart3, Lightbulb, TrendingUp, DollarSign } from "lucide-react";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import { useProperties, usePortfolioMetrics } from "@/context/PropertyContext";
 import ScenarioAnalysisDashboard from "@/components/scenarios/ScenarioAnalysisDashboard";
-import AssumptionsBar from "@/components/calculators/AssumptionsBar";
+import AssumptionsPanel from "@/components/calculators/AssumptionsPanel";
+import EquityAssumptionsPanel from "@/components/calculators/EquityAssumptionsPanel";
 import BaselineForecast from "@/components/calculators/BaselineForecast";
+import EquityForecast from "@/components/calculators/EquityForecast";
 import SensitivityDashboard from "@/components/calculators/SensitivityDashboard";
 import YoYAnalysis from "@/components/calculators/YoYAnalysis";
 import SaveScenarioModal from "@/components/calculators/SaveScenarioModal";
 import SavedScenariosPanel from "@/components/calculators/SavedScenariosPanel";
-import { DEFAULT_ASSUMPTIONS } from "@/lib/sensitivity-analysis";
+import { DEFAULT_ASSUMPTIONS, CASH_FLOW_DEFAULT_ASSUMPTIONS, EQUITY_DEFAULT_ASSUMPTIONS } from "@/lib/sensitivity-analysis";
 import { formatCurrency, formatPercentage } from "@/utils/formatting";
 import { useToast } from "@/context/ToastContext";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 export default function AnalyticsPage() {
+  const [analysisMode, setAnalysisMode] = useState('cash-flow'); // 'cash-flow' | 'equity'
   const [activeTab, setActiveTab] = useState('sensitivity');
   const [selectedPropertyId, setSelectedPropertyId] = useState('');
-  const [assumptions, setAssumptions] = useState(DEFAULT_ASSUMPTIONS);
+  const [cashFlowAssumptions, setCashFlowAssumptions] = useState(CASH_FLOW_DEFAULT_ASSUMPTIONS);
+  const [equityAssumptions, setEquityAssumptions] = useState(EQUITY_DEFAULT_ASSUMPTIONS);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [scenariosKey, setScenariosKey] = useState(0); // Key to force refresh of SavedScenariosPanel
   const [mounted, setMounted] = useState(false);
@@ -28,6 +32,25 @@ export default function AnalyticsPage() {
   const properties = useProperties();
   const portfolioMetrics = usePortfolioMetrics();
   const { addToast } = useToast();
+
+  // Get current assumptions based on mode
+  const assumptions = analysisMode === 'cash-flow' ? cashFlowAssumptions : equityAssumptions;
+  const setAssumptions = analysisMode === 'cash-flow' ? setCashFlowAssumptions : setEquityAssumptions;
+
+  // Handle mode switching
+  const handleModeChange = (mode) => {
+    if (mode === analysisMode) return;
+    
+    setAnalysisMode(mode);
+    // Reset assumptions to defaults when switching modes
+    if (mode === 'cash-flow') {
+      setCashFlowAssumptions(CASH_FLOW_DEFAULT_ASSUMPTIONS);
+    } else {
+      setEquityAssumptions(EQUITY_DEFAULT_ASSUMPTIONS);
+    }
+    // Clear any selected scenarios
+    setScenariosKey(prev => prev + 1);
+  };
 
   // Prevent hydration mismatch by only rendering after mount
   useEffect(() => {
@@ -84,8 +107,37 @@ export default function AnalyticsPage() {
             <div>
               <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Analytics</h1>
               <p className="mt-2 text-gray-600 dark:text-gray-300">
-                Model different scenarios and see how assumptions impact your investment returns over time.
+                {analysisMode === 'cash-flow' 
+                  ? "Forecast your property's cash flow over time. Adjust rent, expenses, and vacancy assumptions to see how they impact your monthly and annual cash flow."
+                  : "Project your property's equity growth over time. Model how appreciation, interest rates, and principal paydown affect your total equity."
+                }
               </p>
+            </div>
+            
+            {/* Analysis Mode Selector */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleModeChange('cash-flow')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                  analysisMode === 'cash-flow'
+                    ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                }`}
+              >
+                <DollarSign className="w-4 h-4" />
+                Cash Flow Analysis
+              </button>
+              <button
+                onClick={() => handleModeChange('equity')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                  analysisMode === 'equity'
+                    ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4" />
+                Equity Analysis
+              </button>
             </div>
           </header>
 
@@ -139,18 +191,33 @@ export default function AnalyticsPage() {
                         </div>
                       </div>
                       
-                      {/* Assumptions Bar - Above Chart */}
-                      <AssumptionsBar
-                        assumptions={assumptions}
-                        onAssumptionsChange={setAssumptions}
-                        onSaveClick={() => setShowSaveModal(true)}
-                      />
+                      {/* Assumptions Panel - Above Chart */}
+                      {analysisMode === 'cash-flow' ? (
+                        <AssumptionsPanel
+                          assumptions={assumptions}
+                          onAssumptionsChange={setAssumptions}
+                          onSaveClick={() => setShowSaveModal(true)}
+                        />
+                      ) : (
+                        <EquityAssumptionsPanel
+                          assumptions={assumptions}
+                          onAssumptionsChange={setAssumptions}
+                          onSaveClick={() => setShowSaveModal(true)}
+                        />
+                      )}
 
-                      {/* Baseline Forecast Chart */}
-                      <BaselineForecast 
-                        property={selectedProperty}
-                        assumptions={DEFAULT_ASSUMPTIONS}
-                      />
+                      {/* Forecast Chart */}
+                      {analysisMode === 'cash-flow' ? (
+                        <BaselineForecast 
+                          property={selectedProperty}
+                          assumptions={assumptions}
+                        />
+                      ) : (
+                        <EquityForecast 
+                          property={selectedProperty}
+                          assumptions={assumptions}
+                        />
+                      )}
                     </div>
 
                     {/* Comparison Section */}
@@ -173,18 +240,28 @@ export default function AnalyticsPage() {
                           propertyId={selectedPropertyId}
                           onLoadScenario={handleLoadScenario}
                           currentAssumptions={assumptions}
+                          analysisType={analysisMode}
                         />
 
                         {/* Main Comparison Content */}
-                        <SensitivityDashboard 
-                          property={selectedProperty}
-                          assumptions={assumptions}
-                        />
-                        <YoYAnalysis 
-                          property={selectedProperty}
-                          assumptions={assumptions}
-                          baselineAssumptions={DEFAULT_ASSUMPTIONS}
-                        />
+                        {analysisMode === 'cash-flow' && (
+                          <>
+                            <SensitivityDashboard 
+                              property={selectedProperty}
+                              assumptions={assumptions}
+                            />
+                            <YoYAnalysis 
+                              property={selectedProperty}
+                              assumptions={assumptions}
+                              baselineAssumptions={CASH_FLOW_DEFAULT_ASSUMPTIONS}
+                            />
+                          </>
+                        )}
+                        {analysisMode === 'equity' && (
+                          <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                            <p>Equity metrics dashboard coming soon</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
