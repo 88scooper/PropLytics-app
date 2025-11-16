@@ -160,7 +160,7 @@ const AssumptionsBar = ({ assumptions, onAssumptionsChange, onSaveClick }) => {
                 : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-black/10 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-gray-600'
             }`}
           >
-            Standard
+            Moderate
           </button>
           <button
             onClick={() => applyPreset('aggressive')}
@@ -229,7 +229,7 @@ const AssumptionsBar = ({ assumptions, onAssumptionsChange, onSaveClick }) => {
 
       {/* Always Visible Controls */}
       <div className="px-4 py-4">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="flex items-end gap-3 flex-wrap">
           {inputFields.map((field) => {
             // Check if any scenario focus is active
             const hasActiveFocus = frozenScenarios.revenue || frozenScenarios.expenses || frozenScenarios.vacancy;
@@ -237,7 +237,7 @@ const AssumptionsBar = ({ assumptions, onAssumptionsChange, onSaveClick }) => {
             const isFrozen = hasActiveFocus && (!field.frozenBy || !frozenScenarios[field.frozenBy]);
             
             return (
-              <div key={field.id} className="space-y-1.5">
+              <div key={field.id} className="flex-1 min-w-[140px] space-y-1.5">
                 <label className="flex items-center gap-1.5 text-xs font-medium text-gray-700 dark:text-gray-300">
                   {field.label}
                   {isFrozen && (
@@ -266,7 +266,7 @@ const AssumptionsBar = ({ assumptions, onAssumptionsChange, onSaveClick }) => {
                     min="0"
                     max="100"
                     disabled={isFrozen}
-                    className={`w-full px-3 py-1.5 pr-7 text-sm border rounded-md transition-colors ${
+                    className={`w-full px-2.5 py-1.5 pr-7 text-sm border rounded-md transition-colors ${
                       isFrozen
                         ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                         : 'border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
