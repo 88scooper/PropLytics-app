@@ -1080,7 +1080,7 @@ function IncomeWaterfallCard({ totalRevenue, operatingExpenses, debtService, net
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Income vs Outflows
+            Income & Expenses
           </h3>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             Annualized snapshot of how rent covers operating costs and debt service.
@@ -1108,9 +1108,7 @@ function IncomeWaterfallCard({ totalRevenue, operatingExpenses, debtService, net
             )}
             <div className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
               <span>
-                {step.type === 'subtract'
-                  ? `${step.isSub ? 'Less ' : 'Less '}${step.label}`
-                  : step.label}
+                {step.label}
               </span>
               <span className="text-gray-900 dark:text-gray-100">
                 {step.type === 'subtract' ? `-${formatCurrency(step.value)}` : formatCurrency(step.value)}
@@ -1254,9 +1252,29 @@ function AnnualRentalIncomeCard({ properties = [], totalMonthlyRent = 0 }) {
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={({ name, percent }) => 
-                              percent > 0.05 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''
-                            }
+                            label={({ percent, cx, cy, midAngle, innerRadius, outerRadius }) => {
+                              if (percent < 0.05) return '';
+                              const RADIAN = Math.PI / 180;
+                              const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                              const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                              const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                              return (
+                                <text
+                                  x={x}
+                                  y={y}
+                                  fill="white"
+                                  textAnchor={x > cx ? 'start' : 'end'}
+                                  dominantBaseline="central"
+                                  fontSize="14"
+                                  fontWeight="600"
+                                  style={{
+                                    textShadow: '0 1px 2px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.5)',
+                                  }}
+                                >
+                                  {`${(percent * 100).toFixed(0)}%`}
+                                </text>
+                              );
+                            }}
                             outerRadius={70}
                             fill="#8884d8"
                             dataKey="value"
@@ -1310,7 +1328,7 @@ function AnnualDeductibleExpensesCard({
   const totalAnnualExpenses = totalAnnualOperatingExpenses + totalAnnualDebtService;
   const cardTitle =
     expenseViewType === 'annual'
-      ? 'Annual Expenses (Operating + Debt Service)'
+      ? 'Annual Expenses'
       : 'Annual Deductible Expenses';
 
   return (
