@@ -11,9 +11,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, L
 import AnnualExpenseChart from '@/components/charts/AnnualExpenseChart';
 import { useToast } from "@/context/ToastContext";
 import MortgageFormUpgraded from "@/components/mortgages/MortgageFormUpgraded";
-import { X } from "lucide-react";
+import { X, ChevronDown, ChevronUp, FileText } from "lucide-react";
 import YoYAnalysis from "@/components/calculators/YoYAnalysis";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/sensitivity-analysis";
+import { getPropertyNotes, savePropertyNotes } from "@/lib/property-notes-storage";
 
 export default function PropertyDetailPage({ params }) {
   const { propertyId } = use(params) || {};
@@ -64,6 +65,71 @@ export default function PropertyDetailPage({ params }) {
 
   const [expenseView, setExpenseView] = useState('monthly'); // 'monthly' or 'annual'
   const [hoveredSegment, setHoveredSegment] = useState(null); // For hover interactions
+  
+  // Toggle state for Historical Performance chart
+  const [visibleMetrics, setVisibleMetrics] = useState({
+    income: true,
+    expenses: true,
+    cashFlow: true
+  });
+  
+  const toggleMetric = (metric) => {
+    setVisibleMetrics(prev => {
+      const newState = { ...prev, [metric]: !prev[metric] };
+      // Ensure at least one metric is always visible
+      const hasVisibleMetric = Object.values(newState).some(v => v);
+      if (!hasVisibleMetric) {
+        return prev; // Don't allow hiding all metrics
+      }
+      return newState;
+    });
+  };
+  
+  // State for collapsible sections
+  const [openSections, setOpenSections] = useState({
+    generalNotes: false,
+    propertyFinancials: true,
+    historicalPerformance: true,
+    mortgageDetails: true,
+    currentTenants: true,
+    annualExpenseHistory: true
+  });
+
+  // State for general notes
+  const [notes, setNotes] = useState('');
+  const [notesChanged, setNotesChanged] = useState(false);
+
+  // Load notes when property is available
+  useEffect(() => {
+    if (propertyId && isHydrated) {
+      const savedNotes = getPropertyNotes(propertyId);
+      setNotes(savedNotes);
+    }
+  }, [propertyId, isHydrated]);
+
+  // Auto-save notes with debounce
+  useEffect(() => {
+    if (!propertyId || !isHydrated || !notesChanged) return;
+
+    const timeoutId = setTimeout(() => {
+      savePropertyNotes(propertyId, notes);
+      setNotesChanged(false);
+    }, 1000); // Save 1 second after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [notes, propertyId, isHydrated, notesChanged]);
+
+  const handleNotesChange = (e) => {
+    setNotes(e.target.value);
+    setNotesChanged(true);
+  };
+  
+  const toggleSection = (section) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   // Prepare expense data for pie chart
   const expenseChartData = useMemo(() => {
@@ -254,10 +320,53 @@ export default function PropertyDetailPage({ params }) {
                 </div>
               </div>
 
+              {/* General Notes Section */}
+              <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
+                <button
+                  onClick={() => toggleSection('generalNotes')}
+                  className="flex items-center justify-between w-full mb-4 hover:opacity-80 transition-opacity"
+                >
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-gray-500" />
+                    <h2 className="text-xl font-semibold">General Notes</h2>
+                  </div>
+                  {openSections.generalNotes ? (
+                    <ChevronUp className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                  )}
+                </button>
+                {openSections.generalNotes && (
+                  <div>
+                    <textarea
+                      value={notes}
+                      onChange={handleNotesChange}
+                      placeholder="Add your notes about this property..."
+                      rows={8}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#205A3E] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-y min-h-[200px]"
+                    />
+                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                      {notesChanged ? 'Saving...' : 'Notes are automatically saved'}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Unified Monthly Financials Card */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => toggleSection('propertyFinancials')}
+                  className="flex items-center justify-between w-full mb-4 hover:opacity-80 transition-opacity"
+                >
                   <h2 className="text-xl font-semibold">Property Financials</h2>
+                  {openSections.propertyFinancials ? (
+                    <ChevronUp className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                  )}
+                </button>
+                {openSections.propertyFinancials && (
+                  <div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-600 dark:text-gray-400">View:</span>
                     <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
@@ -283,9 +392,8 @@ export default function PropertyDetailPage({ params }) {
                       </button>
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-6">
+                  <div className="space-y-6">
                   {/* Income Section */}
                   <div>
                     <div className="flex justify-between">
@@ -403,19 +511,67 @@ export default function PropertyDetailPage({ params }) {
                     </div>
                   </div>
                 </div>
+                  </div>
+                )}
               </div>
 
 
 
               {/* Historical Performance Chart */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => toggleSection('historicalPerformance')}
+                  className="flex items-center justify-between w-full mb-4 hover:opacity-80 transition-opacity"
+                >
                   <h2 className="text-xl font-semibold">Historical Performance</h2>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                    Based on actual records
-                  </span>
-                </div>
-                <div className="h-80">
+                  {openSections.historicalPerformance ? (
+                    <ChevronUp className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                  )}
+                </button>
+                {openSections.historicalPerformance && (
+                  <div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                      Based on actual records
+                    </span>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-gray-600 dark:text-gray-400 mr-2">Show:</span>
+                      <button
+                        onClick={() => toggleMetric('income')}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                          visibleMetrics.income
+                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        Income
+                      </button>
+                      <button
+                        onClick={() => toggleMetric('expenses')}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                          visibleMetrics.expenses
+                            ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        Expenses
+                      </button>
+                      <button
+                        onClick={() => toggleMetric('cashFlow')}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                          visibleMetrics.cashFlow
+                            ? 'bg-[#205A3E]/10 dark:bg-[#205A3E]/20 text-[#205A3E] dark:text-[#4ade80] border border-[#205A3E]/30 dark:border-[#205A3E]/50'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        Cash Flow
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="h-80">
                   {historicalData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={historicalData}>
@@ -453,30 +609,36 @@ export default function PropertyDetailPage({ params }) {
                             }
                           }}
                         />
-                        <Line 
-                          type="monotone" 
-                          dataKey="income" 
-                          stroke="#22c55e" 
-                          strokeWidth={3}
-                          dot={{ fill: '#22c55e', strokeWidth: 2, r: 4 }}
-                          activeDot={{ r: 6, stroke: '#22c55e', strokeWidth: 2 }}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="expenses" 
-                          stroke="#ef4444" 
-                          strokeWidth={3}
-                          dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
-                          activeDot={{ r: 6, stroke: '#ef4444', strokeWidth: 2 }}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="cashFlow" 
-                          stroke="#205A3E" 
-                          strokeWidth={3}
-                          dot={{ fill: '#205A3E', strokeWidth: 2, r: 4 }}
-                          activeDot={{ r: 6, stroke: '#205A3E', strokeWidth: 2 }}
-                        />
+                        {visibleMetrics.income && (
+                          <Line 
+                            type="monotone" 
+                            dataKey="income" 
+                            stroke="#22c55e" 
+                            strokeWidth={3}
+                            dot={{ fill: '#22c55e', strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, stroke: '#22c55e', strokeWidth: 2 }}
+                          />
+                        )}
+                        {visibleMetrics.expenses && (
+                          <Line 
+                            type="monotone" 
+                            dataKey="expenses" 
+                            stroke="#ef4444" 
+                            strokeWidth={3}
+                            dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, stroke: '#ef4444', strokeWidth: 2 }}
+                          />
+                        )}
+                        {visibleMetrics.cashFlow && (
+                          <Line 
+                            type="monotone" 
+                            dataKey="cashFlow" 
+                            stroke="#205A3E" 
+                            strokeWidth={3}
+                            dot={{ fill: '#205A3E', strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, stroke: '#205A3E', strokeWidth: 2 }}
+                          />
+                        )}
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
@@ -487,6 +649,8 @@ export default function PropertyDetailPage({ params }) {
                     </div>
                   )}
                 </div>
+                  </div>
+                )}
               </div>
 
               {/* Year-over-Year Analysis */}
@@ -495,13 +659,25 @@ export default function PropertyDetailPage({ params }) {
               {/* Enhanced Mortgage Details */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold">Mortgage Details</h2>
+                  <button
+                    onClick={() => toggleSection('mortgageDetails')}
+                    className="flex items-center justify-between flex-1 hover:opacity-80 transition-opacity"
+                  >
+                    <h2 className="text-xl font-semibold">Mortgage Details</h2>
+                    {openSections.mortgageDetails ? (
+                      <ChevronUp className="w-5 h-5 text-gray-500" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-500" />
+                    )}
+                  </button>
                   <div className="flex gap-2">
                     <Button variant="secondary" size="sm" onClick={() => setShowEditMortgageModal(true)}>
                       Edit Mortgage
                     </Button>
                   </div>
                 </div>
+                {openSections.mortgageDetails && (
+                  <div>
                 
                 {/* Mortgage Summary Cards */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -632,11 +808,25 @@ export default function PropertyDetailPage({ params }) {
                     </div>
                   </div>
                 )}
+                  </div>
+                )}
               </div>
 
               {/* Current Tenants */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <h2 className="text-xl font-semibold mb-4">Current Tenants</h2>
+                <button
+                  onClick={() => toggleSection('currentTenants')}
+                  className="flex items-center justify-between w-full mb-4 hover:opacity-80 transition-opacity"
+                >
+                  <h2 className="text-xl font-semibold">Current Tenants</h2>
+                  {openSections.currentTenants ? (
+                    <ChevronUp className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                  )}
+                </button>
+                {openSections.currentTenants && (
+                  <div>
                 <div className="space-y-3">
                   {property.tenants.map((tenant, index) => (
                     <div key={index} className="text-sm">
@@ -649,17 +839,33 @@ export default function PropertyDetailPage({ params }) {
                     </div>
                   ))}
                 </div>
+                  </div>
+                )}
               </div>
 
               {/* Annual Expense History Chart */}
               <div className="rounded-lg border border-black/10 dark:border-white/10 p-6">
-                <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => toggleSection('annualExpenseHistory')}
+                  className="flex items-center justify-between w-full mb-4 hover:opacity-80 transition-opacity"
+                >
                   <h2 className="text-xl font-semibold">Annual Expense History</h2>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                    Categorized expenses
-                  </span>
-                </div>
-                <AnnualExpenseChart expenseHistory={property?.expenseHistory || []} />
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                      Categorized expenses
+                    </span>
+                    {openSections.annualExpenseHistory ? (
+                      <ChevronUp className="w-5 h-5 text-gray-500" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-500" />
+                    )}
+                  </div>
+                </button>
+                {openSections.annualExpenseHistory && (
+                  <div>
+                    <AnnualExpenseChart expenseHistory={property?.expenseHistory || []} />
+                  </div>
+                )}
               </div>
             </div>
           </div>

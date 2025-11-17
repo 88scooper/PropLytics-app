@@ -225,7 +225,7 @@ export default function MyPropertiesPage() {
             </Button>
           </div>
 
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
             {properties.map((property) => (
               <PropertyCard key={property.id} property={property} />
             ))}
@@ -263,6 +263,23 @@ function PropertyCard({ property }) {
   
   // Cash on Cash Return = Annual Cash Flow / Total Initial Cash Invested
   const cashOnCashReturn = totalInitialCashInvested > 0 ? (annualCashFlow / totalInitialCashInvested) * 100 : 0;
+  
+  // Debt Service Coverage Ratio (DSCR) = NOI / Annual Debt Service
+  // NOI = Net Operating Income = Annual Revenue - Annual Operating Expenses (excluding debt service)
+  // Annual Debt Service = Annual Principal + Annual Interest payments
+  const annualRevenue = property.rent.monthlyRent * 12;
+  const monthlyPrincipal = property.monthlyExpenses?.mortgagePrincipal || 0;
+  const monthlyInterest = property.monthlyExpenses?.mortgageInterest || 0;
+  const monthlyDebtService = monthlyPrincipal + monthlyInterest;
+  const annualDebtService = monthlyDebtService * 12;
+  
+  // Calculate NOI: Annual Revenue - Annual Operating Expenses (excluding debt service)
+  const monthlyOperatingExpenses = (property.monthlyExpenses?.total || 0) - monthlyDebtService;
+  const annualOperatingExpenses = monthlyOperatingExpenses * 12;
+  const noi = annualRevenue - annualOperatingExpenses;
+  
+  // DSCR = NOI / Annual Debt Service
+  const dscr = annualDebtService > 0 ? noi / annualDebtService : 0;
   
   // Internal Rate of Return (simplified calculation with adjustable years)
   // This is a simplified IRR calculation - in practice, IRR would require more complex calculations
@@ -353,7 +370,7 @@ function PropertyCard({ property }) {
         <div className="mt-3 pt-3 border-t border-black/10 dark:border-white/10">
           <div className="space-y-2">
             <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Key Metrics</div>
-            <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="text-center">
                 <div className="text-gray-500 dark:text-gray-400">Cap Rate</div>
                 <div className="font-medium text-[#205A3E] dark:text-[#4ade80]">
@@ -364,6 +381,12 @@ function PropertyCard({ property }) {
                 <div className="text-gray-500 dark:text-gray-400">Cash on Cash</div>
                 <div className="font-medium text-[#205A3E] dark:text-[#4ade80]">
                   {formatPercentage(cashOnCashReturn)}
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-gray-500 dark:text-gray-400">DSCR</div>
+                <div className="font-medium text-[#205A3E] dark:text-[#4ade80]">
+                  {dscr > 0 ? dscr.toFixed(2) : 'N/A'}
                 </div>
               </div>
               <div className="text-center">
