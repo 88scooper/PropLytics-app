@@ -46,7 +46,7 @@ export const properties = [
     id: 'first-st-1',
     nickname: 'First St',
     address: '1-1 First St, Toronto, ON 1A1 A1A',
-    purchasePrice: 500000,
+    purchasePrice: 450000,
     purchaseDate: '2021-01-01',
     closingCosts: 50000,
     initialRenovations: 0,
@@ -59,7 +59,7 @@ export const properties = [
     
     mortgage: {
       lender: 'Lender 1',
-      originalAmount: 400000,
+      originalAmount: 360000,
       interestRate: 0.025, // 2.5% as decimal
       rateType: 'Fixed',
       termMonths: 60, // 5 years
@@ -130,8 +130,8 @@ export const properties = [
     },
 
     // Calculated fields
-    totalInvestment: 150000, // down payment + closingCosts + initial renovations
-    appreciation: 100000, // currentMarketValue - purchasePrice
+    totalInvestment: 140000, // down payment ($90,000) + closingCosts ($50,000) + initial renovations ($0)
+    appreciation: 150000, // currentMarketValue - purchasePrice
     monthlyPropertyTax: 233, // 2796 / 12 (using 2025 data)
     monthlyCondoFees: 962.25, // 11547 / 12 (using 2025 data)
     monthlyInsurance: 40.5, // 486 / 12 (using 2025 data)
@@ -311,6 +311,145 @@ export const properties = [
         unit: 'Unit 1',
         rent: 2650, // Updated to 2025 rent from CSV 2025.11.03
         leaseStart: '2023-01-01',
+        leaseEnd: 'Active',
+        status: 'Active'
+      }
+    ]
+  },
+  
+  {
+    id: 'third-ave-1',
+    nickname: 'Third Avenue',
+    address: '123 Third Avenue, Toronto, ON M3A 3A3',
+    purchasePrice: 1500000,
+    purchaseDate: '2021-01-01',
+    closingCosts: 65000,
+    initialRenovations: 0,
+    renovationCosts: 0,
+    currentMarketValue: 1600000,
+    yearBuilt: 1975,
+    propertyType: 'Multiplex',
+    size: 2500, // square feet total
+    unitConfig: '2 Bed, 2 Bath (3 units)',
+    
+    mortgage: {
+      lender: 'Lender 3',
+      originalAmount: 1200000, // $1,500,000 - 20% down payment ($300,000)
+      interestRate: 0.03, // 3% as decimal
+      rateType: 'Fixed',
+      termMonths: 60, // 5 years
+      amortizationYears: 25, // 25 years
+      paymentFrequency: 'Monthly',
+      startDate: '2021-01-01',
+    },
+
+    rent: {
+      monthlyRent: 7500, // 3 units × $2,500 each
+      annualRent: 90000, // 7500 * 12
+    },
+
+    expenseHistory: [
+      // 2021 Expenses - reasonable assumptions for a multiplex
+      { id: 'third-2021-insurance', date: '2021-01-15', amount: 1000, category: 'Insurance', description: 'Property insurance' },
+      { id: 'third-2021-interest', date: '2021-06-01', amount: 36000, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'third-2021-professional', date: '2021-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'third-2021-maintenance', date: '2021-08-15', amount: 500, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'third-2021-tax', date: '2021-01-15', amount: 7000, category: 'Property Tax', description: 'Property taxes' },
+      
+      // 2022 Expenses
+      { id: 'third-2022-insurance', date: '2022-01-15', amount: 1050, category: 'Insurance', description: 'Property insurance' },
+      { id: 'third-2022-interest', date: '2022-06-01', amount: 35100, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'third-2022-professional', date: '2022-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'third-2022-maintenance', date: '2022-08-15', amount: 525, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'third-2022-tax', date: '2022-01-15', amount: 7350, category: 'Property Tax', description: 'Property taxes' },
+      
+      // 2023 Expenses
+      { id: 'third-2023-insurance', date: '2023-01-15', amount: 1103, category: 'Insurance', description: 'Property insurance' },
+      { id: 'third-2023-interest', date: '2023-06-01', amount: 34200, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'third-2023-professional', date: '2023-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'third-2023-maintenance', date: '2023-08-15', amount: 551, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'third-2023-tax', date: '2023-01-15', amount: 7718, category: 'Property Tax', description: 'Property taxes' },
+      
+      // 2024 Expenses
+      { id: 'third-2024-insurance', date: '2024-01-15', amount: 1158, category: 'Insurance', description: 'Property insurance' },
+      { id: 'third-2024-interest', date: '2024-06-01', amount: 33300, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'third-2024-professional', date: '2024-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'third-2024-maintenance', date: '2024-08-15', amount: 578, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'third-2024-tax', date: '2024-01-15', amount: 8103, category: 'Property Tax', description: 'Property taxes' },
+      
+      // 2025 Expenses
+      { id: 'third-2025-insurance', date: '2025-01-15', amount: 1216, category: 'Insurance', description: 'Property insurance' },
+      { id: 'third-2025-interest', date: '2025-06-01', amount: 32400, category: 'Other', description: 'Interest & bank charges' },
+      { id: 'third-2025-professional', date: '2025-03-15', amount: 0, category: 'Professional Fees', description: 'Professional fees' },
+      { id: 'third-2025-maintenance', date: '2025-08-15', amount: 607, category: 'Maintenance', description: 'Repairs & maintenance' },
+      { id: 'third-2025-tax', date: '2025-01-15', amount: 8508, category: 'Property Tax', description: 'Property taxes' },
+    ],
+
+    tenant: {
+      name: 'Jerry, George, Kramer',
+      leaseStartDate: '2021-01-01',
+      leaseEndDate: 'Active',
+      rent: 7500,
+      status: 'Active'
+    },
+
+    // Calculated fields
+    totalInvestment: 365000, // down payment ($300,000) + closingCosts ($65,000) + initial renovations ($0)
+    appreciation: 100000, // currentMarketValue - purchasePrice
+    monthlyPropertyTax: 709, // 8508 / 12 (using 2025 data)
+    monthlyCondoFees: 0, // No condo fees for multiplex
+    monthlyInsurance: 101.33, // 1216 / 12 (using 2025 data)
+    monthlyMaintenance: 50.58, // 607 / 12 (using 2025 data)
+    monthlyProfessionalFees: 0,
+    
+    monthlyExpenses: {
+      propertyTax: 709,
+      condoFees: 0,
+      insurance: 101.33,
+      maintenance: 50.58,
+      professionalFees: 0,
+      mortgagePayment: 0, // Will be calculated below
+      mortgageInterest: 0, // Will be calculated below
+      mortgagePrincipal: 0, // Will be calculated below
+      total: 860.91 // Will be recalculated below
+    },
+    
+    monthlyCashFlow: 6639.09, // monthlyRent - monthlyExpenses.total (will be recalculated)
+    annualCashFlow: 79669, // monthlyCashFlow * 12
+    capRate: 5.6, // (annualRent / currentMarketValue) * 100 = (90000 / 1600000) * 100
+    occupancy: 100,
+    
+    // Additional fields for compatibility
+    name: 'Third Avenue',
+    type: 'Multiplex',
+    units: 3,
+    bedrooms: [2, 2, 2],
+    bathrooms: [2, 2, 2],
+    squareFootage: 2500,
+    currentValue: 1600000,
+    imageUrl: null, // No image provided
+    tenants: [
+      {
+        name: 'Jerry',
+        unit: 'Unit 1',
+        rent: 2500,
+        leaseStart: '2021-01-01',
+        leaseEnd: 'Active',
+        status: 'Active'
+      },
+      {
+        name: 'George',
+        unit: 'Unit 2',
+        rent: 2500,
+        leaseStart: '2021-01-01',
+        leaseEnd: 'Active',
+        status: 'Active'
+      },
+      {
+        name: 'Kramer',
+        unit: 'Unit 3',
+        rent: 2500,
+        leaseStart: '2021-01-01',
         leaseEnd: 'Active',
         status: 'Active'
       }

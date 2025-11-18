@@ -105,18 +105,21 @@ export default function MortgagesPage() {
   // Calculate monthly payment for each mortgage
   const calculateMonthlyPayment = (mortgage) => {
     try {
-      const { originalAmount, interestRate, amortizationPeriodYears, paymentFrequency } = mortgage;
+      // Use the original mortgage object which has interestRate as decimal
+      const mortgageObj = mortgage.mortgage || mortgage;
+      const { originalAmount, interestRate, amortizationYears, paymentFrequency } = mortgageObj;
       
       // Ensure all values are numbers
       const principal = parseFloat(originalAmount);
+      // interestRate is already a decimal (0.025 for 2.5%), not a percentage
       const rate = parseFloat(interestRate);
-      const years = parseFloat(amortizationPeriodYears);
+      const years = parseFloat(amortizationYears || mortgage.amortizationPeriodYears);
       
       if (principal <= 0 || years <= 0) return 0;
       if (rate === 0) return principal / (years * 12);
       
-      // Rate is stored as percentage (2.69 for 2.69%), so convert to decimal
-      const monthlyRate = (rate / 100) / 12;
+      // Rate is already a decimal, so use it directly
+      const monthlyRate = rate / 12;
       const totalPayments = years * 12;
       
       // Calculate monthly payment using standard mortgage formula
@@ -147,23 +150,26 @@ export default function MortgagesPage() {
   // Calculate remaining loan balance
   const calculateRemainingBalance = (mortgage) => {
     try {
-      const { originalAmount, interestRate, amortizationPeriodYears, startDate } = mortgage;
+      // Use the original mortgage object which has interestRate as decimal
+      const mortgageObj = mortgage.mortgage || mortgage;
+      const { originalAmount, interestRate, amortizationYears, startDate } = mortgageObj;
       
       // Ensure all values are numbers
       const principal = parseFloat(originalAmount);
+      // interestRate is already a decimal (0.025 for 2.5%), not a percentage
       const rate = parseFloat(interestRate);
-      const years = parseFloat(amortizationPeriodYears);
+      const years = parseFloat(amortizationYears || mortgage.amortizationPeriodYears);
       
       if (principal <= 0 || years <= 0) return principal;
       if (rate === 0) return principal;
       
       // Calculate months since start
-      const startDateObj = new Date(startDate);
+      const startDateObj = new Date(startDate || mortgage.startDate);
       const now = new Date();
       const monthsSinceStart = Math.max(0, (now.getFullYear() - startDateObj.getFullYear()) * 12 + (now.getMonth() - startDateObj.getMonth()));
       
-      // Rate is stored as percentage, so convert to decimal
-      const monthlyRate = (rate / 100) / 12;
+      // Rate is already a decimal, so use it directly
+      const monthlyRate = rate / 12;
       const totalPayments = years * 12;
       
       // Calculate monthly payment
@@ -198,23 +204,26 @@ export default function MortgagesPage() {
   // Calculate total interest paid to date
   const calculateTotalInterestPaid = (mortgage) => {
     try {
-      const { originalAmount, interestRate, amortizationPeriodYears, startDate } = mortgage;
+      // Use the original mortgage object which has interestRate as decimal
+      const mortgageObj = mortgage.mortgage || mortgage;
+      const { originalAmount, interestRate, amortizationYears, startDate } = mortgageObj;
       
       // Ensure all values are numbers
       const principal = parseFloat(originalAmount);
+      // interestRate is already a decimal (0.025 for 2.5%), not a percentage
       const rate = parseFloat(interestRate);
-      const years = parseFloat(amortizationPeriodYears);
+      const years = parseFloat(amortizationYears || mortgage.amortizationPeriodYears);
       
       if (principal <= 0 || years <= 0) return 0;
       if (rate === 0) return 0;
       
       // Calculate months since start
-      const startDateObj = new Date(startDate);
+      const startDateObj = new Date(startDate || mortgage.startDate);
       const now = new Date();
       const monthsSinceStart = Math.max(0, (now.getFullYear() - startDateObj.getFullYear()) * 12 + (now.getMonth() - startDateObj.getMonth()));
       
-      // Rate is stored as percentage, so convert to decimal
-      const monthlyRate = (rate / 100) / 12;
+      // Rate is already a decimal, so use it directly
+      const monthlyRate = rate / 12;
       const totalPayments = years * 12;
       
       // Calculate monthly payment
