@@ -239,58 +239,58 @@ export function generateForecast(property, assumptions = DEFAULT_ASSUMPTIONS, ye
 
     } else {
       // CASH FLOW MODE CALCULATIONS
-      
-      // Calculate rent with vacancy allowance
-      const effectiveRent = currentRent * (1 - (assumptions.vacancyRate || 0) / 100);
-      const annualRentalIncome = effectiveRent * 12;
 
-      // Calculate operating expenses (grows with inflation)
-      const annualOperatingExpenses = currentMonthlyOperatingExpenses * 12 * 
+    // Calculate rent with vacancy allowance
+      const effectiveRent = currentRent * (1 - (assumptions.vacancyRate || 0) / 100);
+    const annualRentalIncome = effectiveRent * 12;
+
+    // Calculate operating expenses (grows with inflation)
+    const annualOperatingExpenses = currentMonthlyOperatingExpenses * 12 * 
         Math.pow(1 + (assumptions.annualExpenseInflation || 0) / 100, year - 1);
 
-      // Calculate NOI (Net Operating Income - before debt service)
-      const noi = annualRentalIncome - annualOperatingExpenses;
+    // Calculate NOI (Net Operating Income - before debt service)
+    const noi = annualRentalIncome - annualOperatingExpenses;
 
-      // Determine debt service using schedule-driven values when available
-      let annualDebtService = 0;
-      let annualPrincipalPaid = 0;
-      let annualInterestPaid = 0;
+    // Determine debt service using schedule-driven values when available
+    let annualDebtService = 0;
+    let annualPrincipalPaid = 0;
+    let annualInterestPaid = 0;
 
-      const mortgageSummary = mortgageYearSummaries[year - 1];
+    const mortgageSummary = mortgageYearSummaries[year - 1];
 
-      if (mortgageSummary) {
-        annualDebtService = mortgageSummary.totalPayment;
-        annualPrincipalPaid = mortgageSummary.totalPrincipal;
-        annualInterestPaid = mortgageSummary.totalInterest;
-        mortgageBalance = mortgageSummary.endingBalance;
-      } else if (mortgageBalance > 0 && monthlyMortgagePayment > 0) {
-        const annualMortgagePayment = monthlyMortgagePayment * 12;
-        const estimatedAnnualInterest = mortgageBalance * property.mortgage.interestRate;
-        const annualPrincipal = Math.min(annualMortgagePayment - estimatedAnnualInterest, mortgageBalance);
-        annualDebtService = annualMortgagePayment;
-        annualPrincipalPaid = annualPrincipal;
-        annualInterestPaid = estimatedAnnualInterest;
-        mortgageBalance = Math.max(0, mortgageBalance - annualPrincipal);
-      } else {
-        mortgageBalance = 0;
-      }
+    if (mortgageSummary) {
+      annualDebtService = mortgageSummary.totalPayment;
+      annualPrincipalPaid = mortgageSummary.totalPrincipal;
+      annualInterestPaid = mortgageSummary.totalInterest;
+      mortgageBalance = mortgageSummary.endingBalance;
+    } else if (mortgageBalance > 0 && monthlyMortgagePayment > 0) {
+      const annualMortgagePayment = monthlyMortgagePayment * 12;
+      const estimatedAnnualInterest = mortgageBalance * property.mortgage.interestRate;
+      const annualPrincipal = Math.min(annualMortgagePayment - estimatedAnnualInterest, mortgageBalance);
+      annualDebtService = annualMortgagePayment;
+      annualPrincipalPaid = annualPrincipal;
+      annualInterestPaid = estimatedAnnualInterest;
+      mortgageBalance = Math.max(0, mortgageBalance - annualPrincipal);
+    } else {
+      mortgageBalance = 0;
+    }
 
-      // Calculate net cash flow (after debt service)
-      const netCashFlow = annualRentalIncome - annualOperatingExpenses - annualDebtService;
-      cumulativeCashFlow += netCashFlow;
+    // Calculate net cash flow (after debt service)
+    const netCashFlow = annualRentalIncome - annualOperatingExpenses - annualDebtService;
+    cumulativeCashFlow += netCashFlow;
 
       // Store values (cash flow metrics only)
-      forecast.netCashFlow.push(netCashFlow);
-      forecast.mortgageBalance.push(mortgageBalance);
-      forecast.cumulativeCashFlow.push(cumulativeCashFlow);
-      forecast.noi.push(noi);
-      forecast.rentalIncome.push(annualRentalIncome);
-      forecast.operatingExpenses.push(annualOperatingExpenses);
-      forecast.debtService.push(annualDebtService);
-      forecast.debtServicePrincipal.push(annualPrincipalPaid);
-      forecast.debtServiceInterest.push(annualInterestPaid);
+    forecast.netCashFlow.push(netCashFlow);
+    forecast.mortgageBalance.push(mortgageBalance);
+    forecast.cumulativeCashFlow.push(cumulativeCashFlow);
+    forecast.noi.push(noi);
+    forecast.rentalIncome.push(annualRentalIncome);
+    forecast.operatingExpenses.push(annualOperatingExpenses);
+    forecast.debtService.push(annualDebtService);
+    forecast.debtServicePrincipal.push(annualPrincipalPaid);
+    forecast.debtServiceInterest.push(annualInterestPaid);
 
-      // Update rent for next year
+    // Update rent for next year
       currentRent = currentRent * (1 + (assumptions.annualRentIncrease || 0) / 100);
     }
   }
@@ -522,8 +522,8 @@ export function formatForecastForChart(forecast, analysisMode = 'cash-flow') {
       equityGrowthRate: forecast.equityGrowthRate[index] || 0
     }));
   } else {
-    return forecast.years.map((year, index) => ({
-      year,
+  return forecast.years.map((year, index) => ({
+    year,
       netCashFlow: Math.round(forecast.netCashFlow[index] || 0),
       mortgageBalance: Math.round(forecast.mortgageBalance[index] || 0),
       cumulativeCashFlow: Math.round(forecast.cumulativeCashFlow[index] || 0),
@@ -531,7 +531,7 @@ export function formatForecastForChart(forecast, analysisMode = 'cash-flow') {
       operatingExpenses: Math.round(forecast.operatingExpenses[index] || 0),
       noi: Math.round(forecast.noi[index] || 0),
       debtService: Math.round(forecast.debtService[index] || 0)
-    }));
+  }));
   }
 }
 

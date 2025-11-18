@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, use, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useParams } from "next/navigation";
 import Layout from "@/components/Layout";
 import { RequireAuth } from "@/context/AuthContext";
 import Button from "@/components/Button";
@@ -16,10 +17,26 @@ import YoYAnalysis from "@/components/calculators/YoYAnalysis";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/sensitivity-analysis";
 import { getPropertyNotes, savePropertyNotes } from "@/lib/property-notes-storage";
 
-export default function PropertyDetailPage({ params }) {
-  const { propertyId } = use(params) || {};
+export default function PropertyDetailPage() {
+  // Use useParams hook for client components - more reliable than use(params)
+  const params = useParams();
+  // Handle both string and array cases for Next.js 15
+  const propertyId = Array.isArray(params?.propertyId) ? params.propertyId[0] : params?.propertyId;
   const [isHydrated, setIsHydrated] = useState(false);
   const { addToast } = useToast();
+  
+  // Early return if propertyId is not available
+  if (!propertyId) {
+    return (
+      <RequireAuth>
+        <Layout>
+          <div className="text-center py-12">
+            <h1 className="text-2xl font-semibold">Loading...</h1>
+          </div>
+        </Layout>
+      </RequireAuth>
+    );
+  }
   
   // Modal state management
   const [showEditPropertyModal, setShowEditPropertyModal] = useState(false);

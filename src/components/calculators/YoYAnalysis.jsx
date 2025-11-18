@@ -39,9 +39,9 @@ export default function YoYAnalysis({ property, assumptions, baselineAssumptions
         </button>
         {isOpen && (
           <div className="px-4 pb-4">
-            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-              <div className="text-sm">No property selected for analysis</div>
-            </div>
+        <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+          <div className="text-sm">No property selected for analysis</div>
+        </div>
           </div>
         )}
       </div>
@@ -112,7 +112,7 @@ export default function YoYAnalysis({ property, assumptions, baselineAssumptions
 
       {isOpen && (
         <div className="px-4 pb-6 pt-2">
-          {/* Data Quality Warning */}
+      {/* Data Quality Warning */}
       {warningMessage && (
         <div className={`mb-4 rounded-lg border p-4 ${getWarningStyle()}`}>
           <div className="flex items-start gap-3">
@@ -336,33 +336,33 @@ export default function YoYAnalysis({ property, assumptions, baselineAssumptions
         </div>
       </div>
 
-          {/* Key Insights */}
-          <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Key Insights</h4>
-            <div className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
-              {projected.revenue > baselineProjected.revenue && (
-                <div>• Higher rent growth assumptions will increase revenue by {Math.abs(projected.revenue - baselineProjected.revenue).toFixed(1)}% more than baseline</div>
+      {/* Key Insights */}
+      <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Key Insights</h4>
+        <div className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+          {projected.revenue > baselineProjected.revenue && (
+            <div>• Higher rent growth assumptions will increase revenue by {Math.abs(projected.revenue - baselineProjected.revenue).toFixed(1)}% more than baseline</div>
+          )}
+          {projected.expenses < baselineProjected.expenses && (
+            <div>• Lower expense inflation assumptions will reduce expense growth by {Math.abs(projected.expenses - baselineProjected.expenses).toFixed(1)}% vs baseline</div>
+          )}
+          {projected.cashFlow > baselineProjected.cashFlow && (
+            <div>• Combined assumptions project {Math.abs(projected.cashFlow - baselineProjected.cashFlow).toFixed(1)}% higher cash flow growth than baseline</div>
+          )}
+          {!dataRequirement?.meetsRequirement && (
+            <div>
+              • Historical YoY analysis requires a complete prior year and current year data. 
+              {!dataRequirement?.meetsFullPriorYearRequirement && (
+                <span> Prior year validation: {previousYearValidation?.message || 'incomplete'}.</span>
               )}
-              {projected.expenses < baselineProjected.expenses && (
-                <div>• Lower expense inflation assumptions will reduce expense growth by {Math.abs(projected.expenses - baselineProjected.expenses).toFixed(1)}% vs baseline</div>
+              {currentYearValidation?.isPartial && (
+                <span> Current year: {currentYearValidation.monthsElapsed}/12 months ({currentYearValidation.expenseMonthsFound} months of expense data).</span>
               )}
-              {projected.cashFlow > baselineProjected.cashFlow && (
-                <div>• Combined assumptions project {Math.abs(projected.cashFlow - baselineProjected.cashFlow).toFixed(1)}% higher cash flow growth than baseline</div>
-              )}
-              {!dataRequirement?.meetsRequirement && (
-                <div>
-                  • Historical YoY analysis requires a complete prior year and current year data. 
-                  {!dataRequirement?.meetsFullPriorYearRequirement && (
-                    <span> Prior year validation: {previousYearValidation?.message || 'incomplete'}.</span>
-                  )}
-                  {currentYearValidation?.isPartial && (
-                    <span> Current year: {currentYearValidation.monthsElapsed}/12 months ({currentYearValidation.expenseMonthsFound} months of expense data).</span>
-                  )}
-                  Projections based on current assumptions.
-                </div>
-              )}
+              Projections based on current assumptions.
             </div>
-          </div>
+          )}
+        </div>
+      </div>
         </div>
       )}
     </div>

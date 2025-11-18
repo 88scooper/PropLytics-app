@@ -154,7 +154,7 @@ const BaselineForecast = ({ property, assumptions }) => {
             icon: TrendingUp,
             text: `Cash flow improves by ${formatCurrency(lastCashFlow - firstCashFlow)} (${avgGrowth.toFixed(1)}% per year on average)`,
             color: 'text-green-600 dark:text-green-400',
-          });
+      });
         }
       }
     }
@@ -164,12 +164,12 @@ const BaselineForecast = ({ property, assumptions }) => {
       const lastIncome = lastYear.operatingIncome || 0;
       if (firstIncome > 0) {
         const incomeGrowth = ((lastIncome - firstIncome) / firstIncome) * 100;
-        insights.push({
-          icon: TrendingUp,
+      insights.push({
+        icon: TrendingUp,
           text: `Operating income grows by ${incomeGrowth.toFixed(1)}% over ${years} years`,
-          color: 'text-blue-600 dark:text-blue-400',
-        });
-      }
+        color: 'text-blue-600 dark:text-blue-400',
+      });
+    }
     }
 
     if (visibleMetrics.operatingExpenses && year1 && lastYear) {
@@ -177,11 +177,11 @@ const BaselineForecast = ({ property, assumptions }) => {
       const lastExpenses = lastYear.operatingExpenses || 0;
       if (firstExpenses > 0) {
         const expenseGrowth = ((lastExpenses - firstExpenses) / firstExpenses) * 100;
-        insights.push({
+      insights.push({
           icon: TrendingDown,
           text: `Operating expenses increase by ${expenseGrowth.toFixed(1)}% over ${years} years`,
           color: 'text-red-600 dark:text-red-400',
-        });
+      });
       }
     }
 
@@ -251,7 +251,7 @@ const BaselineForecast = ({ property, assumptions }) => {
           <LineChartIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             Baseline Forecast
-          </h2>
+        </h2>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400 text-center py-8">
           Select a property to view the baseline forecast.
@@ -267,7 +267,7 @@ const BaselineForecast = ({ property, assumptions }) => {
           <LineChartIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             Baseline Forecast
-          </h2>
+        </h2>
           <div className="flex items-center gap-2">
             <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
               Years:
@@ -336,7 +336,7 @@ const BaselineForecast = ({ property, assumptions }) => {
             <LineChartIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Baseline Forecast
-            </h2>
+          </h2>
             <div className="flex items-center gap-2">
               <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 Years:

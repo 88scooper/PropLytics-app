@@ -304,6 +304,7 @@ function PropertyCard({ property }) {
   return (
     <Link 
       href={`/my-properties/${property.id}`}
+      prefetch={false}
       className="group block rounded-lg border border-black/10 dark:border-white/10 overflow-hidden hover:shadow-lg transition-all duration-200 hover:border-black/20 dark:hover:border-white/20"
     >
       <div className="aspect-square relative overflow-hidden">
