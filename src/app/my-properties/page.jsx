@@ -305,73 +305,103 @@ function PropertyCard({ property }) {
     <Link 
       href={`/my-properties/${property.id}`}
       prefetch={false}
-      className="group block rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden hover:shadow-xl transition-all duration-200 hover:border-black/20 dark:hover:border-white/20 bg-white dark:bg-neutral-900"
+      className="group block rounded-lg border border-black/10 dark:border-white/10 overflow-hidden bg-white dark:bg-neutral-900 hover:shadow-md transition-all"
     >
-      <div className="aspect-square relative overflow-hidden">
-        {property.imageUrl ? (
-          <Image 
-            src={`${property.imageUrl}?v=3`}
-            alt={property.nickname || property.name}
-            width={400}
-            height={400}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            unoptimized
+      <div className="p-6 space-y-6">
+        {/* Section 1: Property Header */}
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 w-64 h-64 sm:w-80 sm:h-80 rounded-lg overflow-hidden border border-black/10 dark:border-white/10 bg-gray-100 dark:bg-neutral-800">
+            {property.imageUrl ? (
+              <Image 
+                src={`${property.imageUrl}?v=3`}
+                alt={property.nickname || property.name}
+                width={320}
+                height={320}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                unoptimized
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-800 dark:to-neutral-700" />
+            )}
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white group-hover:text-[#205A3E] dark:group-hover:text-[#4ade80] transition-colors mb-1">
+              {property.nickname || property.name}
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-3">
+              {property.address}
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">Purchase Price</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">{formatCurrency(property.purchasePrice)}</div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">Units</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">{property.units || 1}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2: Primary Financial Metrics */}
+        <div className="grid grid-cols-3 gap-4">
+          <MetricDisplayCard
+            label="Monthly Cash Flow"
+            value={formatCurrency(monthlyCashFlow)}
+            subvalue={formatCurrency(annualCashFlow) + '/yr'}
+            isPositive={monthlyCashFlow >= 0}
+            accent="emerald"
           />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-800 dark:to-neutral-700" />
-        )}
-        <div className="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-colors" />
-      </div>
-      
-      <div className="p-4 sm:p-5">
-        <div className="mb-3">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-[#205A3E] dark:group-hover:text-[#4ade80] transition-colors">
-            {property.nickname || property.name}
-          </h3>
+          <MetricDisplayCard
+            label="Current Value"
+            value={formatCurrency(currentValue)}
+            subvalue={(totalReturn >= 0 ? '+' : '') + formatCurrency(totalReturn) + ' gain'}
+            isPositive={totalReturn >= 0}
+            accent="teal"
+          />
+          <MetricDisplayCard
+            label="Annual Cash Flow"
+            value={formatCurrency(annualCashFlow)}
+            subvalue={formatCurrency(monthlyCashFlow) + '/mo'}
+            isPositive={annualCashFlow >= 0}
+            accent="emerald"
+          />
         </div>
-        
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          {property.address}
-        </p>
-        
-        <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-          <div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Purchase Price</div>
-            <div className="font-semibold text-gray-900 dark:text-white">{formatCurrency(property.purchasePrice)}</div>
-          </div>
-          <div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Units</div>
-            <div className="font-semibold text-gray-900 dark:text-white">{property.units || 1}</div>
-          </div>
-          <div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Monthly Rent</div>
-            <div className="font-semibold text-emerald-600 dark:text-emerald-400">
-              {formatCurrency(property.rent.monthlyRent)}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Monthly Expenses</div>
-            <div className="font-semibold text-red-600 dark:text-red-400">
-              {formatCurrency(property.monthlyExpenses?.total || 0)}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cash Flow</div>
-            <div className={`font-semibold ${monthlyCashFlow >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-              {formatCurrency(monthlyCashFlow)}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Rent/Sq Ft</div>
-            <div className="font-semibold text-gray-900 dark:text-white">
-              {formatCurrency(rentPerSqFt)}
-            </div>
-          </div>
+
+        {/* Section 3: Income & Expense Summary */}
+        <div className="grid grid-cols-3 gap-4">
+          <MetricDisplayCard
+            label="Monthly Rent"
+            value={formatCurrency(property.rent.monthlyRent)}
+            subvalue={formatCurrency(annualRevenue) + '/yr'}
+            isPositive={true}
+            accent="emerald"
+            size="medium"
+          />
+          <MetricDisplayCard
+            label="Monthly Expenses"
+            value={formatCurrency(property.monthlyExpenses?.total || 0)}
+            subvalue={formatCurrency((property.monthlyExpenses?.total || 0) * 12) + '/yr'}
+            isPositive={false}
+            accent="amber"
+            size="medium"
+          />
+          <MetricDisplayCard
+            label="Rent/Sq Ft"
+            value={formatCurrency(rentPerSqFt)}
+            subvalue={squareFeet > 0 ? `${Math.round(squareFeet).toLocaleString()} sq ft` : 'N/A'}
+            isPositive={true}
+            accent="teal"
+            size="medium"
+          />
         </div>
-        
-        <div className="mt-5 pt-5 border-t border-black/10 dark:border-white/10">
-          <div className="mb-3">
-            <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Key Metrics</h4>
+
+        {/* Section 4: Performance Metrics */}
+        <div className="pt-5 border-t border-black/10 dark:border-white/10">
+          <div className="mb-4">
+            <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Performance Metrics</h4>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             <KeyMetricCard
@@ -418,28 +448,91 @@ function PropertyCard({ property }) {
             />
           </div>
         </div>
+
       </div>
     </Link>
+  );
+}
+
+function MetricDisplayCard({ label, value, subvalue, isPositive, accent = 'emerald', size = 'large' }) {
+  // Consistent font sizes across all metric cards
+  const valueSize = size === 'large' ? 'text-2xl' : 'text-xl';
+  
+  // Sophisticated tinted backgrounds matching Proplytics TopMetricCard style
+  const accentConfig = {
+    emerald: {
+      border: 'border-[#205A3E]/30 dark:border-[#1C4F39]/40',
+      gradient: 'from-[#D9E5DC] via-[#F4F8F5] to-transparent dark:from-[#1A2F25] dark:via-[#101B15] dark:to-transparent',
+    },
+    teal: {
+      border: 'border-[#1A4A5A]/25 dark:border-[#123640]/40',
+      gradient: 'from-[#D8E6EA] via-[#F5F9FA] to-transparent dark:from-[#11252B] dark:via-[#0B181D] dark:to-transparent',
+    },
+    amber: {
+      border: 'border-[#B57A33]/25 dark:border-[#8C5D24]/35',
+      gradient: 'from-[#F3E6D4] via-[#FBF6EE] to-transparent dark:from-[#2A2014] dark:via-[#1B140C] dark:to-transparent',
+    },
+    red: {
+      border: 'border-red-200/30 dark:border-red-800/40',
+      gradient: 'from-red-50/50 via-red-25/30 to-transparent dark:from-red-950/30 dark:via-red-900/20 dark:to-transparent',
+    },
+  };
+
+  const config = isPositive === false ? accentConfig.red : accentConfig[accent] || accentConfig.emerald;
+  
+  const getValueColor = () => {
+    if (isPositive === false) {
+      return 'text-red-600 dark:text-red-400';
+    }
+    return 'text-gray-900 dark:text-gray-100';
+  };
+
+  return (
+    <div className={`relative overflow-hidden rounded-lg border ${config.border} bg-gradient-to-br ${config.gradient} p-4 hover:opacity-95 transition-opacity`}>
+      <div className="text-center">
+        <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
+          {label}
+        </div>
+        <div className={`${valueSize} font-bold ${getValueColor()} mb-1`}>
+          {value}
+        </div>
+        {subvalue && (
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            {subvalue}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
 function KeyMetricCard({ title, value, tooltipText, statusTone = 'neutral', statusMessage, customContent }) {
   const [showTooltip, setShowTooltip] = useState(false);
   
-  // Gradient configurations matching Portfolio page aesthetic
-  const gradientConfig = {
-    positive: {
-      border: 'border-[#205A3E]/30 dark:border-[#1C4F39]/40',
-      gradient: 'from-[#D9E5DC] via-[#F4F8F5] to-transparent dark:from-[#1A2F25] dark:via-[#101B15] dark:to-transparent',
-    },
-    neutral: {
-      border: 'border-[#1A4A5A]/25 dark:border-[#123640]/40',
-      gradient: 'from-[#D8E6EA] via-[#F5F9FA] to-transparent dark:from-[#11252B] dark:via-[#0B181D] dark:to-transparent',
-    },
-    warning: {
-      border: 'border-[#B57A33]/25 dark:border-[#8C5D24]/35',
-      gradient: 'from-[#F3E6D4] via-[#FBF6EE] to-transparent dark:from-[#2A2014] dark:via-[#1B140C] dark:to-transparent',
-    },
+  // Sophisticated tinted backgrounds matching Proplytics TopMetricCard style
+  const getCardStyles = () => {
+    switch (statusTone) {
+      case 'positive':
+        return {
+          border: 'border-[#205A3E]/30 dark:border-[#1C4F39]/40',
+          gradient: 'from-[#D9E5DC] via-[#F4F8F5] to-transparent dark:from-[#1A2F25] dark:via-[#101B15] dark:to-transparent',
+        };
+      case 'neutral':
+        return {
+          border: 'border-[#1A4A5A]/25 dark:border-[#123640]/40',
+          gradient: 'from-[#D8E6EA] via-[#F5F9FA] to-transparent dark:from-[#11252B] dark:via-[#0B181D] dark:to-transparent',
+        };
+      case 'warning':
+        return {
+          border: 'border-[#B57A33]/25 dark:border-[#8C5D24]/35',
+          gradient: 'from-[#F3E6D4] via-[#FBF6EE] to-transparent dark:from-[#2A2014] dark:via-[#1B140C] dark:to-transparent',
+        };
+      default:
+        return {
+          border: 'border-black/10 dark:border-white/10',
+          gradient: 'from-transparent via-transparent to-transparent',
+        };
+    }
   };
 
   const statusToneConfig = {
@@ -460,22 +553,27 @@ function KeyMetricCard({ title, value, tooltipText, statusTone = 'neutral', stat
     },
   };
 
-  const gradient = gradientConfig[statusTone] || gradientConfig.neutral;
+  const cardStyles = getCardStyles();
   const statusStyles = statusToneConfig[statusTone] || statusToneConfig.neutral;
 
+  // Minimal design - neutral text colors matching Proplytics aesthetic
+  const getValueColor = () => {
+    return 'text-gray-900 dark:text-gray-100';
+  };
+
   return (
-    <div className={`relative overflow-hidden rounded-lg border ${gradient.border} bg-gradient-to-br ${gradient.gradient} p-3 hover:shadow-sm transition-shadow`}>
-      <div className="flex items-start justify-between gap-1.5 mb-2">
+    <div className={`relative overflow-hidden rounded-lg border ${cardStyles.border} bg-gradient-to-br ${cardStyles.gradient} p-4 hover:opacity-95 transition-opacity`}>
+      <div className="flex items-start justify-between gap-1.5 mb-3">
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{title}</h5>
+          <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide truncate">{title}</h5>
           {tooltipText && (
             <div 
-              className="relative flex-shrink-0"
+              className="relative flex-shrink-0 group"
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
             >
-              <div className="w-3 h-3 rounded-full bg-white/90 dark:bg-gray-100 border border-[#205A3E] dark:border-[#4ade80] flex items-center justify-center cursor-help hover:border-[#205A3E]/80 dark:hover:border-[#4ade80]/80 transition-colors">
-                <span className="text-[#205A3E] dark:text-[#4ade80] text-[8px] font-bold leading-none">i</span>
+              <div className="w-4 h-4 rounded-full bg-white dark:bg-gray-100 border-2 border-[#205A3E] dark:border-[#4ade80] flex items-center justify-center cursor-help">
+                <span className="text-[#205A3E] dark:text-[#4ade80] text-xs font-bold leading-none">i</span>
               </div>
               {showTooltip && (
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-2 bg-[#205A3E] text-white text-xs rounded-lg pointer-events-none whitespace-normal z-50 w-64 shadow-lg">
@@ -489,13 +587,13 @@ function KeyMetricCard({ title, value, tooltipText, statusTone = 'neutral', stat
       </div>
       
       <div className="mb-2">
-        <p className="text-lg font-bold text-gray-900 dark:text-white">
+        <p className={`text-2xl font-bold ${getValueColor()}`}>
           {value}
         </p>
       </div>
 
       {statusMessage && (
-        <div className={`rounded-md px-2 py-1 text-[10px] font-semibold ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} inline-block`}>
+        <div className={`rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} inline-block`}>
           {statusMessage}
         </div>
       )}
@@ -508,5 +606,6 @@ function KeyMetricCard({ title, value, tooltipText, statusTone = 'neutral', stat
     </div>
   );
 }
+
 
 
