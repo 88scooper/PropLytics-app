@@ -3,7 +3,7 @@
 
 import Layout from "@/components/Layout.jsx";
 import { RequireAuth } from "@/context/AuthContext";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Settings, GripVertical, Building2, PiggyBank, FileSpreadsheet } from "lucide-react";
 import {
   DndContext,
@@ -168,9 +168,6 @@ export default function PortfolioSummaryPage() {
   // State for expense view toggle (Annual Expenses vs Annual Deductible Expenses)
   const [expenseViewType, setExpenseViewType] = useState('annual');
 
-  // State for time period toggle (All Time vs Current Year)
-  const [timePeriod, setTimePeriod] = useState('current');
-
   // Drag and drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -215,14 +212,6 @@ export default function PortfolioSummaryPage() {
     }
   }, []);
 
-  // Initialize time period from localStorage or use default
-  useEffect(() => {
-    const savedTimePeriod = localStorage.getItem('portfolio-time-period');
-    if (savedTimePeriod) {
-      setTimePeriod(savedTimePeriod);
-    }
-  }, []);
-
 
   // Save metrics to localStorage whenever metrics change
   useEffect(() => {
@@ -235,11 +224,6 @@ export default function PortfolioSummaryPage() {
   useEffect(() => {
     localStorage.setItem('expense-view-type', expenseViewType);
   }, [expenseViewType]);
-
-  // Save time period to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('portfolio-time-period', timePeriod);
-  }, [timePeriod]);
 
   // Handle metric visibility toggle
   const toggleMetricVisibility = (metricId) => {
@@ -307,18 +291,6 @@ export default function PortfolioSummaryPage() {
   const totalAnnualOperatingExpenses = portfolioMetrics.totalAnnualOperatingExpenses || 0;
   const totalAnnualDebtService = portfolioMetrics.totalAnnualDebtService || (totalMonthlyDebtService * 12);
 
-  // Helper function to calculate metrics based on time period
-  const getTimePeriodMultiplier = () => {
-    return timePeriod === 'all' ? 1 : 1; // For now, both show current year data
-  };
-
-  // Helper function to get time period label
-  const getTimePeriodLabel = (baseLabel) => {
-    if (timePeriod === 'all') {
-      return baseLabel.replace('Annual', 'Total').replace('Monthly', 'Average Monthly');
-    }
-    return baseLabel;
-  };
 
   // Calculate additional metrics
   const totalMortgageDebt = portfolioMetrics.totalMortgageBalance || 0;
@@ -456,11 +428,6 @@ export default function PortfolioSummaryPage() {
       ? 'Slightly below optimal range; evaluate rents or financing.'
       : 'Under 5%; revisit acquisition assumptions or expenses.';
 
-  const periodSummary =
-    timePeriod === 'all'
-      ? 'Showing lifetime performance since each acquisition.'
-      : 'Showing year-to-date performance to help you plan the rest of the year.';
-
   const highlightedMetrics = metrics.filter(
     (metric) => metric.isVisible && highlightedMetricIds.includes(metric.id)
   );
@@ -498,43 +465,9 @@ export default function PortfolioSummaryPage() {
                 <p className="mt-2 text-gray-600 dark:text-gray-300">
                   Overview of your real estate investment performance and key metrics.
                 </p>
-                <div
-                  className="mt-4 text-sm text-gray-500 dark:text-gray-400"
-                  role="status"
-                  aria-live="polite"
-                >
-                  {periodSummary}
-                </div>
               </div>
 
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              {/* Time Period Toggle */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Time Period:</span>
-                <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                  <button
-                    onClick={() => setTimePeriod('current')}
-                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                      timePeriod === 'current'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                  >
-                    Current Year
-                  </button>
-                  <button
-                    onClick={() => setTimePeriod('all')}
-                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                      timePeriod === 'all'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                  >
-                    All Time
-                  </button>
-                </div>
-              </div>
-
               {/* Settings Button */}
               <div className="relative" ref={settingsRef}>
                 <button
@@ -632,6 +565,7 @@ export default function PortfolioSummaryPage() {
                         icon={Building2}
                         accent="emerald"
                         supporting={`${formatCurrency(totalEquity)} equity • ${formatCurrency(totalMortgageDebt)} debt`}
+                        iconTooltip="The estimated current market value of all properties in your portfolio, based on current market valuations."
                       />
                     );
                   case 'equity': {
@@ -647,6 +581,7 @@ export default function PortfolioSummaryPage() {
                         iconBadge="$"
                         iconBadgePosition="top-center"
                         supporting={projectedEquityCopy}
+                        iconTooltip="The estimated market value of your properties minus the remaining mortgage balances. This represents your ownership stake in the portfolio."
                       />
                     );
                   }
@@ -659,6 +594,7 @@ export default function PortfolioSummaryPage() {
                         icon={FileSpreadsheet}
                         accent="amber"
                         supporting={`Portfolio LTV ${formatPercentage(portfolioLTV)}`}
+                        iconTooltip="The total remaining mortgage balance across all properties in your portfolio. This represents your outstanding debt obligations."
                       />
                     );
                   default:
@@ -811,12 +747,10 @@ export default function PortfolioSummaryPage() {
                     return (
                       <MetricCard
                         key={metric.id}
-                        title={getTimePeriodLabel("Net Operating Income (NOI)")}
+                        title="Net Operating Income (NOI)"
                         value={formatCurrency(netOperatingIncome)}
                         showInfoIcon={true}
-                        tooltipText={timePeriod === 'all' 
-                          ? "Total profitability by subtracting operating expenses from total revenue since acquisition." 
-                          : "Calculates the property's profitability by subtracting operating expenses from total revenue."}
+                        tooltipText="Calculates the property's profitability by subtracting operating expenses from total revenue."
                         statusMessage={netOperatingIncome > 0 ? 'NOI is positive, indicating strong operations.' : 'Negative NOI; inspect operating costs closely.'}
                         statusTone={netOperatingIncome > 0 ? 'positive' : 'warning'}
                       />
@@ -989,7 +923,103 @@ function TopMetricCard({
   supporting,
   iconBadge,
   iconBadgePosition = 'bottom-right',
+  iconTooltip,
 }) {
+  const iconRef = useRef(null);
+  const tooltipRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const updateTooltipPosition = useCallback(() => {
+    if (!iconRef.current || !tooltipRef.current) return;
+    
+    const iconRect = iconRef.current.getBoundingClientRect();
+    
+    // Temporarily show tooltip to measure it
+    const originalStyle = {
+      visibility: tooltipRef.current.style.visibility,
+      display: tooltipRef.current.style.display,
+      opacity: tooltipRef.current.style.opacity,
+      position: tooltipRef.current.style.position,
+    };
+    
+    tooltipRef.current.style.visibility = 'hidden';
+    tooltipRef.current.style.display = 'block';
+    tooltipRef.current.style.opacity = '1';
+    tooltipRef.current.style.position = 'fixed';
+    tooltipRef.current.style.top = '0';
+    tooltipRef.current.style.left = '0';
+    
+    const tooltipRect = tooltipRef.current.getBoundingClientRect();
+    const tooltipHeight = tooltipRect.height;
+    const tooltipWidth = tooltipRect.width;
+    
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const gap = 8;
+    
+    // Calculate available space around THIS specific icon
+    const spaceAbove = iconRect.top;
+    const spaceBelow = viewportHeight - iconRect.bottom;
+    const spaceRight = viewportWidth - iconRect.right;
+    const spaceLeft = iconRect.left;
+    
+    let top, left;
+
+    // Prefer above, centered on icon
+    if (spaceAbove >= tooltipHeight + gap) {
+      top = iconRect.top - tooltipHeight - gap;
+      left = iconRect.left + (iconRect.width / 2) - (tooltipWidth / 2);
+    } 
+    // Then below, centered on icon
+    else if (spaceBelow >= tooltipHeight + gap) {
+      top = iconRect.bottom + gap;
+      left = iconRect.left + (iconRect.width / 2) - (tooltipWidth / 2);
+    } 
+    // Then right of icon
+    else if (spaceRight >= tooltipWidth + gap) {
+      top = iconRect.top + (iconRect.height / 2) - (tooltipHeight / 2);
+      left = iconRect.right + gap;
+    } 
+    // Finally left of icon
+    else {
+      top = iconRect.top + (iconRect.height / 2) - (tooltipHeight / 2);
+      left = iconRect.left - tooltipWidth - gap;
+    }
+
+    // Keep within viewport bounds
+    left = Math.max(16, Math.min(left, viewportWidth - tooltipWidth - 16));
+    top = Math.max(16, Math.min(top, viewportHeight - tooltipHeight - 16));
+
+    // Apply position
+    tooltipRef.current.style.position = 'fixed';
+    tooltipRef.current.style.top = `${top}px`;
+    tooltipRef.current.style.left = `${left}px`;
+    tooltipRef.current.style.zIndex = '9999';
+    tooltipRef.current.style.visibility = '';
+    tooltipRef.current.style.display = '';
+  }, []);
+
+  useEffect(() => {
+    if (isHovered) {
+      // Use requestAnimationFrame to ensure DOM is ready
+      const rafId = requestAnimationFrame(() => {
+        updateTooltipPosition();
+      });
+      
+      const scrollHandler = () => updateTooltipPosition();
+      const resizeHandler = () => updateTooltipPosition();
+      
+      window.addEventListener('scroll', scrollHandler, true);
+      window.addEventListener('resize', resizeHandler);
+      
+      return () => {
+        cancelAnimationFrame(rafId);
+        window.removeEventListener('scroll', scrollHandler, true);
+        window.removeEventListener('resize', resizeHandler);
+      };
+    }
+  }, [isHovered, updateTooltipPosition]);
+
   const accentConfig = {
     emerald: {
       border: 'border-[#205A3E]/30 dark:border-[#1C4F39]/40',
@@ -1019,18 +1049,37 @@ function TopMetricCard({
           </h3>
         </div>
         {Icon && (
-          <div className={`relative rounded-full p-2.5 ${config.icon}`}>
-            <Icon className="h-5 w-5" aria-hidden="true" />
-            {iconBadge && (
-              <span
-                className={`absolute flex h-4 w-4 items-center justify-center rounded-full bg-[#205A3E] text-[10px] font-semibold text-white shadow-sm dark:bg-[#2F7E57] ${
-                  iconBadgePosition === 'top-center'
-                    ? '-top-1 left-1/2 -translate-x-1/2'
-                    : '-bottom-1 -right-1'
-                }`}
+          <div 
+            className="relative group"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+          >
+            <div ref={iconRef} className={`relative rounded-full p-2.5 ${config.icon} cursor-help`}>
+              <Icon className="h-5 w-5" aria-hidden="true" />
+              {iconBadge && (
+                <span
+                  className={`absolute flex h-4 w-4 items-center justify-center rounded-full bg-[#205A3E] text-[10px] font-semibold text-white shadow-sm dark:bg-[#2F7E57] ${
+                    iconBadgePosition === 'top-center'
+                      ? '-top-1 left-1/2 -translate-x-1/2'
+                      : '-bottom-1 -right-1'
+                  }`}
+                >
+                  {iconBadge}
+                </span>
+              )}
+            </div>
+            {iconTooltip && (
+              <div
+                ref={tooltipRef}
+                className="p-3 bg-[#205A3E] text-white text-xs leading-relaxed rounded-lg transition-opacity duration-200 pointer-events-none whitespace-normal w-72 max-w-[calc(100vw-2rem)] shadow-2xl"
+                style={{ 
+                  opacity: isHovered ? 1 : 0, 
+                  visibility: isHovered ? 'visible' : 'hidden',
+                  pointerEvents: 'none'
+                }}
               >
-                {iconBadge}
-              </span>
+                {iconTooltip}
+              </div>
             )}
           </div>
         )}
@@ -1063,11 +1112,19 @@ function IncomeWaterfallCard({ totalRevenue, operatingExpenses, debtService, net
     ? totalRevenue
     : Math.max(totalOutflows, Math.abs(netCashFlow), 1);
 
+  // Calculate percentages for Operating Expenses and Debt Service
+  const operatingExpensesPercent = totalRevenue > 0 
+    ? Math.round((operatingExpenses / totalRevenue) * 100)
+    : 0;
+  const debtServicePercent = totalRevenue > 0
+    ? Math.round((debtService / totalRevenue) * 100)
+    : 0;
+
   const steps = [
     { label: 'Total Revenue', value: totalRevenue, type: 'base' },
     { label: 'Total Expenses', value: totalOutflows, type: 'subtract', isAggregate: true },
-    { label: 'Operating Expenses', value: operatingExpenses, type: 'subtract', isSub: true },
-    { label: 'Debt Service', value: debtService, type: 'subtract', isSub: true },
+    { label: `Operating Expenses (${operatingExpensesPercent}%)`, value: operatingExpenses, type: 'subtract', isSub: true },
+    { label: `Debt Service (${debtServicePercent}%)`, value: debtService, type: 'subtract', isSub: true },
   ];
 
   const barWidth = (value) => {
@@ -1493,10 +1550,13 @@ function AnnualDeductibleExpensesCard({
                   totalTrackedExpenses > 0
                     ? Math.min((category.value / totalTrackedExpenses) * 100, 100)
                     : 0;
+                const percentage = totalTrackedExpenses > 0
+                  ? ((category.value / totalTrackedExpenses) * 100).toFixed(1)
+                  : 0;
                 return (
                   <div key={category.id}>
                     <div className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
-                      <span>{category.label}</span>
+                      <span>{category.label} ({percentage}%)</span>
                       <span>{formatCurrency(category.value)}</span>
               </div>
                     <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">

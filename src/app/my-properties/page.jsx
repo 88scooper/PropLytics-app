@@ -305,116 +305,207 @@ function PropertyCard({ property }) {
     <Link 
       href={`/my-properties/${property.id}`}
       prefetch={false}
-      className="group block rounded-lg border border-black/10 dark:border-white/10 overflow-hidden hover:shadow-lg transition-all duration-200 hover:border-black/20 dark:hover:border-white/20"
+      className="group block rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden hover:shadow-xl transition-all duration-200 hover:border-black/20 dark:hover:border-white/20 bg-white dark:bg-neutral-900"
     >
       <div className="aspect-square relative overflow-hidden">
         {property.imageUrl ? (
           <Image 
-            src={property.imageUrl} 
+            src={`${property.imageUrl}?v=3`}
             alt={property.nickname || property.name}
             width={400}
             height={400}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            unoptimized
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-neutral-800 dark:to-neutral-700" />
         )}
-        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
+        <div className="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-colors" />
       </div>
       
-      <div className="p-3 sm:p-4">
-        <div className="mb-2">
-          <h3 className="font-semibold text-base sm:text-lg group-hover:text-[#205A3E] dark:group-hover:text-[#4ade80] transition-colors">
+      <div className="p-4 sm:p-5">
+        <div className="mb-3">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-[#205A3E] dark:group-hover:text-[#4ade80] transition-colors">
             {property.nickname || property.name}
           </h3>
         </div>
         
-        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-3">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           {property.address}
         </p>
         
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+        <div className="grid grid-cols-2 gap-3 text-sm mb-4">
           <div>
-            <div className="text-gray-500 dark:text-gray-400">Purchase Price</div>
-            <div className="font-medium">{formatCurrency(property.purchasePrice)}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Purchase Price</div>
+            <div className="font-semibold text-gray-900 dark:text-white">{formatCurrency(property.purchasePrice)}</div>
           </div>
           <div>
-            <div className="text-gray-500 dark:text-gray-400">Units</div>
-            <div className="font-medium">{property.units || 1}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Units</div>
+            <div className="font-semibold text-gray-900 dark:text-white">{property.units || 1}</div>
           </div>
           <div>
-            <div className="text-gray-500 dark:text-gray-400">Monthly Rent</div>
-            <div className="font-medium text-emerald-600 dark:text-emerald-400">
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Monthly Rent</div>
+            <div className="font-semibold text-emerald-600 dark:text-emerald-400">
               {formatCurrency(property.rent.monthlyRent)}
             </div>
           </div>
           <div>
-            <div className="text-gray-500 dark:text-gray-400">Monthly Expenses</div>
-            <div className="font-medium text-red-600 dark:text-red-400">
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Monthly Expenses</div>
+            <div className="font-semibold text-red-600 dark:text-red-400">
               {formatCurrency(property.monthlyExpenses?.total || 0)}
             </div>
           </div>
           <div>
-            <div className="text-gray-500 dark:text-gray-400">Cash Flow</div>
-            <div className={`font-medium ${monthlyCashFlow >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cash Flow</div>
+            <div className={`font-semibold ${monthlyCashFlow >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
               {formatCurrency(monthlyCashFlow)}
             </div>
           </div>
           <div>
-            <div className="text-gray-500 dark:text-gray-400">Rent/Sq Ft</div>
-            <div className="font-medium">
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Rent/Sq Ft</div>
+            <div className="font-semibold text-gray-900 dark:text-white">
               {formatCurrency(rentPerSqFt)}
             </div>
           </div>
         </div>
         
-        <div className="mt-3 pt-3 border-t border-black/10 dark:border-white/10">
-          <div className="space-y-2">
-            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Key Metrics</div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="text-center">
-                <div className="text-gray-500 dark:text-gray-400">Cap Rate</div>
-                <div className="font-medium text-[#205A3E] dark:text-[#4ade80]">
-                  {formatPercentage(capRate)}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-gray-500 dark:text-gray-400">Cash on Cash</div>
-                <div className="font-medium text-[#205A3E] dark:text-[#4ade80]">
-                  {formatPercentage(cashOnCashReturn)}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-gray-500 dark:text-gray-400">DSCR</div>
-                <div className="font-medium text-[#205A3E] dark:text-[#4ade80]">
-                  {dscr > 0 ? dscr.toFixed(2) : 'N/A'}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-gray-500 dark:text-gray-400">IRR</div>
-                <div className="font-medium text-[#205A3E] dark:text-[#4ade80]">
-                  {formatPercentage(irr * 100)}
-                </div>
-                <div className="mt-1">
-                  <select 
-                    value={irrYears} 
-                    onChange={(e) => setIrrYears(parseInt(e.target.value))}
-                    className="text-xs bg-transparent border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 text-gray-600 dark:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#205A3E] dark:focus:ring-[#4ade80]"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <option value={3}>3Y</option>
-                    <option value={5}>5Y</option>
-                    <option value={10}>10Y</option>
-                    <option value={15}>15Y</option>
-                    <option value={20}>20Y</option>
-                  </select>
-                </div>
-              </div>
-            </div>
+        <div className="mt-5 pt-5 border-t border-black/10 dark:border-white/10">
+          <div className="mb-3">
+            <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Key Metrics</h4>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <KeyMetricCard
+              title="Cap Rate"
+              value={formatPercentage(capRate)}
+              tooltipText="The capitalization rate measures the property's return based on its income relative to its value. A strong cap rate for Toronto area rentals is typically 5-7%."
+              statusTone={capRate >= 5 ? 'positive' : capRate >= 3.5 ? 'neutral' : 'warning'}
+              statusMessage={capRate >= 5 ? 'Strong' : capRate >= 3.5 ? 'Moderate' : 'Low'}
+            />
+            <KeyMetricCard
+              title="Cash on Cash"
+              value={formatPercentage(cashOnCashReturn)}
+              tooltipText="Cash-on-cash return shows the annual return on your initial cash investment. A good cash-on-cash return is generally between 8-12%."
+              statusTone={cashOnCashReturn >= 8 ? 'positive' : cashOnCashReturn >= 5 ? 'neutral' : 'warning'}
+              statusMessage={cashOnCashReturn >= 8 ? 'Strong' : cashOnCashReturn >= 5 ? 'Moderate' : 'Low'}
+            />
+            <KeyMetricCard
+              title="DSCR"
+              value={dscr > 0 ? dscr.toFixed(2) : 'N/A'}
+              tooltipText="Debt Service Coverage Ratio measures the property's ability to cover its debt payments. A DSCR above 1.25 is generally considered healthy."
+              statusTone={dscr >= 1.25 ? 'positive' : dscr >= 1.0 ? 'neutral' : 'warning'}
+              statusMessage={dscr >= 1.25 ? 'Healthy' : dscr >= 1.0 ? 'Adequate' : 'Risk'}
+            />
+            <KeyMetricCard
+              title="IRR"
+              value={formatPercentage(irr * 100)}
+              tooltipText="Internal Rate of Return estimates the annualized return on investment over the selected time period, accounting for cash flows and property appreciation."
+              statusTone={irr >= 0.12 ? 'positive' : irr >= 0.08 ? 'neutral' : 'warning'}
+              statusMessage={irr >= 0.12 ? 'Strong' : irr >= 0.08 ? 'Moderate' : 'Low'}
+              customContent={
+                <select 
+                  value={irrYears} 
+                  onChange={(e) => setIrrYears(parseInt(e.target.value))}
+                  className="text-xs bg-transparent border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#205A3E] dark:focus:ring-[#4ade80] mt-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <option value={3}>3Y</option>
+                  <option value={5}>5Y</option>
+                  <option value={10}>10Y</option>
+                  <option value={15}>15Y</option>
+                  <option value={20}>20Y</option>
+                </select>
+              }
+            />
           </div>
         </div>
       </div>
     </Link>
+  );
+}
+
+function KeyMetricCard({ title, value, tooltipText, statusTone = 'neutral', statusMessage, customContent }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  
+  // Gradient configurations matching Portfolio page aesthetic
+  const gradientConfig = {
+    positive: {
+      border: 'border-[#205A3E]/30 dark:border-[#1C4F39]/40',
+      gradient: 'from-[#D9E5DC] via-[#F4F8F5] to-transparent dark:from-[#1A2F25] dark:via-[#101B15] dark:to-transparent',
+    },
+    neutral: {
+      border: 'border-[#1A4A5A]/25 dark:border-[#123640]/40',
+      gradient: 'from-[#D8E6EA] via-[#F5F9FA] to-transparent dark:from-[#11252B] dark:via-[#0B181D] dark:to-transparent',
+    },
+    warning: {
+      border: 'border-[#B57A33]/25 dark:border-[#8C5D24]/35',
+      gradient: 'from-[#F3E6D4] via-[#FBF6EE] to-transparent dark:from-[#2A2014] dark:via-[#1B140C] dark:to-transparent',
+    },
+  };
+
+  const statusToneConfig = {
+    positive: {
+      text: 'text-emerald-700 dark:text-emerald-300',
+      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+      border: 'border-emerald-100 dark:border-emerald-800/60',
+    },
+    neutral: {
+      text: 'text-gray-600 dark:text-gray-300',
+      bg: 'bg-gray-50 dark:bg-gray-900/40',
+      border: 'border-gray-100 dark:border-gray-700',
+    },
+    warning: {
+      text: 'text-amber-700 dark:text-amber-300',
+      bg: 'bg-amber-50 dark:bg-amber-900/20',
+      border: 'border-amber-200 dark:border-amber-800/60',
+    },
+  };
+
+  const gradient = gradientConfig[statusTone] || gradientConfig.neutral;
+  const statusStyles = statusToneConfig[statusTone] || statusToneConfig.neutral;
+
+  return (
+    <div className={`relative overflow-hidden rounded-lg border ${gradient.border} bg-gradient-to-br ${gradient.gradient} p-3 hover:shadow-sm transition-shadow`}>
+      <div className="flex items-start justify-between gap-1.5 mb-2">
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{title}</h5>
+          {tooltipText && (
+            <div 
+              className="relative flex-shrink-0"
+              onMouseEnter={() => setShowTooltip(true)}
+              onMouseLeave={() => setShowTooltip(false)}
+            >
+              <div className="w-3 h-3 rounded-full bg-white/90 dark:bg-gray-100 border border-[#205A3E] dark:border-[#4ade80] flex items-center justify-center cursor-help hover:border-[#205A3E]/80 dark:hover:border-[#4ade80]/80 transition-colors">
+                <span className="text-[#205A3E] dark:text-[#4ade80] text-[8px] font-bold leading-none">i</span>
+              </div>
+              {showTooltip && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-2 bg-[#205A3E] text-white text-xs rounded-lg pointer-events-none whitespace-normal z-50 w-64 shadow-lg">
+                  {tooltipText}
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[#205A3E]"></div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <div className="mb-2">
+        <p className="text-lg font-bold text-gray-900 dark:text-white">
+          {value}
+        </p>
+      </div>
+
+      {statusMessage && (
+        <div className={`rounded-md px-2 py-1 text-[10px] font-semibold ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} inline-block`}>
+          {statusMessage}
+        </div>
+      )}
+
+      {customContent && (
+        <div className="mt-2">
+          {customContent}
+        </div>
+      )}
+    </div>
   );
 }
 

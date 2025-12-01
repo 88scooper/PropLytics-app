@@ -257,7 +257,7 @@ export default function PropertyDetailPage() {
           <div className="h-64 rounded-lg border border-black/10 dark:border-white/10 overflow-hidden">
             {property.imageUrl ? (
               <img 
-                src={property.imageUrl} 
+                src={`${property.imageUrl}?v=3`}
                 alt={property.name}
                 className="w-full h-full object-cover"
               />

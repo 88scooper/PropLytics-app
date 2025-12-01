@@ -93,7 +93,7 @@ export default function PropertySelector({ properties = [], selectedPropertyId, 
               >
                 {/* Thumbnail */}
                 {property.imageUrl ? (
-                  <div className="h-10 bg-cover bg-center" style={{ backgroundImage: `url(${property.imageUrl})` }} />
+                  <div className="h-10 bg-cover bg-center" style={{ backgroundImage: `url(${property.imageUrl}?v=3)` }} />
                 ) : (
                   <div className={`h-10 bg-gradient-to-br ${imageGradient} dark:opacity-80`} />
                 )}

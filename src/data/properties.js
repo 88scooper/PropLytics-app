@@ -427,7 +427,7 @@ export const properties = [
     bathrooms: [2, 2, 2],
     squareFootage: 2500,
     currentValue: 1600000,
-    imageUrl: null, // No image provided
+    imageUrl: '/images/Third Avenue 1.png',
     tenants: [
       {
         name: 'Jerry',
