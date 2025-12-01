@@ -22,6 +22,7 @@ export interface Property {
   purchaseDate: string;
   closingCosts: number;
   renovationCosts: number;
+  initialRenovations?: number;
   currentMarketValue: number;
   yearBuilt: number;
   propertyType: string;
@@ -102,6 +103,15 @@ export interface Property {
     leaseEnd: string;
     status: string;
   }>;
+  expenseHistory?: Array<{
+    year: number;
+    propertyTax: number;
+    insurance: number;
+    maintenance: number;
+    other: number;
+    total: number;
+  }>;
+  imageUrl?: string;
 }
 
 export interface PortfolioMetrics {
@@ -319,7 +329,7 @@ const PropertyContext = createContext<PropertyContextType | undefined>(undefined
 // Provider component
 export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [propertiesState, setPropertiesState] = useState<Property[]>(() => {
-    const initialProperties = getAllProperties() as Property[];
+    const initialProperties = getAllProperties() as unknown as Property[];
     return initialProperties.map((property) => preparePropertyData(property));
   });
   const [calculationsComplete, setCalculationsComplete] = useState(false);
@@ -428,7 +438,7 @@ export const PropertyProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
   });
   
-  const metrics = getPortfolioMetrics(allProperties);
+  const metrics = getPortfolioMetrics(allProperties as any);
 
   // Memoized helper functions for performance
   const contextValue = useMemo(() => ({
