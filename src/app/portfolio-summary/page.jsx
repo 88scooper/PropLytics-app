@@ -4,7 +4,7 @@
 import Layout from "@/components/Layout.jsx";
 import { RequireAuth } from "@/context/AuthContext";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Settings, GripVertical, Building2, PiggyBank, FileSpreadsheet } from "lucide-react";
+import { Settings, GripVertical, Building2, PiggyBank, FileSpreadsheet, BarChart3, PieChart as PieChartIcon } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -29,6 +29,18 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recha
 
 
 const highlightedMetricIds = ['portfolioValue', 'equity', 'mortgageDebt'];
+
+// Color palette for pie charts - high contrast colors for better visibility
+const COLORS = [
+  '#205A3E', // primary emerald green
+  '#E16262', // red
+  '#3B82F6', // blue
+  '#F59E0B', // amber/orange
+  '#8B5CF6', // purple
+  '#06B6D4', // cyan
+  '#EC4899', // pink
+  '#10B981', // bright emerald
+];
 
 const metricPresets = {
   essentials: {
@@ -142,10 +154,6 @@ export default function PortfolioSummaryPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const settingsRef = useRef(null);
 
-  // State for expense settings dropdown visibility
-  const [isExpenseSettingsOpen, setIsExpenseSettingsOpen] = useState(false);
-  const expenseSettingsRef = useRef(null);
-
   const [activePreset, setActivePreset] = useState(null);
 
   // Default metrics configuration - Reordered according to new layout
@@ -164,10 +172,6 @@ export default function PortfolioSummaryPage() {
   // State for metrics (array of objects to preserve order and visibility)
   const [metrics, setMetrics] = useState(defaultMetrics);
 
-
-  // State for expense view toggle (Annual Expenses vs Annual Deductible Expenses)
-  const [expenseViewType, setExpenseViewType] = useState('annual');
-
   // Drag and drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -182,19 +186,16 @@ export default function PortfolioSummaryPage() {
       if (settingsRef.current && !settingsRef.current.contains(event.target)) {
         setIsSettingsOpen(false);
       }
-      if (expenseSettingsRef.current && !expenseSettingsRef.current.contains(event.target)) {
-        setIsExpenseSettingsOpen(false);
-      }
     };
 
-    if (isSettingsOpen || isExpenseSettingsOpen) {
+    if (isSettingsOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isSettingsOpen, isExpenseSettingsOpen]);
+  }, [isSettingsOpen]);
 
   // Initialize metrics from localStorage or use default
   useEffect(() => {
@@ -204,26 +205,12 @@ export default function PortfolioSummaryPage() {
     localStorage.setItem('portfolio-dashboard-layout', JSON.stringify(defaultMetrics));
   }, []);
 
-  // Initialize expense view type from localStorage or use default
-  useEffect(() => {
-    const savedExpenseView = localStorage.getItem('expense-view-type');
-    if (savedExpenseView) {
-      setExpenseViewType(savedExpenseView);
-    }
-  }, []);
-
-
   // Save metrics to localStorage whenever metrics change
   useEffect(() => {
     if (metrics.length > 0) {
       localStorage.setItem('portfolio-dashboard-layout', JSON.stringify(metrics));
     }
   }, [metrics]);
-
-  // Save expense view type to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('expense-view-type', expenseViewType);
-  }, [expenseViewType]);
 
   // Handle metric visibility toggle
   const toggleMetricVisibility = (metricId) => {
@@ -232,12 +219,6 @@ export default function PortfolioSummaryPage() {
         ? { ...metric, isVisible: !metric.isVisible }
         : metric
     ));
-  };
-
-  // Handle expense view type toggle
-  const handleExpenseViewChange = (viewType) => {
-    setExpenseViewType(viewType);
-    setIsExpenseSettingsOpen(false);
   };
 
   // Handle drag end
@@ -345,13 +326,58 @@ export default function PortfolioSummaryPage() {
     { id: 'utilities', label: 'Utilities', value: expenseAggregates.utilities },
     { id: 'condoFees', label: 'Condo Fees', value: expenseAggregates.condoFees },
     { id: 'professionalFees', label: 'Professional Fees', value: expenseAggregates.professionalFees },
-    { id: 'mortgagePayment', label: 'Mortgage Payment', value: expenseAggregates.mortgagePayment },
+    { id: 'mortgagePayment', label: 'Mortgage Payment - Principal & Interest', value: expenseAggregates.mortgagePayment },
   ]
     .filter((category) => category.value > 0)
     .sort((a, b) => b.value - a.value)
     .slice(0, 5);
 
   const totalTrackedExpenses = expenseCategoryList.reduce((sum, category) => sum + category.value, 0);
+
+  // Calculate deductible expense aggregates (operating expenses + mortgage interest, but NOT mortgage principal)
+  const deductibleExpenseAggregates = properties.reduce(
+    (acc, property) => {
+      const monthlyExpenses = property.monthlyExpenses || {};
+      
+      // Operating expenses (all deductible)
+      acc.propertyTax += (monthlyExpenses.propertyTax || 0) * 12;
+      acc.insurance += (monthlyExpenses.insurance || 0) * 12;
+      acc.maintenance += (monthlyExpenses.maintenance || 0) * 12;
+      acc.utilities += (monthlyExpenses.utilities || 0) * 12;
+      acc.condoFees += (monthlyExpenses.condoFees || 0) * 12;
+      acc.professionalFees += (monthlyExpenses.professionalFees || 0) * 12;
+      
+      // Mortgage interest (deductible, but not principal)
+      const monthlyInterest = monthlyExpenses.mortgageInterest || 0;
+      acc.mortgageInterest += monthlyInterest * 12;
+
+      return acc;
+    },
+    {
+      propertyTax: 0,
+      insurance: 0,
+      maintenance: 0,
+      utilities: 0,
+      condoFees: 0,
+      professionalFees: 0,
+      mortgageInterest: 0,
+    }
+  );
+
+  const deductibleExpenseCategoryList = [
+    { id: 'propertyTax', label: 'Property Tax', value: deductibleExpenseAggregates.propertyTax },
+    { id: 'insurance', label: 'Insurance', value: deductibleExpenseAggregates.insurance },
+    { id: 'maintenance', label: 'Maintenance', value: deductibleExpenseAggregates.maintenance },
+    { id: 'utilities', label: 'Utilities', value: deductibleExpenseAggregates.utilities },
+    { id: 'condoFees', label: 'Condo Fees', value: deductibleExpenseAggregates.condoFees },
+    { id: 'professionalFees', label: 'Professional Fees', value: deductibleExpenseAggregates.professionalFees },
+    { id: 'mortgageInterest', label: 'Mortgage Interest', value: deductibleExpenseAggregates.mortgageInterest },
+  ]
+    .filter((category) => category.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  const totalTrackedDeductibleExpenses = deductibleExpenseCategoryList.reduce((sum, category) => sum + category.value, 0);
 
   // Calculate new KPIs
   // 1. Overall Cap Rate = Total Annual NOI / Total Estimated Portfolio Value
@@ -561,27 +587,54 @@ export default function PortfolioSummaryPage() {
                       <TopMetricCard
                         key={metric.id}
                         title="Total Estimated Portfolio Value"
-                        value={formatCurrency(totalPortfolioValue)}
+                        value={new Intl.NumberFormat('en-CA', {
+                          style: 'currency',
+                          currency: 'CAD',
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(Math.floor(totalPortfolioValue))}
                         icon={Building2}
                         accent="emerald"
-                        supporting={`${formatCurrency(totalEquity)} equity • ${formatCurrency(totalMortgageDebt)} debt`}
-                        iconTooltip="The estimated current market value of all properties in your portfolio, based on current market valuations."
+                        supporting={`${new Intl.NumberFormat('en-CA', {
+                          style: 'currency',
+                          currency: 'CAD',
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(Math.floor(totalEquity))} equity • ${new Intl.NumberFormat('en-CA', {
+                          style: 'currency',
+                          currency: 'CAD',
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(Math.floor(totalMortgageDebt))} debt`}
+                        supportingSize="dynamic"
+                        iconTooltip="The estimated current market value of all properties in your portfolio, based on current market valuations. Values are rounded down to the nearest dollar."
                       />
                     );
                   case 'equity': {
-                    const projectedEquityCopy = `Projected equity added this calendar year: ${formatCurrency(annualEquityBuilt)}`;
+                    const earnedThisYearCopy = `Forecasted equity earned this year: ${new Intl.NumberFormat('en-CA', {
+                      style: 'currency',
+                      currency: 'CAD',
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    }).format(Math.floor(annualEquityBuilt))}`;
 
                     return (
                       <TopMetricCard
                         key={metric.id}
                         title="Total Estimated Equity"
-                        value={formatCurrency(totalEquity)}
+                        value={new Intl.NumberFormat('en-CA', {
+                          style: 'currency',
+                          currency: 'CAD',
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(Math.floor(totalEquity))}
                         icon={PiggyBank}
                         accent="teal"
                         iconBadge="$"
                         iconBadgePosition="top-center"
-                        supporting={projectedEquityCopy}
-                        iconTooltip="The estimated market value of your properties minus the remaining mortgage balances. This represents your ownership stake in the portfolio."
+                        supporting={earnedThisYearCopy}
+                        supportingSize="dynamic"
+                        iconTooltip="The estimated market value of your properties minus the remaining mortgage balances. This represents your ownership stake in the portfolio. Values are rounded down to the nearest dollar."
                       />
                     );
                   }
@@ -590,11 +643,17 @@ export default function PortfolioSummaryPage() {
                       <TopMetricCard
                         key={metric.id}
                         title="Total Mortgage Debt"
-                        value={formatCurrency(totalMortgageDebt)}
+                        value={new Intl.NumberFormat('en-CA', {
+                          style: 'currency',
+                          currency: 'CAD',
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(Math.floor(totalMortgageDebt))}
                         icon={FileSpreadsheet}
                         accent="amber"
-                        supporting={`Portfolio LTV ${formatPercentage(portfolioLTV)}`}
-                        iconTooltip="The total remaining mortgage balance across all properties in your portfolio. This represents your outstanding debt obligations."
+                        supporting={`Portfolio LTV ${Math.floor(portfolioLTV)}%`}
+                        supportingSize="dynamic"
+                        iconTooltip="The total remaining mortgage balance across all properties in your portfolio. This represents your outstanding debt obligations. Values are rounded down to the nearest dollar. Portfolio LTV percentage is rounded down to the nearest whole number."
                       />
                     );
                   default:
@@ -610,23 +669,23 @@ export default function PortfolioSummaryPage() {
             debtService={totalAnnualDebtService}
             netCashFlow={annualCashFlow}
           />
-          <div className="mt-6 grid gap-6 xl:grid-cols-[1.5fr_1.5fr]">
+          <div className="mt-6 grid gap-6 grid-cols-1 md:grid-cols-3">
             <AnnualRentalIncomeCard
               properties={properties}
               totalMonthlyRent={portfolioMetrics.totalMonthlyRent || 0}
             />
-            <AnnualDeductibleExpensesCard
-              expenseViewType={expenseViewType}
-              onViewChange={handleExpenseViewChange}
-              isSettingsOpen={isExpenseSettingsOpen}
-              setIsSettingsOpen={setIsExpenseSettingsOpen}
-              settingsRef={expenseSettingsRef}
+            <AnnualExpensesCard
               totalAnnualOperatingExpenses={totalAnnualOperatingExpenses}
               totalAnnualDebtService={totalAnnualDebtService}
-              totalAnnualDeductibleExpenses={portfolioMetrics?.totalAnnualDeductibleExpenses || 0}
               properties={properties}
               expenseCategoryList={expenseCategoryList}
               totalTrackedExpenses={totalTrackedExpenses}
+            />
+            <AnnualDeductibleExpensesCard
+              totalAnnualDeductibleExpenses={portfolioMetrics?.totalAnnualDeductibleExpenses || 0}
+              properties={properties}
+              deductibleExpenseCategoryList={deductibleExpenseCategoryList}
+              totalTrackedDeductibleExpenses={totalTrackedDeductibleExpenses}
             />
           </div>
 
@@ -921,6 +980,7 @@ function TopMetricCard({
   icon: Icon,
   accent = 'emerald',
   supporting,
+  supportingSize = 'small',
   iconBadge,
   iconBadgePosition = 'bottom-right',
   iconTooltip,
@@ -930,18 +990,11 @@ function TopMetricCard({
   const [isHovered, setIsHovered] = useState(false);
 
   const updateTooltipPosition = useCallback(() => {
-    if (!iconRef.current || !tooltipRef.current) return;
+    if (!iconRef.current || !tooltipRef.current || !isHovered) return;
     
     const iconRect = iconRef.current.getBoundingClientRect();
     
     // Temporarily show tooltip to measure it
-    const originalStyle = {
-      visibility: tooltipRef.current.style.visibility,
-      display: tooltipRef.current.style.display,
-      opacity: tooltipRef.current.style.opacity,
-      position: tooltipRef.current.style.position,
-    };
-    
     tooltipRef.current.style.visibility = 'hidden';
     tooltipRef.current.style.display = 'block';
     tooltipRef.current.style.opacity = '1';
@@ -995,9 +1048,10 @@ function TopMetricCard({
     tooltipRef.current.style.top = `${top}px`;
     tooltipRef.current.style.left = `${left}px`;
     tooltipRef.current.style.zIndex = '9999';
-    tooltipRef.current.style.visibility = '';
-    tooltipRef.current.style.display = '';
-  }, []);
+    tooltipRef.current.style.visibility = 'visible';
+    tooltipRef.current.style.display = 'block';
+    tooltipRef.current.style.opacity = '1';
+  }, [isHovered]);
 
   useEffect(() => {
     if (isHovered) {
@@ -1041,7 +1095,7 @@ function TopMetricCard({
   const config = accentConfig[accent] || accentConfig.emerald;
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl border ${config.border} bg-gradient-to-br ${config.gradient} p-5`}>
+    <div className={`relative rounded-2xl border ${config.border} bg-gradient-to-br ${config.gradient} p-5`}>
       <div className="flex items-start justify-between gap-3.5">
         <div>
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -1054,8 +1108,8 @@ function TopMetricCard({
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
-            <div ref={iconRef} className={`relative rounded-full p-2.5 ${config.icon} cursor-help`}>
-              <Icon className="h-5 w-5" aria-hidden="true" />
+            <div ref={iconRef} className={`relative rounded-full p-2.5 ${config.icon} cursor-help flex-shrink-0 flex items-center justify-center`}>
+              <Icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
               {iconBadge && (
                 <span
                   className={`absolute flex h-4 w-4 items-center justify-center rounded-full bg-[#205A3E] text-[10px] font-semibold text-white shadow-sm dark:bg-[#2F7E57] ${
@@ -1073,9 +1127,13 @@ function TopMetricCard({
                 ref={tooltipRef}
                 className="p-3 bg-[#205A3E] text-white text-xs leading-relaxed rounded-lg transition-opacity duration-200 pointer-events-none whitespace-normal w-72 max-w-[calc(100vw-2rem)] shadow-2xl"
                 style={{ 
+                  position: 'fixed',
                   opacity: isHovered ? 1 : 0, 
                   visibility: isHovered ? 'visible' : 'hidden',
-                  pointerEvents: 'none'
+                  pointerEvents: 'none',
+                  zIndex: isHovered ? 9999 : -1,
+                  top: isHovered ? undefined : '-9999px',
+                  left: isHovered ? undefined : '-9999px'
                 }}
               >
                 {iconTooltip}
@@ -1088,9 +1146,50 @@ function TopMetricCard({
         {value}
       </div>
       {supporting && (
-        <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
-          {supporting}
-        </p>
+        <>
+          <div className={`mt-4 border-t-[3px] ${
+            accent === 'emerald' 
+              ? 'border-[#205A3E]/30 dark:border-[#66B894]/30' 
+              : accent === 'teal'
+              ? 'border-[#1A4A5A]/30 dark:border-[#7AC0CF]/30'
+              : accent === 'amber'
+              ? 'border-[#B57A33]/30 dark:border-[#E9C08A]/30'
+              : 'border-gray-300 dark:border-gray-600'
+          }`} />
+          {supportingSize === 'dynamic' ? (
+            <div className="mt-3 w-full">
+              <p 
+                className={`font-bold whitespace-nowrap ${
+                  accent === 'emerald' 
+                    ? 'text-[#205A3E] dark:text-[#66B894]' 
+                    : accent === 'teal'
+                    ? 'text-[#1A4A5A] dark:text-[#7AC0CF]'
+                    : accent === 'amber'
+                    ? 'text-[#B57A33] dark:text-[#E9C08A]'
+                    : 'text-gray-900 dark:text-gray-100'
+                }`}
+                style={{ 
+                  fontSize: 'clamp(0.625rem, 1.5vw, 1.25rem)',
+                  lineHeight: '1.2'
+                }}
+              >
+                {supporting}
+              </p>
+            </div>
+          ) : (
+            <p className={`mt-3 ${supportingSize === 'large' ? 'text-2xl font-bold' : 'text-sm'} ${
+              accent === 'emerald' 
+                ? 'text-[#205A3E] dark:text-[#66B894]' 
+                : accent === 'teal'
+                ? 'text-[#1A4A5A] dark:text-[#7AC0CF]'
+                : accent === 'amber'
+                ? 'text-[#B57A33] dark:text-[#E9C08A]'
+                : 'text-gray-900 dark:text-gray-100'
+            }`}>
+              {supporting}
+            </p>
+          )}
+        </>
       )}
     </div>
   );
@@ -1214,6 +1313,7 @@ function IncomeWaterfallCard({ totalRevenue, operatingExpenses, debtService, net
 
 function AnnualRentalIncomeCard({ properties = [], totalMonthlyRent = 0 }) {
   const hasProperties = properties.length > 0;
+  const [chartType, setChartType] = useState('pie'); // 'pie' or 'bar'
 
   // Prepare data for pie chart
   const pieChartData = properties
@@ -1228,17 +1328,9 @@ function AnnualRentalIncomeCard({ properties = [], totalMonthlyRent = 0 }) {
     })
     .filter((item) => item.value > 0);
 
-  // Color palette for pie chart - high contrast colors for better visibility
-  const COLORS = [
-    '#205A3E', // primary emerald green
-    '#E16262', // red
-    '#3B82F6', // blue
-    '#F59E0B', // amber/orange
-    '#8B5CF6', // purple
-    '#06B6D4', // cyan
-    '#EC4899', // pink
-    '#10B981', // bright emerald
-  ];
+  // Prepare data for horizontal bar chart (same data, different format)
+  const barChartData = pieChartData;
+
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -1260,7 +1352,35 @@ function AnnualRentalIncomeCard({ properties = [], totalMonthlyRent = 0 }) {
 
   return (
     <div className="rounded-lg border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-neutral-900">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Annual Rental Income</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Annual Rental Income</h3>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setChartType('pie')}
+            className={`p-1.5 rounded-md transition-colors ${
+              chartType === 'pie'
+                ? 'bg-[#205A3E] text-white dark:bg-[#2F7E57]'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+            }`}
+            aria-label="Switch to pie chart"
+            title="Pie Chart"
+          >
+            <PieChartIcon className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setChartType('bar')}
+            className={`p-1.5 rounded-md transition-colors ${
+              chartType === 'bar'
+                ? 'bg-[#205A3E] text-white dark:bg-[#2F7E57]'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+            }`}
+            aria-label="Switch to bar chart"
+            title="Bar Chart"
+          >
+            <BarChart3 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
       {hasProperties ? (
               <div className="space-y-3">
           {properties.map((property) => {
@@ -1296,65 +1416,96 @@ function AnnualRentalIncomeCard({ properties = [], totalMonthlyRent = 0 }) {
                     </span>
                   </div>
                   
-                  {/* Pie Chart */}
-                  {pieChartData.length > 0 && (
+                  {/* Chart Section */}
+                  {barChartData.length > 0 && (
                     <div className="mt-4">
                       <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                         Income Distribution by Property
                       </h4>
-                      <ResponsiveContainer width="100%" height={200}>
-                        <PieChart>
-                          <Pie
-                            data={pieChartData}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ percent, cx, cy, midAngle, innerRadius, outerRadius }) => {
-                              if (percent < 0.05) return '';
-                              const RADIAN = Math.PI / 180;
-                              const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                              const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                              const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                              return (
-                                <text
-                                  x={x}
-                                  y={y}
-                                  fill="white"
-                                  textAnchor={x > cx ? 'start' : 'end'}
-                                  dominantBaseline="central"
-                                  fontSize="14"
-                                  fontWeight="600"
-                                  style={{
-                                    textShadow: '0 1px 2px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.5)',
-                                  }}
-                                >
-                                  {`${(percent * 100).toFixed(0)}%`}
-                                </text>
-                              );
-                            }}
-                            outerRadius={70}
-                            fill="#8884d8"
-                            dataKey="value"
-                          >
-                            {pieChartData.map((entry, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={COLORS[index % COLORS.length]} 
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip content={<CustomTooltip />} />
-                          <Legend 
-                            verticalAlign="bottom" 
-                            height={36}
-                            formatter={(value, entry) => (
-                              <span style={{ color: entry.color, fontSize: '12px' }}>
-                                {value}
-                              </span>
-                            )}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
+                      {chartType === 'pie' ? (
+                        <ResponsiveContainer width="100%" height={200}>
+                          <PieChart>
+                            <Pie
+                              data={pieChartData}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ percent, cx, cy, midAngle, innerRadius, outerRadius }) => {
+                                if (percent < 0.05) return '';
+                                const RADIAN = Math.PI / 180;
+                                const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                                const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                                const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                                return (
+                                  <text
+                                    x={x}
+                                    y={y}
+                                    fill="white"
+                                    textAnchor={x > cx ? 'start' : 'end'}
+                                    dominantBaseline="central"
+                                    fontSize="14"
+                                    fontWeight="600"
+                                    style={{
+                                      textShadow: '0 1px 2px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.5)',
+                                    }}
+                                  >
+                                    {`${(percent * 100).toFixed(0)}%`}
+                                  </text>
+                                );
+                              }}
+                              outerRadius={70}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {pieChartData.map((entry, index) => (
+                                <Cell 
+                                  key={`cell-${index}`} 
+                                  fill={COLORS[index % COLORS.length]} 
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend 
+                              verticalAlign="bottom" 
+                              height={36}
+                              formatter={(value, entry) => (
+                                <span style={{ color: entry.color, fontSize: '12px' }}>
+                                  {value}
+                                </span>
+                              )}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="space-y-3">
+                          {barChartData.map((item, index) => {
+                            const width = totalMonthlyRent * 12 > 0
+                              ? Math.min((item.value / (totalMonthlyRent * 12)) * 100, 100)
+                              : 0;
+                            const percentage = totalMonthlyRent * 12 > 0
+                              ? ((item.value / (totalMonthlyRent * 12)) * 100).toFixed(0)
+                              : 0;
+                            return (
+                              <div key={item.name}>
+                                <div className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
+                                  <span>{item.name} ({percentage}%)</span>
+                                  <span>{formatCurrency(item.value)}</span>
+                                </div>
+                                <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                                  <div
+                                    className="h-full rounded-full"
+                                    style={{ 
+                                      width: `${width}%`,
+                                      backgroundColor: COLORS[index % COLORS.length]
+                                    }}
+                                    role="presentation"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1368,208 +1519,457 @@ function AnnualRentalIncomeCard({ properties = [], totalMonthlyRent = 0 }) {
   );
 }
 
-function AnnualDeductibleExpensesCard({
-  expenseViewType,
-  onViewChange,
-  isSettingsOpen,
-  setIsSettingsOpen,
-  settingsRef,
+function AnnualExpensesCard({
   totalAnnualOperatingExpenses,
   totalAnnualDebtService,
-  totalAnnualDeductibleExpenses,
   properties = [],
   expenseCategoryList = [],
   totalTrackedExpenses = 0,
 }) {
   const hasProperties = properties.length > 0;
   const totalAnnualExpenses = totalAnnualOperatingExpenses + totalAnnualDebtService;
-  const cardTitle =
-    expenseViewType === 'annual'
-      ? 'Annual Expenses'
-      : 'Annual Deductible Expenses';
+  const [chartType, setChartType] = useState('bar'); // 'pie' or 'bar'
+
+  // Prepare data for pie chart
+  const pieChartData = expenseCategoryList.map((category) => ({
+    name: category.label,
+    value: category.value,
+  }));
 
   return (
     <div className="rounded-lg border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-neutral-900">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          {cardTitle}
-                </h3>
-                
-        <div className="relative" ref={settingsRef}>
-                  <button
-            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                    className="p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                    aria-label="Customize expense view"
-                  >
-            <Settings className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-                  </button>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          Annual Expenses
+        </h3>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setChartType('pie')}
+            className={`p-1.5 rounded-md transition-colors ${
+              chartType === 'pie'
+                ? 'bg-[#205A3E] text-white dark:bg-[#2F7E57]'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+            }`}
+            aria-label="Switch to pie chart"
+            title="Pie Chart"
+          >
+            <PieChartIcon className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setChartType('bar')}
+            className={`p-1.5 rounded-md transition-colors ${
+              chartType === 'bar'
+                ? 'bg-[#205A3E] text-white dark:bg-[#2F7E57]'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+            }`}
+            aria-label="Switch to bar chart"
+            title="Bar Chart"
+          >
+            <BarChart3 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
 
-          {isSettingsOpen && (
-            <div className="absolute right-0 mt-2 w-64 rounded-lg border border-black/10 bg-white py-2 shadow-lg dark:border-white/10 dark:bg-neutral-900 z-50">
-              <div className="border-b border-black/10 px-4 pb-2 dark:border-white/10">
-                        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Expense View</h3>
-                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                          Select which expense data to display
-                        </p>
-                      </div>
-                      <div className="py-2">
-                        <button
-                  onClick={() => onViewChange('annual')}
-                  className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                            expenseViewType === 'annual' 
-                      ? 'text-[#205A3E] font-medium dark:text-[#4ade80]'
-                              : 'text-gray-700 dark:text-gray-300'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span>Annual Expenses</span>
-                            {expenseViewType === 'annual' && (
-                      <div className="h-2 w-2 rounded-full bg-[#205A3E] dark:bg-[#4ade80]" />
-                            )}
-                          </div>
-                        </button>
-                        <button
-                  onClick={() => onViewChange('deductible')}
-                  className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                            expenseViewType === 'deductible' 
-                      ? 'text-[#205A3E] font-medium dark:text-[#4ade80]'
-                              : 'text-gray-700 dark:text-gray-300'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span>Annual Deductible Expenses</span>
-                              <div className="relative group">
-                        <div className="flex h-3 w-3 items-center justify-center rounded-full border border-[#205A3E] bg-white dark:border-[#4ade80] dark:bg-gray-100">
-                          <span className="text-[10px] font-bold text-[#205A3E] dark:text-[#4ade80]">
-                            i
-                          </span>
-                                </div>
-                        <div className="pointer-events-none absolute bottom-full left-1/2 z-10 w-64 -translate-x-1/2 whitespace-normal rounded-lg bg-[#205A3E] p-2 text-xs text-white opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100">
-                          Deductible costs can offset rental income for tax purposes. Typical write-offs
-                          include mortgage interest, property tax, insurance, utilities, and maintenance.
-                          <div className="absolute top-full left-1/2 -ml-1 h-2 w-2 rotate-45 bg-[#205A3E]" />
-                                </div>
-                              </div>
-                            </div>
-                            {expenseViewType === 'deductible' && (
-                      <div className="h-2 w-2 rounded-full bg-[#205A3E] dark:bg-[#4ade80]" />
-                            )}
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-3">
+      <div className="space-y-3">
         {hasProperties ? (
-                  properties.map((property) => {
+          properties.map((property) => {
             const monthlyExpenses = property.monthlyExpenses || {};
             const monthlyTotal = monthlyExpenses?.total || 0;
-            const propertyExpenseValue =
-              expenseViewType === 'deductible'
-                      ? (() => {
-                          try {
-                            const annualOperatingExpenses = 
-                        (monthlyExpenses.propertyTax || 0) * 12 +
-                        (monthlyExpenses.condoFees || 0) * 12 +
-                        (monthlyExpenses.insurance || 0) * 12 +
-                        (monthlyExpenses.maintenance || 0) * 12 +
-                        (monthlyExpenses.professionalFees || 0) * 12 +
-                        (monthlyExpenses.utilities || 0) * 12;
-                            
-                      const estimatedAnnualInterest =
-                        (property?.mortgage?.originalAmount || 0) *
-                        (property?.mortgage?.interestRate || 0);
-                            
-                            return annualOperatingExpenses + estimatedAnnualInterest;
-                          } catch (error) {
-                      const amortizationYears = property?.mortgage?.amortizationYears || 1;
-                      const originalAmount = property?.mortgage?.originalAmount || 0;
-                      const estimatedAnnualPrincipal =
-                        amortizationYears > 0 ? originalAmount / amortizationYears : 0;
-                      return monthlyTotal * 12 - estimatedAnnualPrincipal;
-                          }
-                        })()
-                : monthlyTotal * 12;
+            const propertyExpenseValue = monthlyTotal * 12;
 
-                    return (
+            return (
               <div
                 key={property.id}
                 className="flex justify-between items-center rounded-lg bg-gray-50 p-3 dark:bg-gray-800"
               >
-                        <div>
-                          <h4 className="font-medium text-gray-900 dark:text-gray-100">
-                            {property.nickname || property.name}
-                          </h4>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-gray-900 dark:text-gray-100">
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                    {property.nickname || property.name}
+                  </h4>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
                     {formatCurrency(propertyExpenseValue)}
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {formatCurrency(propertyExpenseValue / 12)}/mo
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {formatCurrency(monthlyTotal)}/mo
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        ) : (
           <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-400">
             Add property expenses to see where cash flow is going.
-                  </div>
-                )}
+          </div>
+        )}
 
         {hasProperties && (
           <div className="border-t border-gray-200 pt-3 dark:border-gray-700">
             <div className="flex items-center justify-between">
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {expenseViewType === 'deductible'
-                  ? 'Total Annual Deductible Expenses'
-                  : 'Total Annual Expenses'}
-                      </span>
+              <span className="font-semibold text-gray-900 dark:text-gray-100">
+                Total Annual Expenses
+              </span>
               <span className="text-lg font-bold text-red-600 dark:text-red-400">
-                        {expenseViewType === 'deductible' 
-                  ? formatCurrency(totalAnnualDeductibleExpenses)
-                  : formatCurrency(totalAnnualExpenses)}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                {formatCurrency(totalAnnualExpenses)}
+              </span>
+            </div>
+          </div>
+        )}
 
         {expenseCategoryList.length > 0 && (
           <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
             <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
               Largest Expense Categories
             </h4>
-            <div className="mt-3 space-y-3">
-              {expenseCategoryList.map((category) => {
-                const width =
-                  totalTrackedExpenses > 0
-                    ? Math.min((category.value / totalTrackedExpenses) * 100, 100)
-                    : 0;
-                const percentage = totalTrackedExpenses > 0
-                  ? ((category.value / totalTrackedExpenses) * 100).toFixed(1)
-                  : 0;
-                return (
-                  <div key={category.id}>
-                    <div className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
-                      <span>{category.label} ({percentage}%)</span>
-                      <span>{formatCurrency(category.value)}</span>
+            {chartType === 'pie' ? (
+              <div className="mt-4">
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={pieChartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ percent, cx, cy, midAngle, innerRadius, outerRadius }) => {
+                        if (percent < 0.05) return '';
+                        const RADIAN = Math.PI / 180;
+                        const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                        return (
+                          <text
+                            x={x}
+                            y={y}
+                            fill="white"
+                            textAnchor={x > cx ? 'start' : 'end'}
+                            dominantBaseline="central"
+                            fontSize="14"
+                            fontWeight="600"
+                            style={{
+                              textShadow: '0 1px 2px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.5)',
+                            }}
+                          >
+                            {`${(percent * 100).toFixed(0)}%`}
+                          </text>
+                        );
+                      }}
+                      outerRadius={70}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {pieChartData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={COLORS[index % COLORS.length]} 
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0];
+                          const percentage = totalTrackedExpenses > 0
+                            ? ((data.value / totalTrackedExpenses) * 100).toFixed(1)
+                            : 0;
+                          return (
+                            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3">
+                              <p className="font-semibold text-gray-900 dark:text-white">{data.name}</p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {formatCurrency(data.value)} ({percentage}%)
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend 
+                      verticalAlign="bottom" 
+                      height={36}
+                      formatter={(value, entry) => (
+                        <span style={{ color: entry.color, fontSize: '12px' }}>
+                          {value}
+                        </span>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-                    <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                      <div
-                        className="h-full rounded-full bg-[#E16262] dark:bg-[#A12424]"
-                        style={{ width: `${width}%` }}
-                        role="presentation"
-                      />
+            ) : (
+              <div className="mt-3 space-y-3">
+                {expenseCategoryList.map((category) => {
+                  const width =
+                    totalTrackedExpenses > 0
+                      ? Math.min((category.value / totalTrackedExpenses) * 100, 100)
+                      : 0;
+                  const percentage = totalTrackedExpenses > 0
+                    ? ((category.value / totalTrackedExpenses) * 100).toFixed(0)
+                    : 0;
+                  return (
+                    <div key={category.id}>
+                      <div className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <span>{category.label} ({percentage}%)</span>
+                        <span>{formatCurrency(category.value)}</span>
+                      </div>
+                      <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                        <div
+                          className="h-full rounded-full bg-[#E16262] dark:bg-[#A12424]"
+                          style={{ width: `${width}%` }}
+                          role="presentation"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AnnualDeductibleExpensesCard({
+  totalAnnualDeductibleExpenses,
+  properties = [],
+  deductibleExpenseCategoryList = [],
+  totalTrackedDeductibleExpenses = 0,
+}) {
+  const hasProperties = properties.length > 0;
+  const [chartType, setChartType] = useState('bar'); // 'pie' or 'bar'
+
+  // Prepare data for pie chart
+  const pieChartData = deductibleExpenseCategoryList.map((category) => ({
+    name: category.label,
+    value: category.value,
+  }));
+
+  return (
+    <div className="rounded-lg border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-neutral-900">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Annual Deductible Expenses
+          </h3>
+          <div className="relative group">
+            <div className="flex h-4 w-4 items-center justify-center rounded-full border border-[#205A3E] bg-white dark:border-[#4ade80] dark:bg-gray-100 cursor-help">
+              <span className="text-[10px] font-bold text-[#205A3E] dark:text-[#4ade80]">
+                i
+              </span>
+            </div>
+            <div className="pointer-events-none absolute bottom-full left-1/2 z-10 w-64 -translate-x-1/2 whitespace-normal rounded-lg bg-[#205A3E] p-2 text-xs text-white opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100">
+              Deductible costs can offset rental income for tax purposes. Typical write-offs
+              include mortgage interest, property tax, insurance, utilities, and maintenance.
+              <div className="absolute top-full left-1/2 -ml-1 h-2 w-2 rotate-45 bg-[#205A3E]" />
             </div>
           </div>
-                );
-              })}
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setChartType('pie')}
+            className={`p-1.5 rounded-md transition-colors ${
+              chartType === 'pie'
+                ? 'bg-[#205A3E] text-white dark:bg-[#2F7E57]'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+            }`}
+            aria-label="Switch to pie chart"
+            title="Pie Chart"
+          >
+            <PieChartIcon className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setChartType('bar')}
+            className={`p-1.5 rounded-md transition-colors ${
+              chartType === 'bar'
+                ? 'bg-[#205A3E] text-white dark:bg-[#2F7E57]'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+            }`}
+            aria-label="Switch to bar chart"
+            title="Bar Chart"
+          >
+            <BarChart3 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {hasProperties ? (
+          properties.map((property) => {
+            const monthlyExpenses = property.monthlyExpenses || {};
+            const propertyDeductibleValue = (() => {
+              try {
+                const annualOperatingExpenses = 
+                  (monthlyExpenses.propertyTax || 0) * 12 +
+                  (monthlyExpenses.condoFees || 0) * 12 +
+                  (monthlyExpenses.insurance || 0) * 12 +
+                  (monthlyExpenses.maintenance || 0) * 12 +
+                  (monthlyExpenses.professionalFees || 0) * 12 +
+                  (monthlyExpenses.utilities || 0) * 12;
+                
+                const estimatedAnnualInterest =
+                  (property?.mortgage?.originalAmount || 0) *
+                  (property?.mortgage?.interestRate || 0);
+                
+                return annualOperatingExpenses + estimatedAnnualInterest;
+              } catch (error) {
+                const monthlyTotal = monthlyExpenses?.total || 0;
+                const amortizationYears = property?.mortgage?.amortizationYears || 1;
+                const originalAmount = property?.mortgage?.originalAmount || 0;
+                const estimatedAnnualPrincipal =
+                  amortizationYears > 0 ? originalAmount / amortizationYears : 0;
+                return monthlyTotal * 12 - estimatedAnnualPrincipal;
+              }
+            })();
+
+            return (
+              <div
+                key={property.id}
+                className="flex justify-between items-center rounded-lg bg-gray-50 p-3 dark:bg-gray-800"
+              >
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                    {property.nickname || property.name}
+                  </h4>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
+                    {formatCurrency(propertyDeductibleValue)}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {formatCurrency(propertyDeductibleValue / 12)}/mo
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-400">
+            Add property expenses to see deductible costs.
+          </div>
+        )}
+
+        {hasProperties && (
+          <div className="border-t border-gray-200 pt-3 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-gray-900 dark:text-gray-100">
+                Total Annual Deductible Expenses
+              </span>
+              <span className="text-lg font-bold text-red-600 dark:text-red-400">
+                {formatCurrency(totalAnnualDeductibleExpenses)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {deductibleExpenseCategoryList.length > 0 && (
+          <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              Largest Expense Categories
+            </h4>
+            {chartType === 'pie' ? (
+              <div className="mt-4">
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={pieChartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ percent, cx, cy, midAngle, innerRadius, outerRadius }) => {
+                        if (percent < 0.05) return '';
+                        const RADIAN = Math.PI / 180;
+                        const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                        return (
+                          <text
+                            x={x}
+                            y={y}
+                            fill="white"
+                            textAnchor={x > cx ? 'start' : 'end'}
+                            dominantBaseline="central"
+                            fontSize="14"
+                            fontWeight="600"
+                            style={{
+                              textShadow: '0 1px 2px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.5)',
+                            }}
+                          >
+                            {`${(percent * 100).toFixed(0)}%`}
+                          </text>
+                        );
+                      }}
+                      outerRadius={70}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {pieChartData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={COLORS[index % COLORS.length]} 
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0];
+                          const percentage = totalTrackedDeductibleExpenses > 0
+                            ? ((data.value / totalTrackedDeductibleExpenses) * 100).toFixed(1)
+                            : 0;
+                          return (
+                            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3">
+                              <p className="font-semibold text-gray-900 dark:text-white">{data.name}</p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {formatCurrency(data.value)} ({percentage}%)
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend 
+                      verticalAlign="bottom" 
+                      height={36}
+                      formatter={(value, entry) => (
+                        <span style={{ color: entry.color, fontSize: '12px' }}>
+                          {value}
+                        </span>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                {deductibleExpenseCategoryList.map((category) => {
+                  const width =
+                    totalTrackedDeductibleExpenses > 0
+                      ? Math.min((category.value / totalTrackedDeductibleExpenses) * 100, 100)
+                      : 0;
+                  const percentage = totalTrackedDeductibleExpenses > 0
+                    ? ((category.value / totalTrackedDeductibleExpenses) * 100).toFixed(0)
+                    : 0;
+                  return (
+                    <div key={category.id}>
+                      <div className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <span>{category.label} ({percentage}%)</span>
+                        <span>{formatCurrency(category.value)}</span>
+                      </div>
+                      <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                        <div
+                          className="h-full rounded-full bg-[#E16262] dark:bg-[#A12424]"
+                          style={{ width: `${width}%` }}
+                          role="presentation"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
